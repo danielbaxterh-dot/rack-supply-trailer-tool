@@ -1024,6 +1024,23 @@
     </div>
     <button onclick="loadForecastToExpected()" style="font-weight:700;font-size:13px;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#fff;box-shadow:0 4px 8px rgba(39,181,137,0.4),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25);text-shadow:0 1px 2px rgba(0,0,0,0.2);transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 2px 4px rgba(39,181,137,0.3),inset 0 1px 0 rgba(255,255,255,0.15)'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 8px rgba(39,181,137,0.4),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25)'">▶ Load to Expected</button>
     <button onclick="setForecastToDefault()" style="font-size:13px;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#8a8a8a 0%,#6e6e6e 50%,#5e5e5e 100%);color:#fff;box-shadow:0 4px 8px rgba(0,0,0,0.25),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.2);text-shadow:0 1px 2px rgba(0,0,0,0.3);transition:all 0.1s;font-weight:600;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.1)'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 8px rgba(0,0,0,0.25),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.2)'">Set to Default</button>
+    <button onclick="openForecastSettings()" title="Forecast Settings" style="font-size:18px;padding:6px 10px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#4a7a5a 0%,#1a4731 100%);color:#f5c842;box-shadow:0 3px 6px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.1);transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)'" onmouseup="this.style.transform=''">⚙</button>
+  </div>
+
+  <!-- Forecast Settings Modal -->
+  <div id="fc-settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;padding:24px;min-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <span style="font-weight:700;font-size:16px;color:#1a4731;">⚙ Forecast Settings</span>
+        <button onclick="closeForecastSettings()" style="border:none;background:none;font-size:20px;cursor:pointer;color:#666;">✕</button>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Lines per BF Skid</label>
+        <input type="number" id="fc-set-lines-per-skid" min="1" style="width:100%;padding:8px 12px;border:1px solid #c8ddd4;border-radius:6px;font-size:18px;font-weight:700;color:#1a4731;outline:none;">
+        <div style="font-size:11px;color:#888;margin-top:4px;">BF Lines = BF Skids/Trailer × Trailers × this value</div>
+      </div>
+      <button onclick="saveForecastSettings()" style="width:100%;padding:10px;border:none;border-radius:8px;background:linear-gradient(180deg,#2ecc8f 0%,#1a4731 100%);color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Save Settings</button>
+    </div>
   </div>
 
 
@@ -1064,8 +1081,8 @@
             <th style="min-width:75px;text-align:center;font-size:14px;background:#d4f0e4;color:#1a4731 !important;">Exp. Lines</th>
             <th style="min-width:70px;text-align:center;font-size:14px;">Lines Adj.</th>
             <th style="min-width:75px;text-align:center;font-size:14px;background:#fff9d6;color:#1a4731 !important;font-weight:700;">Total</th>
-            <th style="min-width:70px;text-align:center;font-size:14px;">BF/Trailer</th>
-            <th style="min-width:75px;text-align:center;font-size:14px;">Bin Freight</th>
+            <th style="min-width:70px;text-align:center;font-size:14px;">BF SK/Trailer</th>
+            <th style="min-width:75px;text-align:center;font-size:14px;">BF Lines</th>
             <th style="min-width:30px;"></th>
           </tr></thead>
           <tbody id="fc-carrier-tbody"></tbody>
@@ -1091,7 +1108,7 @@
       <!-- Bin Freight Summary -->
       <div style="margin-bottom:12px;">
         <div class="panel" style="margin:0;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12);">
-          <h3 style="font-size:12px;">Bin Freight Summary</h3>
+          <h3 style="font-size:12px;">BF Lines Summary</h3>
           <div style="font-size:13px;line-height:1.8;color:#1a4731;">
             <div>Total BF Lines: <strong id="fc-bf-total" style="color:#1a4731;font-size:16px;">0</strong></div>
             <div style="color:var(--text2);font-size:11px;margin-top:6px;">Post on #aur-supply-side when forecast is complete</div>
@@ -1401,7 +1418,7 @@ let state = {
   trailers: {},  // doorId -> {carrier, trailerNum, type, arrival, secured, notes, expected}
   history: [],
   forecast: {},  // dateStr -> {ltl:[], lines:[], notes:''}
-  settings: { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8 },
+  settings: { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8, bfLinesPerSkid:9 },
   completedToday: []
 };
 
@@ -1505,7 +1522,7 @@ async function loadStateFromFirebase() {
 
     // SETTINGS
     const settingsSnap = await getDoc(doc(db, 'config', 'settings'));
-    const defaultSettings = { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8 };
+    const defaultSettings = { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8, bfLinesPerSkid:9 };
     if (settingsSnap.exists()) state.settings = Object.assign({}, defaultSettings, settingsSnap.data());
     else state.settings = defaultSettings;
 
@@ -1651,7 +1668,7 @@ function loadState() {
   state.trailers = {};
   state.history = [];
   state.completedToday = [];
-  state.settings = { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8 };
+  state.settings = { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8, bfLinesPerSkid:9 };
   state.forecast = {};
 }
 
@@ -2751,24 +2768,24 @@ function markDoorUnavailable() {
 // ===================== FORECAST =====================
 // Default carrier rows for a fresh forecast
 const DEFAULT_FC_CARRIERS = [
-  {name:'TForce',          linesPerTrailer:30,  expTrailers:3, trailerAdj:0, linesAdj:0,  bfPerTrailer:95, arrived:false, remaining:0, midday:0},
-  {name:'Dohrn',           linesPerTrailer:40,  expTrailers:5, trailerAdj:0, linesAdj:0,  bfPerTrailer:80, arrived:false, remaining:0, midday:0},
-  {name:'Pitt Ohio',       linesPerTrailer:20,  expTrailers:2, trailerAdj:0, linesAdj:0,  bfPerTrailer:85, arrived:false, remaining:0, midday:0},
-  {name:'ADP Craig',       linesPerTrailer:35,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:90, arrived:false, remaining:0, midday:0},
-  {name:'XPO',             linesPerTrailer:30,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:55, arrived:false, remaining:0, midday:0},
-  {name:'FEDEX',           linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:65, arrived:false, remaining:0, midday:0},
-  {name:'Copper & Brass',  linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
-  {name:'Castle Metal',    linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
-  {name:'WARD',            linesPerTrailer:5,   expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:15, arrived:false, remaining:0, midday:0},
-  {name:'ABF',             linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:12, arrived:false, remaining:0, midday:0},
-  {name:'R+L',             linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:65, arrived:false, remaining:0, midday:0},
-  {name:'ESTES',           linesPerTrailer:20,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:20, arrived:false, remaining:0, midday:0},
-  {name:'ODFL',            linesPerTrailer:5,   expTrailers:0, trailerAdj:0, linesAdj:0,  bfPerTrailer:40, arrived:false, remaining:0, midday:0},
-  {name:'DAYTON',          linesPerTrailer:16,  expTrailers:0, trailerAdj:0, linesAdj:0,  bfPerTrailer:80, arrived:false, remaining:0, midday:0},
-  {name:'Supplier Loads',  linesPerTrailer:30,  expTrailers:0, trailerAdj:0, linesAdj:30, bfPerTrailer:55, arrived:false, remaining:0, midday:0},
-  {name:'UU SORT',         linesPerTrailer:150, expTrailers:1, trailerAdj:0, linesAdj:18, bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
-  {name:'LTL',             linesPerTrailer:10,  expTrailers:2, trailerAdj:0, linesAdj:10, bfPerTrailer:20, arrived:false, remaining:0, midday:0},
-  {name:'Carryover',       linesPerTrailer:0,   expTrailers:0, trailerAdj:0, linesAdj:0,  bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
+  {name:'TForce',         linesPerTrailer:30,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:9,  arrived:false, remaining:0, midday:0},
+  {name:'Dohrn',          linesPerTrailer:40,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:10, arrived:false, remaining:0, midday:0},
+  {name:'Pitt Ohio',      linesPerTrailer:20,  expTrailers:2, trailerAdj:0, linesAdj:0, bfPerTrailer:7,  arrived:false, remaining:0, midday:0},
+  {name:'ADP Craig',      linesPerTrailer:35,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:10, arrived:false, remaining:0, midday:0},
+  {name:'XPO',            linesPerTrailer:30,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:9,  arrived:false, remaining:0, midday:0},
+  {name:'FEDEX',          linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
+  {name:'Copper & Brass', linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:1,  arrived:false, remaining:0, midday:0},
+  {name:'Castle Metal',   linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:1,  arrived:false, remaining:0, midday:0},
+  {name:'WARD',           linesPerTrailer:5,   expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:2,  arrived:false, remaining:0, midday:0},
+  {name:'ABF',            linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:3,  arrived:false, remaining:0, midday:0},
+  {name:'R+L',            linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
+  {name:'ESTES',          linesPerTrailer:20,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:6,  arrived:false, remaining:0, midday:0},
+  {name:'ODFL',           linesPerTrailer:5,   expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:2,  arrived:false, remaining:0, midday:0},
+  {name:'DAYTON',         linesPerTrailer:16,  expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
+  {name:'Supplier Loads', linesPerTrailer:30,  expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
+  {name:'UU SORT',        linesPerTrailer:150, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
+  {name:'LTL',            linesPerTrailer:10,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:2,  arrived:false, remaining:0, midday:0},
+  {name:'Carryover',      linesPerTrailer:0,   expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
 ];
 
 // Carriers that are always active regardless of schedule (never zeroed by day filter)
@@ -2888,7 +2905,8 @@ function renderForecastTab() {
     const adjTrailers = schedTrailers + (c.trailerAdj || 0);
     const expLines = (c.linesPerTrailer || 0) * adjTrailers;
     const total = expLines + (c.linesAdj || 0);
-    const bf = (c.bfPerTrailer || 0) * adjTrailers;
+    const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
+    const bf = (c.bfPerTrailer || 0) * adjTrailers * linesPerSkid;
     const tr = document.createElement('tr');
     const notScheduled = !ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name);
     tr.innerHTML = `
@@ -2959,6 +2977,22 @@ function syncCarryoverToCarriedIn(val) {
   calcForecastSummary();
 }
 
+function openForecastSettings() {
+  document.getElementById('fc-set-lines-per-skid').value = state.settings.bfLinesPerSkid || 9;
+  const m = document.getElementById('fc-settings-modal');
+  m.style.display = 'flex';
+}
+function closeForecastSettings() {
+  document.getElementById('fc-settings-modal').style.display = 'none';
+}
+function saveForecastSettings() {
+  state.settings.bfLinesPerSkid = +(document.getElementById('fc-set-lines-per-skid').value) || 9;
+  closeForecastSettings();
+  saveState();
+  renderForecastTab();
+  toast('Forecast settings saved ✓');
+}
+
 function calcForecastSummary() {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
@@ -2981,7 +3015,8 @@ function calcForecastSummary() {
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
     const expLines = (c.linesPerTrailer||0) * adjTrailers;
     const total = expLines + (c.linesAdj||0);
-    const bf = (c.bfPerTrailer||0) * adjTrailers;
+    const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
+    const bf = (c.bfPerTrailer||0) * adjTrailers * linesPerSkid;
     totTrailers += adjTrailers;
     totExpLines += expLines;
     totTotal += total;
