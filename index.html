@@ -796,11 +796,11 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
   }
-  @keyframes red-glow-pulse {
-    0%, 100% { box-shadow: 0 0 8px 2px rgba(220,38,38,0.55), 0 0 0 1px rgba(220,38,38,0.3); }
-    50%       { box-shadow: 0 0 22px 6px rgba(220,38,38,0.25), 0 0 0 1px rgba(220,38,38,0.15); }
+  @keyframes age-pulse {
+    0%, 100% { color: #dc2626; opacity: 1; }
+    50%       { color: #ef4444; opacity: 0.55; }
   }
-  .door-card-oldest { animation: red-glow-pulse 3s ease-in-out infinite; }
+  .door-elapsed-oldest { animation: age-pulse 3s ease-in-out infinite !important; }
   .door-card { position: relative; }
 </style>
 </head>
@@ -1929,8 +1929,7 @@ function renderDoors() {
   function buildDoorCard(door) {
     const t = state.trailers[door.id];
     const card = document.createElement('div');
-    const rank = priorityMap[door.id];
-    card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '') + (rank && rank <= 4 ? ' door-card-oldest' : '');
+    card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '');
     card.style.minHeight = s.doorHeight + 'px';
     const isYard = door.id.startsWith('YD');
     if (isYard && !t) {
@@ -1966,7 +1965,7 @@ function renderDoors() {
       rightCol += `
         <span class="door-trailer-num">${t.trailerNum || '#—'}</span>
         <span class="door-type-badge ${typeClass}">${t.type}</span>
-        ${elLabel !== null ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''}">${elLabel}</span>` : ''}
+        ${elLabel !== null ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''} ${priorityMap[door.id] && priorityMap[door.id] <= 4 ? 'door-elapsed-oldest' : ''}">${elLabel}</span>` : ''}
         ${t.secured ? `<span class="door-secured-tag">🔒 ${t.secureTime ? fmtTime(t.secureTime) : 'SECURED'}${t.securedBy ? ' · ' + t.securedBy : ''}</span>` : ''}`;
     }
     rightCol += `</div>`;
