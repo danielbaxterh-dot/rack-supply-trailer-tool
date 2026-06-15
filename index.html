@@ -246,10 +246,10 @@
   .door-elapsed {
     font-size: calc(13px * var(--card-scale));
     font-weight: 700;
-    color: #c49a00;
+    color: #000;
     line-height: 1;
   }
-  .door-elapsed-running { color: var(--orange) !important; }
+  .door-elapsed-running { color: #000 !important; }
   .door-secured-tag {
     font-size: calc(10px * var(--card-scale));
     background: rgba(39,181,137,0.15);
@@ -797,10 +797,10 @@
     50% { opacity: 0.6; }
   }
   @keyframes age-pulse {
-    0%, 100% { color: #dc2626; opacity: 1; }
-    50%       { color: #ef4444; opacity: 0.55; }
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.25; }
   }
-  .door-elapsed-oldest { animation: age-pulse 3s ease-in-out infinite !important; }
+  .door-elapsed-oldest { color: #dc2626 !important; animation: age-pulse 3s ease-in-out infinite; }
   .door-card { position: relative; }
 </style>
 </head>
