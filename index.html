@@ -2751,24 +2751,24 @@ function markDoorUnavailable() {
 // ===================== FORECAST =====================
 // Default carrier rows for a fresh forecast
 const DEFAULT_FC_CARRIERS = [
-  {name:'TForce',                 linesPerTrailer:30,  expTrailers:3, trailerAdj:0, linesAdj:0,   bfPerTrailer:95, arrived:false, remaining:0, midday:0},
-  {name:'Dohrn',                  linesPerTrailer:40,  expTrailers:3, trailerAdj:0, linesAdj:0,   bfPerTrailer:80, arrived:false, remaining:0, midday:0},
-  {name:'ADP Craig',              linesPerTrailer:35,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:90, arrived:false, remaining:0, midday:0},
-  {name:'Pitt Ohio',              linesPerTrailer:20,  expTrailers:2, trailerAdj:0, linesAdj:0,   bfPerTrailer:85, arrived:false, remaining:0, midday:0},
-  {name:'XPO',                    linesPerTrailer:30,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:55, arrived:false, remaining:0, midday:0},
-  {name:'FEDEX',                  linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:65, arrived:false, remaining:0, midday:0},
-  {name:'Copper & Brass',         linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
-  {name:'Castle Metal',           linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
-  {name:'WARD',                   linesPerTrailer:5,   expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:15, arrived:false, remaining:0, midday:0},
-  {name:'ABF',                    linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:12, arrived:false, remaining:0, midday:0},
-  {name:'R+L',                    linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:65, arrived:false, remaining:0, midday:0},
-  {name:'ESTES',                  linesPerTrailer:20,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:20, arrived:false, remaining:0, midday:0},
-  {name:'ODFL',                   linesPerTrailer:5,   expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:40, arrived:false, remaining:0, midday:0},
-  {name:'DAYTON',                 linesPerTrailer:16,  expTrailers:1, trailerAdj:0, linesAdj:0,   bfPerTrailer:80, arrived:false, remaining:0, midday:0},
-  {name:'Supplier Loads',         linesPerTrailer:30,  expTrailers:0, trailerAdj:0, linesAdj:0,   bfPerTrailer:55, arrived:false, remaining:0, midday:0},
-  {name:'UU SORT',       linesPerTrailer:150, expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
-  {name:'LTL', linesPerTrailer:10,  expTrailers:2, trailerAdj:0, linesAdj:0,   bfPerTrailer:20, arrived:false, remaining:0, midday:0},
-  {name:'Carryover',              linesPerTrailer:0,   expTrailers:0, trailerAdj:0, linesAdj:0,   bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
+  {name:'TForce',          linesPerTrailer:30,  expTrailers:3, trailerAdj:0, linesAdj:0,  bfPerTrailer:95, arrived:false, remaining:0, midday:0},
+  {name:'Dohrn',           linesPerTrailer:40,  expTrailers:5, trailerAdj:0, linesAdj:0,  bfPerTrailer:80, arrived:false, remaining:0, midday:0},
+  {name:'Pitt Ohio',       linesPerTrailer:20,  expTrailers:2, trailerAdj:0, linesAdj:0,  bfPerTrailer:85, arrived:false, remaining:0, midday:0},
+  {name:'ADP Craig',       linesPerTrailer:35,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:90, arrived:false, remaining:0, midday:0},
+  {name:'XPO',             linesPerTrailer:30,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:55, arrived:false, remaining:0, midday:0},
+  {name:'FEDEX',           linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:65, arrived:false, remaining:0, midday:0},
+  {name:'Copper & Brass',  linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
+  {name:'Castle Metal',    linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
+  {name:'WARD',            linesPerTrailer:5,   expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:15, arrived:false, remaining:0, midday:0},
+  {name:'ABF',             linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:12, arrived:false, remaining:0, midday:0},
+  {name:'R+L',             linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:65, arrived:false, remaining:0, midday:0},
+  {name:'ESTES',           linesPerTrailer:20,  expTrailers:1, trailerAdj:0, linesAdj:0,  bfPerTrailer:20, arrived:false, remaining:0, midday:0},
+  {name:'ODFL',            linesPerTrailer:5,   expTrailers:0, trailerAdj:0, linesAdj:0,  bfPerTrailer:40, arrived:false, remaining:0, midday:0},
+  {name:'DAYTON',          linesPerTrailer:16,  expTrailers:0, trailerAdj:0, linesAdj:0,  bfPerTrailer:80, arrived:false, remaining:0, midday:0},
+  {name:'Supplier Loads',  linesPerTrailer:30,  expTrailers:0, trailerAdj:0, linesAdj:30, bfPerTrailer:55, arrived:false, remaining:0, midday:0},
+  {name:'UU SORT',         linesPerTrailer:150, expTrailers:1, trailerAdj:0, linesAdj:18, bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
+  {name:'LTL',             linesPerTrailer:10,  expTrailers:2, trailerAdj:0, linesAdj:10, bfPerTrailer:20, arrived:false, remaining:0, midday:0},
+  {name:'Carryover',       linesPerTrailer:0,   expTrailers:0, trailerAdj:0, linesAdj:0,  bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
 ];
 
 // Carriers that are always active regardless of schedule (never zeroed by day filter)
@@ -3402,18 +3402,7 @@ function renderExpectedTrailers() {
   // Name normalization map for display
   const nameNorm = {'T-Force Freight':'TForce','ADP-Craig':'ADP Craig'};
 
-  let rows = [];
-  if (fd.carriers && fd.carriers.length) {
-    fd.carriers.filter(c => ((c.expTrailers||0) + (c.trailerAdj||0)) > 0 && !EXCLUDE_FROM_EXPECTED.has(c.name)).forEach(c => {
-      const displayName = nameNorm[c.name] || c.name;
-      const count = (c.expTrailers||0) + (c.trailerAdj||0);
-      for (let i = 0; i < count; i++) {
-        rows.push({ carrier: displayName, time: '', trailerNum: '', trailerIndex: i });
-      }
-    });
-  } else {
-    rows = (fd.ltl || []).filter(r => r.carrier).map((r, i) => ({ ...r, trailerIndex: i }));
-  }
+  let rows = (fd.ltl || []).filter(r => r.carrier).map((r, i) => ({ ...r, trailerIndex: i }));
 
   const tbody = document.getElementById('expected-tbody');
   const empty = document.getElementById('expected-empty');
