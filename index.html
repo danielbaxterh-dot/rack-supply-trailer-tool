@@ -1978,7 +1978,8 @@ function renderDoors() {
     if (t) {
       const carrierObj = state.carriers.find(c => c.name === t.carrier);
       const isOther = carrierObj && carrierObj.type === 'OTHER';
-      const rank = isOther ? '' : (priorityMap[door.id] || '');
+      const rankNum = isOther ? null : (priorityMap[door.id] || null);
+      const rank = rankNum && rankNum <= 5 ? rankNum : '';
       actions = `<div class="door-actions">
         <span class="door-priority-badge">${rank}</span>
         <button onclick="releaseTrailer('${door.id}')" style="padding:calc(4px * var(--card-scale)) calc(12px * var(--card-scale));border:none;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#9e9e9e 0%,#757575 50%,#616161 100%);color:#fff;box-shadow:0 3px 6px rgba(0,0,0,0.25),0 1px 2px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25);transition:all 0.1s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.15)'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 6px rgba(0,0,0,0.25),0 1px 2px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25)'">Release</button>
