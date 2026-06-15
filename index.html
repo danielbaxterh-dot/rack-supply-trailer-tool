@@ -1050,30 +1050,30 @@
       <!-- Summary Stats Row -->
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px;">
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">New Lines Expected</div>
-          <div id="fc-total-lines" style="font-size:28px;font-weight:700;color:#1a4731;margin-top:4px;">0</div>
+          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">New Lines Expected</div>
+          <div id="fc-total-lines" style="font-size:28px;font-weight:700;color:#000;margin-top:4px;">0</div>
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Lines Carried In</div>
-          <input type="number" id="fc-carried-in" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#1a4731;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()">
+          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Lines Carried In</div>
+          <input type="number" id="fc-carried-in" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()">
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Late Arriving Carryover</div>
-          <input type="number" id="fc-late-carryover" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#1a4731;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="saveLateCarryover(this.value)">
+          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Late Arriving Carryover</div>
+          <input type="number" id="fc-late-carryover" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="saveLateCarryover(this.value)">
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#e8f7ef;border:1px solid #27b589;box-shadow:0 3px 8px rgba(39,181,137,0.2),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#1a4731;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Total Lines</div>
-          <div id="fc-total-all-lines" style="font-size:28px;font-weight:800;color:#1a4731;margin-top:4px;">0</div>
+          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Total Lines</div>
+          <div id="fc-total-all-lines" style="font-size:28px;font-weight:800;color:#000;margin-top:4px;">0</div>
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Approx Capacity</div>
-          <input type="number" id="fc-capacity" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#1a4731;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="calcForecastSummary()">
+          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Approx Capacity</div>
+          <input type="number" id="fc-capacity" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="calcForecastSummary()">
         </div>
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Expected Carryover</div>
-          <div id="fc-carryover" style="font-size:28px;font-weight:700;color:#c0392b;margin-top:4px;">0</div>
+        <div id="fc-carryover-tile" class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
+          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Expected Carryover</div>
+          <div id="fc-carryover" style="font-size:28px;font-weight:700;color:#000;margin-top:4px;">0</div>
         </div>
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fde8ed !important;border:1px solid #f5b8c4 !important;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
+        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#f472b6 !important;border:1px solid #db2777 !important;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">BF Skid Estimate</div>
           <div id="fc-bf-skids-total" style="font-size:28px;font-weight:700;color:#000;margin-top:4px;">0</div>
         </div>
@@ -3041,8 +3041,19 @@ function calcForecastSummary() {
 
   const carryover = (newLines + carryoverLines) - fd.capacity;
   const carryEl = document.getElementById('fc-carryover');
+  const carryTile = document.getElementById('fc-carryover-tile');
   carryEl.textContent = carryover;
-  carryEl.style.color = carryover > 0 ? '#c0392b' : '#27b589';
+  carryEl.style.color = '#000';
+  if (carryover > 0) {
+    carryTile.style.background = '#e53e3e';
+    carryTile.style.borderColor = '#b91c1c';
+  } else if (carryover < 0) {
+    carryTile.style.background = '#bbf7d0';
+    carryTile.style.borderColor = '#22c55e';
+  } else {
+    carryTile.style.background = '#fff';
+    carryTile.style.borderColor = '#c8ddd4';
+  }
 }
 
 function saveLateCarryover(val) {
