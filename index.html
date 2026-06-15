@@ -1048,7 +1048,7 @@
     <!-- LEFT: Summary + Main Table -->
     <div>
       <!-- Summary Stats Row -->
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px;">
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">New Lines Expected</div>
           <div id="fc-total-lines" style="font-size:28px;font-weight:700;color:#1a4731;margin-top:4px;">0</div>
@@ -1056,6 +1056,10 @@
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Lines Carried In</div>
           <input type="number" id="fc-carried-in" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#1a4731;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()">
+        </div>
+        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
+          <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Late Arriving Carryover</div>
+          <input type="number" id="fc-late-carryover" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#1a4731;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="saveLateCarryover(this.value)">
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#e8f7ef;border:1px solid #27b589;box-shadow:0 3px 8px rgba(39,181,137,0.2),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#1a4731;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Total Lines</div>
@@ -1068,6 +1072,10 @@
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Expected Carryover</div>
           <div id="fc-carryover" style="font-size:28px;font-weight:700;color:#c0392b;margin-top:4px;">0</div>
+        </div>
+        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
+          <div style="font-size:12px;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">BF Skid Estimate</div>
+          <div id="fc-bf-skids-total" style="font-size:28px;font-weight:700;color:#1a4731;margin-top:4px;">0</div>
         </div>
       </div>
 
@@ -3007,20 +3015,22 @@ function calcForecastSummary() {
   const scheduledForDay = new Set();
   if (fd.schedule && isWeekday) fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
 
-  let totTrailers = 0, totExpLines = 0, totTotal = 0, totBF = 0;
+  let totTrailers = 0, totExpLines = 0, totTotal = 0, totBF = 0, totBFSkids = 0;
   let newLines = 0; // excludes Carryover row
   let carryoverLines = 0;
+  const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
   fd.carriers.forEach(c => {
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
     const expLines = (c.linesPerTrailer||0) * adjTrailers;
     const total = expLines + (c.linesAdj||0);
-    const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
-    const bf = (c.bfPerTrailer||0) * adjTrailers * linesPerSkid;
+    const skids = (c.bfPerTrailer||0) * adjTrailers;
+    const bf = skids * linesPerSkid;
     totTrailers += adjTrailers;
     totExpLines += expLines;
     totTotal += total;
     totBF += bf;
+    totBFSkids += skids;
     if (c.name === 'Carryover') {
       carryoverLines = total;
     } else {
@@ -3035,11 +3045,20 @@ function calcForecastSummary() {
   document.getElementById('fc-total-lines').textContent = newLines;
   document.getElementById('fc-total-all-lines').textContent = newLines + carryoverLines;
   document.getElementById('fc-bf-total').textContent = totBF;
+  document.getElementById('fc-bf-skids-total').textContent = totBFSkids;
+  document.getElementById('fc-late-carryover').value = fd.lateCarryover || 0;
 
   const carryover = (newLines + carryoverLines) - fd.capacity;
   const carryEl = document.getElementById('fc-carryover');
   carryEl.textContent = carryover;
   carryEl.style.color = carryover > 0 ? '#c0392b' : '#27b589';
+}
+
+function saveLateCarryover(val) {
+  const dateKey = document.getElementById('forecast-date').value || todayStr();
+  const fd = getForecastData(dateKey);
+  fd.lateCarryover = +val || 0;
+  saveState();
 }
 
 function renderFCSchedule(fd) {
