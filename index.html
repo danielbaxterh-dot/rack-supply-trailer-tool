@@ -796,6 +796,11 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
   }
+  @keyframes red-glow-pulse {
+    0%, 100% { box-shadow: 0 0 8px 2px rgba(220,38,38,0.55), 0 0 0 1px rgba(220,38,38,0.3); }
+    50%       { box-shadow: 0 0 22px 6px rgba(220,38,38,0.25), 0 0 0 1px rgba(220,38,38,0.15); }
+  }
+  .door-card-oldest { animation: red-glow-pulse 3s ease-in-out infinite; }
   .door-card { position: relative; }
 </style>
 </head>
@@ -1924,7 +1929,8 @@ function renderDoors() {
   function buildDoorCard(door) {
     const t = state.trailers[door.id];
     const card = document.createElement('div');
-    card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '');
+    const rank = priorityMap[door.id];
+    card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '') + (rank && rank <= 4 ? ' door-card-oldest' : '');
     card.style.minHeight = s.doorHeight + 'px';
     const isYard = door.id.startsWith('YD');
     if (isYard && !t) {
