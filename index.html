@@ -2852,8 +2852,8 @@ function getForecastData(dateKey) {
     };
   }
   const fd = state.forecast[dateKey];
-  if (!fd.carriers) fd.carriers = JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS));
-  if (!fd.schedule) fd.schedule = JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE));
+  if (!fd.carriers || fd.carriers.length === 0) fd.carriers = JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS));
+  if (!fd.schedule || fd.schedule.length === 0) fd.schedule = JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE));
   return fd;
 }
 
