@@ -2472,13 +2472,13 @@ function renderSalesSideTable() {
     const done = !!slot.releasedAt;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="color:${done ? '#8ab89e' : '#1a4731'};font-weight:700;${done ? 'text-decoration:line-through;' : ''}">${slot.label}</td>
+      <td style="color:${done ? '#888' : '#000'};font-weight:700;${done ? 'text-decoration:line-through;' : ''}">${slot.label}</td>
       <td style="text-align:center;">
         ${done
           ? '<span style="color:#27b589;font-size:16px;font-weight:700;">✓</span>'
           : '<span style="color:#ccc;font-size:14px;">○</span>'}
       </td>
-      <td style="color:${done ? '#2d6b4a' : '#aaa'};font-size:12px;">${done ? fmtTime(slot.releasedAt) : '—'}</td>
+      <td style="color:#000;font-size:12px;">${done ? fmtTime(slot.releasedAt) : '—'}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -2625,11 +2625,11 @@ function renderCompletedTable() {
     tr.style.cursor = 'pointer';
     tr.title = 'Double-click to edit or re-slot';
     tr.innerHTML = `
-      <td style="color:${r.didNotReceive?'#c0392b':'#1a4731'};font-weight:600;">${r.carrier}${r.didNotReceive?' <span style="font-size:10px;background:#fde8e8;color:#c0392b;border-radius:3px;padding:1px 4px;">DNR</span>':''}</td>
-      <td style="color:#2d6b4a">${r.door}</td>
-      <td style="color:#2d6b4a">${r.secured ? fmtTime(r.secured) : '—'}</td>
-      <td style="color:#2d6b4a">${r.released ? fmtTime(r.released) : fmtTime(r.completed)}</td>
-      <td style="color:#2d6b4a;font-size:11px;font-weight:600;">${r.releasedBy||''}</td>
+      <td style="color:${r.didNotReceive?'#c0392b':'#000'};font-weight:600;">${r.carrier}${r.didNotReceive?' <span style="font-size:10px;background:#fde8e8;color:#c0392b;border-radius:3px;padding:1px 4px;">DNR</span>':''}</td>
+      <td style="color:#000">${r.door}</td>
+      <td style="color:#000">${r.secured ? fmtTime(r.secured) : '—'}</td>
+      <td style="color:#000">${r.released ? fmtTime(r.released) : fmtTime(r.completed)}</td>
+      <td style="color:#000;font-size:11px;font-weight:600;">${r.releasedBy||''}</td>
     `;
     const recId = r.id;
     tr.addEventListener('dblclick', () => openEditCompletedModal(recId));
@@ -3623,9 +3623,9 @@ function renderExpectedTrailers() {
     tr.style.cursor = 'pointer';
     tr.title = 'Double-click to slot this trailer';
     tr.innerHTML = `
-      <td style="color:#1a4731;font-weight:600;">${r.carrier}</td>
-      <td style="color:#2d6b4a">${r.time || '—'}</td>
-      <td style="color:#2d6b4a">${r.trailerNum || '—'}</td>
+      <td style="color:#000;font-weight:600;">${r.carrier}</td>
+      <td style="color:#000">${r.time || '—'}</td>
+      <td style="color:#000">${r.trailerNum || '—'}</td>
     `;
     tr.addEventListener('dblclick', () => openQuickSlotModal(r.carrier));
     tbody.appendChild(tr);
@@ -3888,9 +3888,9 @@ function renderFutureDeliveries() {
     const dateLabel = new Date(r.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="color:#1a4731;font-weight:600;">${dateLabel}</td>
-      <td style="color:#1a4731;font-weight:600;">${r.carrier}</td>
-      <td style="color:#2d6b4a">${r.time || '—'}</td>
+      <td style="color:#000;font-weight:600;">${dateLabel}</td>
+      <td style="color:#000;font-weight:600;">${r.carrier}</td>
+      <td style="color:#000">${r.time || '—'}</td>
       <td style="color:#2d6b4a">${r.trailerNum || '—'}</td>
       <td><button onclick="removeFutureDelivery('${r.date}',${r.idx})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;text-shadow:0 1px 1px rgba(0,0,0,0.3);transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(180,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>
     `;
