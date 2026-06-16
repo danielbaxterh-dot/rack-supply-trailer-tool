@@ -1257,11 +1257,13 @@
     <h2>Slot Trailer</h2>
     <div class="form-row">
       <label>Carrier</label>
-      <select id="sltl-carrier" onchange="updateSlotLTLType()"></select>
+      <input type="text" id="sltl-carrier" list="sltl-carrier-list" placeholder="Type or select carrier" autocomplete="off" oninput="updateSlotLTLType()">
+      <datalist id="sltl-carrier-list"></datalist>
     </div>
     <div class="form-row">
       <label>Door</label>
-      <select id="sltl-door"></select>
+      <input type="text" id="sltl-door" list="sltl-door-list" placeholder="Type or select door" autocomplete="off">
+      <datalist id="sltl-door-list"></datalist>
     </div>
     <div class="form-row">
       <label>Trailer Number</label>
@@ -2265,34 +2267,27 @@ function moveTrailer(from, to) {
   saveState(); renderDoors(); toast('Trailer moved');
 }
 function openSlotLTLModal() {
-  const sel = document.getElementById('sltl-carrier');
-  sel.innerHTML = '<option value="">— Select Carrier —</option>';
-  const drop = state.carriers.filter(c => c.type === 'DROP' || c.type === 'LTL');
-  const live = state.carriers.filter(c => c.type === 'LIVE');
-  const other = state.carriers.filter(c => c.type !== 'DROP' && c.type !== 'LTL' && c.type !== 'LIVE');
-  if (drop.length) {
-    const grp = document.createElement('optgroup');
-    grp.label = 'Drop Carriers';
-    drop.forEach(c => { const o = document.createElement('option'); o.value = c.name; o.textContent = c.name; grp.appendChild(o); });
-    sel.appendChild(grp);
-  }
-  if (live.length) {
-    const grp = document.createElement('optgroup');
-    grp.label = 'Live Carriers';
-    live.forEach(c => { const o = document.createElement('option'); o.value = c.name; o.textContent = c.name; grp.appendChild(o); });
-    sel.appendChild(grp);
-  }
-  if (other.length) {
-    const grp = document.createElement('optgroup');
-    grp.label = 'Other';
-    other.forEach(c => { const o = document.createElement('option'); o.value = c.name; o.textContent = c.name; grp.appendChild(o); });
-    sel.appendChild(grp);
-  }
-  sel.value = '';
-  populateDoorSelect('sltl-door', true);
-  const doorSel = document.getElementById('sltl-door');
-  doorSel.insertAdjacentHTML('afterbegin', '<option value="">— Select Door —</option>');
-  doorSel.value = '';
+  // Populate carrier datalist
+  const carrierList = document.getElementById('sltl-carrier-list');
+  carrierList.innerHTML = '';
+  state.carriers.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.name;
+    carrierList.appendChild(o);
+  });
+
+  // Populate door datalist (empty doors only)
+  const doorList = document.getElementById('sltl-door-list');
+  doorList.innerHTML = '';
+  state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).forEach(door => {
+    const o = document.createElement('option');
+    o.value = `Door ${door.num}${door.name ? ' — ' + door.name : ''}`;
+    o.dataset.doorid = door.id;
+    doorList.appendChild(o);
+  });
+
+  document.getElementById('sltl-carrier').value = '';
+  document.getElementById('sltl-door').value = '';
   document.getElementById('sltl-trailer').value = '';
   document.getElementById('sltl-notes').value = '';
   document.getElementById('sltl-type').value = 'DROP';
@@ -2307,13 +2302,21 @@ function updateSlotLTLType() {
   if (!carrierObj) return;
   if (carrierObj.type === 'LIVE') {
     document.getElementById('sltl-type').value = 'LIVE';
-  } else if (carrierObj.type === 'DROP' || carrierObj.type === 'LTL') {
+  } else {
     document.getElementById('sltl-type').value = 'DROP';
   }
 }
 function slotLTLTrailer() {
-  const doorId = document.getElementById('sltl-door').value;
-  const carrier = document.getElementById('sltl-carrier').value;
+  const doorInput = document.getElementById('sltl-door').value.trim();
+  // Try to match typed value against datalist options (by door num or name)
+  const doorOpt = Array.from(document.getElementById('sltl-door-list').options).find(o => o.value === doorInput);
+  let doorId = doorOpt ? doorOpt.dataset.doorid : null;
+  if (!doorId) {
+    // Fallback: match by door number directly
+    const matched = state.doors.find(d => d.active && String(d.num) === doorInput);
+    if (matched) doorId = matched.id;
+  }
+  const carrier = document.getElementById('sltl-carrier').value.trim();
   const trailerNum = document.getElementById('sltl-trailer').value;
   const type = document.getElementById('sltl-type').value;
   const arrivalVal = document.getElementById('sltl-arrival').value;
