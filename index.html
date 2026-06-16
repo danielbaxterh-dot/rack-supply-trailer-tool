@@ -3065,10 +3065,8 @@ function renderForecastTab() {
     if (notScheduled) tr.style.opacity = '0.5';
     tbody.appendChild(tr);
   });
-  const dateKeyForSync = document.getElementById('forecast-date').value || todayStr();
   calcForecastSummary();
   renderFCSchedule(fd);
-  syncForecastToLTL(fd, dateKeyForSync);
 }
 
 function updateFCCarrier(idx, field, val) {
@@ -3268,17 +3266,16 @@ function syncForecastToLTL(fd, dateKey) {
   const scheduledForDay = new Set();
   if (fd.schedule && isWeekday) fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
 
-  fd.ltl = fd.carriers.filter(c => {
-    if (EXCLUDE_FROM_EXPECTED.has(c.name)) return false;
+  const rows = [];
+  fd.carriers.forEach(c => {
+    if (EXCLUDE_FROM_EXPECTED.has(c.name)) return;
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
-    return schedTrailers + (c.trailerAdj||0) > 0;
-  }).map(c => ({
-    carrier: c.name,
-    time: '',
-    trailerNum: '',
-    type: 'DROP',
-    notes: ''
-  }));
+    const adjTrailers = schedTrailers + (c.trailerAdj||0);
+    for (let i = 0; i < adjTrailers; i++) {
+      rows.push({ carrier: c.name, time: '', trailerNum: '', notes: '' });
+    }
+  });
+  fd.ltl = rows;
 }
 
 function toggleForecastSettings() {
@@ -3309,9 +3306,7 @@ function saveForecast() {
   const fd = getForecastData(dateKey);
   fd.carriedIn = +(document.getElementById('fc-carried-in').value || 0);
   fd.capacity = +(document.getElementById('fc-capacity').value || 0);
-  syncForecastToLTL(fd);
   saveState();
-  renderExpectedTrailers();
   toast('Forecast saved \u2713');
 }
 
