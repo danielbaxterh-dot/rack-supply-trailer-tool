@@ -2276,10 +2276,13 @@ function openSlotLTLModal() {
     carrierList.appendChild(o);
   });
 
-  // Populate door datalist (empty doors only)
+  // Populate door datalist (empty doors only), regular doors sorted low→high, then yard doors
   const doorList = document.getElementById('sltl-door-list');
   doorList.innerHTML = '';
-  state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).forEach(door => {
+  const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
+  const regularDoors = availDoors.filter(d => !d.id.startsWith('YD')).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
+  const yardDoors = availDoors.filter(d => d.id.startsWith('YD')).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
+  [...regularDoors, ...yardDoors].forEach(door => {
     const o = document.createElement('option');
     o.value = `Door ${door.num}${door.name ? ' — ' + door.name : ''}`;
     o.dataset.doorid = door.id;
