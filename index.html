@@ -1622,6 +1622,16 @@ async function loadStateFromFirebase() {
         for (const carrier of state.carriers) await saveOneCarrierToFirebase(carrier.id);
         console.log('[Firebase] Carrier migration complete');
       }
+      // One-time rename: "Pitt Ohio" → "PITT"
+      const pittCarrier = state.carriers.find(c => c.name === 'Pitt Ohio');
+      if (pittCarrier) { pittCarrier.name = 'PITT'; await saveOneCarrierToFirebase(pittCarrier.id); }
+      // Rename in any saved forecast records
+      Object.values(state.forecast).forEach(fd => {
+        (fd.carriers||[]).forEach(c => { if (c.name === 'Pitt Ohio') c.name = 'PITT'; });
+        (fd.schedule||[]).forEach(s => { if (s.name === 'Pitt Ohio') s.name = 'PITT'; });
+        (fd.ltl||[]).forEach(r => { if (r.carrier === 'Pitt Ohio') r.carrier = 'PITT'; });
+      });
+
       // Add any new default carriers that don't exist yet
       const tmpDefs = state.carriers;
       state.carriers = []; initDefaultCarriers();
@@ -1868,7 +1878,7 @@ function initDefaultCarriers() {
     // DROP carriers
     {id:'tforce',      name:'TForce',       type:'DROP'},
     {id:'dohrn',       name:'Dohrn',        type:'DROP'},
-    {id:'pitt',        name:'Pitt Ohio',    type:'DROP'},
+    {id:'pitt',        name:'PITT',    type:'DROP'},
     {id:'adp_craig',   name:'ADP Craig',    type:'DROP'},
     {id:'adui',        name:'Adui',         type:'DROP'},
     {id:'xpo',         name:'XPO',          type:'DROP'},
@@ -2454,10 +2464,10 @@ function secureTrailer(doorId) {
   saveState(); renderDoors(); toast('Trailer secured');
 }
 // ===================== SALES SIDE TABLE =====================
-// Tracks: Pitt Ohio x2, XPO x1 per day
+// Tracks: PITT x2, XPO x1 per day
 const SALES_SIDE_SLOTS = [
-  { id: 'pitt_1', carrier: 'Pitt Ohio', label: 'PITT', releasedAt: null, destDoor: '23' },
-  { id: 'pitt_2', carrier: 'Pitt Ohio', label: 'PITT', releasedAt: null, destDoor: '24' },
+  { id: 'pitt_1', carrier: 'PITT', label: 'PITT', releasedAt: null, destDoor: '23' },
+  { id: 'pitt_2', carrier: 'PITT', label: 'PITT', releasedAt: null, destDoor: '24' },
   { id: 'xpo_1',  carrier: 'XPO',       label: 'XPO',       releasedAt: null, destDoor: '21' },
 ];
 
@@ -2570,7 +2580,7 @@ function sendReleaseSlackNotification(rec, salesSlot) {
   const trailerNum = rec.trailerNum || '';
   const door = rec.door;
   let message;
-  if (salesSlot && salesSlot.carrier === 'Pitt Ohio') {
+  if (salesSlot && salesSlot.carrier === 'PITT') {
     message = `${carrier} trailer ${trailerNum} in door ${door} is empty and can be spotted to doors 23/24 if open.`;
   } else if (salesSlot) {
     message = `${carrier} trailer ${trailerNum} in door ${door} is empty and can be spotted to door ${salesSlot.destDoor} if open.`;
@@ -2892,7 +2902,7 @@ function markDoorUnavailable() {
 const DEFAULT_FC_CARRIERS = [
   {name:'TForce',         linesPerTrailer:30,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:9,  arrived:false, remaining:0, midday:0},
   {name:'Dohrn',          linesPerTrailer:40,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:10, arrived:false, remaining:0, midday:0},
-  {name:'Pitt Ohio',      linesPerTrailer:20,  expTrailers:2, trailerAdj:0, linesAdj:0, bfPerTrailer:7,  arrived:false, remaining:0, midday:0},
+  {name:'PITT',      linesPerTrailer:20,  expTrailers:2, trailerAdj:0, linesAdj:0, bfPerTrailer:7,  arrived:false, remaining:0, midday:0},
   {name:'ADP Craig',      linesPerTrailer:35,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:10, arrived:false, remaining:0, midday:0},
   {name:'XPO',            linesPerTrailer:30,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:9,  arrived:false, remaining:0, midday:0},
   {name:'FEDEX',          linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
@@ -2919,7 +2929,7 @@ const DEFAULT_FC_SCHEDULE = [
   {name:'TForce',                 mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'Dohrn',                  mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'ADP Craig',              mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
-  {name:'Pitt Ohio',              mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
+  {name:'PITT',              mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'XPO',                    mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'FEDEX',                  mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'Copper & Brass',         mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
