@@ -1675,6 +1675,16 @@ async function loadStateFromFirebase() {
       });
     } catch(e) { console.error('Failed to load future forecasts', e); }
 
+    // One-time rename: "Pitt Ohio" → "PITT" in all loaded forecast records
+    let forecastDirty = false;
+    Object.entries(state.forecast).forEach(([dk, fd]) => {
+      let dirty = false;
+      (fd.carriers||[]).forEach(c => { if (c.name === 'Pitt Ohio') { c.name = 'PITT'; dirty = true; } });
+      (fd.schedule||[]).forEach(s => { if (s.name === 'Pitt Ohio') { s.name = 'PITT'; dirty = true; } });
+      (fd.ltl||[]).forEach(r => { if (r.carrier === 'Pitt Ohio') { r.carrier = 'PITT'; dirty = true; } });
+      if (dirty) saveForecastToFirebase(dk);
+    });
+
     // HISTORY
     const histSnap = await getDocs(query(collection(db, 'history'), orderBy('completed', 'desc')));
     state.history = [];
