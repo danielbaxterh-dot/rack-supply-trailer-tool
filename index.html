@@ -1001,19 +1001,68 @@
 
 <!-- MORNING OUTLOOK MODAL -->
 <div class="modal-overlay" id="modal-outlook">
-  <div class="modal" style="width:500px;">
-    <h2>📝 Morning Outlook — <span id="outlook-modal-date"></span></h2>
-    <p style="font-size:12px;color:#4a7a5a;margin-bottom:12px;padding-top:8px;">Add or remove expected trailers. Trailers dated today show in the sidebar and feed the Report tab. Trailers with a future date appear under Future Deliveries until that date arrives.</p>
-    <table style="width:100%;margin-bottom:10px;background:#fff;border-radius:8px;overflow:hidden;">
-      <thead><tr>
-        <th>Carrier</th><th>Date</th><th>Expected Time</th><th>Trailer #</th><th>Type</th><th></th>
-      </tr></thead>
-      <tbody id="outlook-tbody"></tbody>
-    </table>
-    <button class="btn btn-teal btn-sm" onclick="addOutlookRow()" style="margin-bottom:12px;">+ Add Trailer</button>
-    <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeModal('modal-outlook')">Cancel</button>
-      <button class="btn btn-teal" onclick="saveOutlook()">Save Outlook</button>
+  <div class="modal" style="width:920px;max-width:98vw;padding:0;overflow:hidden;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <!-- Full-width header -->
+    <div style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #27b589;box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08);">
+      <span style="font-size:15px;font-weight:700;color:#f5c842;text-transform:uppercase;letter-spacing:0.8px;">📝 Morning Outlook — <span id="outlook-modal-date"></span></span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeModal('modal-outlook')" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#c8c8c8 0%,#a8a8a8 50%,#989898 100%);color:#000;box-shadow:0 4px 8px rgba(0,0,0,0.3),0 2px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:3px solid #707070;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.4)';this.style.borderBottom='1px solid #707070'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3),0 2px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='3px solid #707070'">Cancel</button>
+        <button onclick="saveOutlook()" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#ffe066 0%,#f5c842 50%,#e0a800 100%);color:#1a4731;box-shadow:0 4px 8px rgba(0,0,0,0.3),0 2px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.5);border-bottom:3px solid #b88a00;text-shadow:0 1px 0 rgba(255,255,255,0.3);transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.3)';this.style.borderBottom='1px solid #b88a00'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3),0 2px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.5)';this.style.borderBottom='3px solid #b88a00'">Save Outlook</button>
+      </div>
+    </div>
+    <!-- 3-column body -->
+    <div style="display:grid;grid-template-columns:220px 1fr 1fr;gap:14px;background:#d4e8dc;padding:14px;">
+      <!-- LEFT: Add form -->
+      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;">
+        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;">Add Trailer</div>
+        <div style="padding:14px;display:flex;flex-direction:column;gap:10px;flex:1;">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Carrier / Supplier</label>
+            <select id="outlook-form-carrier" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Date Expected</label>
+            <input type="date" id="outlook-form-date" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Time Expected</label>
+            <input type="time" id="outlook-form-time" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Trailer Number</label>
+            <input type="text" id="outlook-form-trailer" placeholder="#" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
+          </div>
+          <button onclick="addOutlookRowFromForm()" style="width:100%;margin-top:4px;font-size:13px;font-weight:700;padding:8px 0;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#fff;box-shadow:0 4px 8px rgba(39,181,137,0.4),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;text-shadow:0 1px 2px rgba(0,0,0,0.2);transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 3px rgba(39,181,137,0.3)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 8px rgba(39,181,137,0.4),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">+ Add</button>
+        </div>
+      </div>
+      <!-- CENTER: Expected Trailers Today -->
+      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;">Expected Trailers Today</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
+            <th style="padding:6px 4px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);border-bottom:2px solid #27b589;"></th>
+          </tr></thead>
+          <tbody id="outlook-today-tbody"></tbody>
+        </table>
+      </div>
+      <!-- RIGHT: Expected Trailers Next 5 Days -->
+      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;">Expected Trailers Next 5 Days</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+            <th style="padding:6px 4px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);border-bottom:2px solid #27b589;"></th>
+          </tr></thead>
+          <tbody id="outlook-future-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -3598,56 +3647,112 @@ function openOutlookModal() {
   const today = todayStr();
   const fd = state.forecast[today] || { ltl: [], carriers: [] };
   document.getElementById('outlook-modal-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
-  // Build outlook rows from carriers data
-  if (fd.carriers && fd.carriers.length) {
 
-    window._outlookRows = fd.carriers.filter(c => ((c.expTrailers||0) + (c.trailerAdj||0)) > 0 && !EXCLUDE_FROM_EXPECTED.has(c.name)).map(c => ({
-      carrier: c.name, time: '', trailerNum: '', type: 'DROP', notes: '', date: today
-    }));
-  } else {
-    window._outlookRows = JSON.parse(JSON.stringify(fd.ltl || []));
-  }
-  // Ensure every row has a date (older saved rows won't have one)
+  // Populate carrier dropdown in the form
+  const carrierSel = document.getElementById('outlook-form-carrier');
+  carrierSel.innerHTML = '<option value="">-- Select --</option>' +
+    state.carriers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+
+  // Set form date default to today
+  document.getElementById('outlook-form-date').value = today;
+  document.getElementById('outlook-form-time').value = '';
+  document.getElementById('outlook-form-trailer').value = '';
+
+  // Load existing rows from saved ltl
+  window._outlookRows = JSON.parse(JSON.stringify(fd.ltl || []));
   window._outlookRows.forEach(r => { if (!r.date) r.date = today; });
-  renderOutlookRows();
+
+  // Also load future-dated rows from next 5 days' forecast
+  window._outlookFutureRows = [];
+  const todayDate = new Date(today);
+  for (let i = 1; i <= 5; i++) {
+    const d = new Date(todayDate);
+    d.setDate(d.getDate() + i);
+    const dk = d.toISOString().slice(0,10);
+    const ffd = state.forecast[dk];
+    if (ffd && ffd.ltl && ffd.ltl.length) {
+      ffd.ltl.forEach(r => window._outlookFutureRows.push(Object.assign({}, r, {date: dk})));
+    }
+  }
+
+  renderOutlookTables();
   document.getElementById('modal-outlook').classList.add('open');
 }
 
-function renderOutlookRows() {
-  const tbody = document.getElementById('outlook-tbody');
-  tbody.innerHTML = '';
+function renderOutlookTables() {
   const today = todayStr();
-  window._outlookRows.forEach((row, i) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>
-        <select onchange="updateOutlookRow(${i},'carrier',this.value)" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:5px;padding:5px 8px;color:#1a4731;font-size:12px;font-weight:600;outline:none;width:130px">
-          <option value="">-- Select --</option>
-          ${state.carriers.map(c=>`<option value="${c.name}" ${row.carrier===c.name?'selected':''}>${c.name}</option>`).join('')}
-        </select>
-      </td>
-      <td><input type="date" value="${row.date || today}" onchange="updateOutlookRow(${i},'date',this.value)" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:5px;padding:5px 8px;color:#1a4731;font-size:12px;font-weight:600;outline:none;width:120px"></td>
-      <td><input type="time" value="${row.time||''}" onchange="updateOutlookRow(${i},'time',this.value)" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:5px;padding:5px 8px;color:#1a4731;font-size:12px;font-weight:600;outline:none;width:95px"></td>
-      <td><input type="text" value="${row.trailerNum||''}" placeholder="#" onchange="updateOutlookRow(${i},'trailerNum',this.value)" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:5px;padding:5px 8px;color:#1a4731;font-size:12px;font-weight:600;outline:none;width:85px"></td>
-      <td>
-        <select onchange="updateOutlookRow(${i},'type',this.value)" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:5px;padding:5px 8px;color:#1a4731;font-size:12px;font-weight:600;outline:none;">
-          <option value="DROP" ${row.type==='DROP'?'selected':''}>DROP</option>
-          <option value="LIVE" ${row.type==='LIVE'?'selected':''}>LIVE</option>
-        </select>
-      </td>
-      <td><button class="btn btn-red btn-sm" onclick="removeOutlookRow(${i})">✕</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
+  const tdCss = 'padding:6px 8px;font-size:12px;color:#000;border-bottom:1px solid #d4ead8;';
+
+  // Today's table
+  const todayTbody = document.getElementById('outlook-today-tbody');
+  todayTbody.innerHTML = '';
+  const todayRows = window._outlookRows.filter(r => !r.date || r.date <= today);
+  if (todayRows.length === 0) {
+    todayTbody.innerHTML = `<tr><td colspan="5" style="${tdCss}color:#4a7a5a;font-style:italic;">No trailers added yet</td></tr>`;
+  } else {
+    todayRows.forEach((row, i) => {
+      const globalIdx = window._outlookRows.indexOf(row);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="${tdCss}font-weight:600;">${row.carrier||'—'}</td>
+        <td style="${tdCss}">${row.trailerNum||'—'}</td>
+        <td style="${tdCss}">${row.time||'—'}</td>
+        <td style="padding:4px;"><button class="btn btn-red btn-sm" onclick="removeOutlookRow(${globalIdx})" style="font-size:11px;padding:2px 7px;">✕</button></td>
+      `;
+      todayTbody.appendChild(tr);
+    });
+  }
+
+  // Future table
+  const futureTbody = document.getElementById('outlook-future-tbody');
+  futureTbody.innerHTML = '';
+  if (window._outlookFutureRows.length === 0) {
+    futureTbody.innerHTML = `<tr><td colspan="5" style="${tdCss}color:#4a7a5a;font-style:italic;">No future trailers scheduled</td></tr>`;
+  } else {
+    window._outlookFutureRows.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      const dispDate = row.date ? new Date(row.date + 'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '—';
+      tr.innerHTML = `
+        <td style="${tdCss}">${dispDate}</td>
+        <td style="${tdCss}font-weight:600;">${row.carrier||'—'}</td>
+        <td style="${tdCss}">${row.trailerNum||'—'}</td>
+        <td style="padding:4px;"><button class="btn btn-red btn-sm" onclick="removeOutlookFutureRow(${i})" style="font-size:11px;padding:2px 7px;">✕</button></td>
+      `;
+      futureTbody.appendChild(tr);
+    });
+  }
+}
+
+function addOutlookRowFromForm() {
+  const carrier = document.getElementById('outlook-form-carrier').value;
+  const date = document.getElementById('outlook-form-date').value || todayStr();
+  const time = document.getElementById('outlook-form-time').value;
+  const trailerNum = document.getElementById('outlook-form-trailer').value;
+  if (!carrier) { toast('Please select a carrier'); return; }
+  const today = todayStr();
+  const row = { carrier, date, time, trailerNum, notes: '' };
+  if (date > today) {
+    window._outlookFutureRows.push(row);
+  } else {
+    window._outlookRows.push(row);
+  }
+  // Reset form fields (keep carrier/date for quick multi-add)
+  document.getElementById('outlook-form-time').value = '';
+  document.getElementById('outlook-form-trailer').value = '';
+  renderOutlookTables();
 }
 
 function addOutlookRow() {
   window._outlookRows.push({ carrier: '', time: '', trailerNum: '', type: 'DROP', notes: '', date: todayStr() });
-  renderOutlookRows();
+  renderOutlookTables();
 }
 function removeOutlookRow(i) {
   window._outlookRows.splice(i, 1);
-  renderOutlookRows();
+  renderOutlookTables();
+}
+function removeOutlookFutureRow(i) {
+  window._outlookFutureRows.splice(i, 1);
+  renderOutlookTables();
 }
 function updateOutlookRow(i, field, val) {
   if (window._outlookRows[i]) window._outlookRows[i][field] = val;
@@ -3656,33 +3761,37 @@ function saveOutlook() {
   const today = todayStr();
   if (!state.forecast[today]) state.forecast[today] = { ltl: [], lines: [{},{},{},{}], notes: '' };
 
-  // Split rows: today's rows stay in today's forecast; future-dated rows
-  // get filed under their own forecast date so they appear in Future Deliveries
-  // and only populate Expected Trailers once that date arrives.
-  const todayRows = [];
-  const futureDatesTouched = new Set();
-  window._outlookRows.forEach(r => {
-    const rowDate = r.date || today;
-    if (rowDate <= today) {
-      todayRows.push(r);
-    } else {
-      if (!state.forecast[rowDate]) state.forecast[rowDate] = { ltl: [], carriers: [], schedule: [], carriedIn: 0, capacity: 0, notes: '' };
-      if (!state.forecast[rowDate].ltl) state.forecast[rowDate].ltl = [];
-      state.forecast[rowDate].ltl.push(JSON.parse(JSON.stringify(r)));
-      futureDatesTouched.add(rowDate);
-    }
-  });
+  // Save today's rows
+  state.forecast[today].ltl = JSON.parse(JSON.stringify(window._outlookRows));
 
-  state.forecast[today].ltl = JSON.parse(JSON.stringify(todayRows));
   // If the user adds a carrier via outlook that isn't in the carriers table, add it
   const fd2 = state.forecast[today];
   if (fd2.carriers) {
-    todayRows.forEach(r => {
+    window._outlookRows.forEach(r => {
       if (r.carrier && !fd2.carriers.some(c => c.name === r.carrier)) {
         fd2.carriers.push({name:r.carrier, linesPerTrailer:0, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0, arrived:false, remaining:0, midday:0});
       }
     });
   }
+
+  // Save future rows — group by date, clear existing ltl for those dates first
+  const futureDatesTouched = new Set();
+  // Clear next 5 days' ltl so removed rows are reflected
+  const todayDate = new Date(today);
+  for (let i = 1; i <= 5; i++) {
+    const d = new Date(todayDate);
+    d.setDate(d.getDate() + i);
+    const dk = d.toISOString().slice(0,10);
+    if (state.forecast[dk]) { state.forecast[dk].ltl = []; futureDatesTouched.add(dk); }
+  }
+  window._outlookFutureRows.forEach(r => {
+    const rowDate = r.date || today;
+    if (!state.forecast[rowDate]) state.forecast[rowDate] = { ltl: [], carriers: [], schedule: [], carriedIn: 0, capacity: 0, notes: '' };
+    if (!state.forecast[rowDate].ltl) state.forecast[rowDate].ltl = [];
+    state.forecast[rowDate].ltl.push(JSON.parse(JSON.stringify(r)));
+    futureDatesTouched.add(rowDate);
+  });
+
   saveState();
   futureDatesTouched.forEach(d => saveForecastToFirebase(d));
   closeModal('modal-outlook');
