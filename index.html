@@ -374,9 +374,12 @@
   .fc-tbl-input.fc-total-calc { color: #1a4731; font-weight: 800; pointer-events: none; font-size: 20px; }
   .fc-arrived-chk { width: 16px; height: 16px; cursor: pointer; accent-color: var(--green); }
   .fc-sched-chk { width: 17px; height: 17px; cursor: pointer; accent-color: var(--teal); }
-  #fc-carrier-table td { padding: 4px 6px; border-bottom: 1px solid #c8ddd4; vertical-align: middle; background: #fff; color: #1a4731; }
+  #fc-carrier-table td { padding: 4px 6px; border-bottom: 1px solid #c8ddd4; vertical-align: middle; background: #fff; color: #000; }
   #fc-carrier-table tr:hover td { background: #f0faf5; }
-  #fc-carrier-table .carrier-name-cell { font-weight: 700; color: #1a4731; font-size: 13px; }
+  #fc-carrier-table .carrier-name-cell { font-weight: 700; color: #000; font-size: 13px; }
+  #fc-carrier-table input { color: #000; }
+  #fc-schedule-tbody td { color: #000; }
+  #fc-schedule-tbody input[type="text"] { color: #000; }
 
   /* SIDEBAR POPUP PANELS */
   .sidebar-panel {
@@ -1055,19 +1058,23 @@
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Lines Carried In</div>
-          <input type="number" id="fc-carried-in" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()">
+          <input type="number" id="fc-carried-in" value="0" style="width:90px;background:#f0faf5;border:none;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()">
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Late Arriving Carryover</div>
-          <input type="number" id="fc-late-carryover" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="saveLateCarryover(this.value)">
+          <input type="number" id="fc-late-carryover" value="0" style="width:90px;background:#f0faf5;border:none;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="saveLateCarryover(this.value)">
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#e8f7ef;border:1px solid #27b589;box-shadow:0 3px 8px rgba(39,181,137,0.2),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Total Lines</div>
           <div id="fc-total-all-lines" style="font-size:28px;font-weight:800;color:#000;margin-top:4px;">0</div>
         </div>
         <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Approx Capacity</div>
-          <input type="number" id="fc-capacity" value="0" style="width:90px;background:#f0faf5;border:1px solid #27b589;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="calcForecastSummary()">
+          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Capacity</div>
+          <input type="number" id="fc-capacity" value="0" style="width:90px;background:#f0faf5;border:none;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="calcForecastSummary()">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;">
+            <input type="number" id="fc-checkers" value="0" min="0" style="width:50px;background:#f0faf5;border:none;border-radius:4px;padding:2px 4px;color:#000;font-size:14px;font-weight:700;text-align:center;outline:none;" onchange="saveCheckers(this.value)">
+            <span style="font-size:11px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:0.3px;">Checkers</span>
+          </div>
         </div>
         <div id="fc-carryover-tile" class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
           <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Expected Carryover</div>
@@ -3038,6 +3045,7 @@ function calcForecastSummary() {
   document.getElementById('fc-bf-total').textContent = totBF;
   document.getElementById('fc-bf-skids-total').textContent = totBFSkids;
   document.getElementById('fc-late-carryover').value = fd.lateCarryover || 0;
+  document.getElementById('fc-checkers').value = fd.checkers || 0;
 
   const carryover = (newLines + carryoverLines) - fd.capacity;
   const carryEl = document.getElementById('fc-carryover');
@@ -3062,6 +3070,12 @@ function saveLateCarryover(val) {
   fd.lateCarryover = +val || 0;
   saveState();
 }
+function saveCheckers(val) {
+  const dateKey = document.getElementById('forecast-date').value || todayStr();
+  const fd = getForecastData(dateKey);
+  fd.checkers = +val || 0;
+  saveState();
+}
 
 function renderFCSchedule(fd) {
   const tbody = document.getElementById('fc-schedule-tbody');
@@ -3069,7 +3083,7 @@ function renderFCSchedule(fd) {
   (fd.schedule || []).forEach((s, i) => {
     const tr = document.createElement('tr');
     const days = ['mon','tue','wed','thu','fri'];
-    let cells = `<td style="font-size:15px;font-weight:700;color:#1a4731;background:#fff;padding:6px 8px;">${s.name}</td>`;
+    let cells = `<td style="font-size:15px;font-weight:700;color:#000;background:#fff;padding:6px 8px;">${s.name}</td>`;
     days.forEach(d => {
       cells += `<td style="text-align:center;background:#fff;padding:5px;"><input type="checkbox" class="fc-sched-chk" ${s[d]?'checked':''} onchange="updateFCSchedule(${i},'${d}',this.checked)"></td>`;
     });
