@@ -190,7 +190,7 @@
     font-family: 'Roboto Condensed', 'Roboto', sans-serif;
     font-size: 30px;
     font-weight: 700;
-    color: #1a4731;
+    color: #000;
     line-height: 1;
     white-space: nowrap;
     flex-shrink: 0;
@@ -274,8 +274,8 @@
   }
   .door-priority-badge {
     display: inline-block;
-    padding: calc(4px * var(--card-scale)) calc(10px * var(--card-scale));
-    border-radius: 5px;
+    padding: calc(1px * var(--card-scale)) calc(3px * var(--card-scale));
+    border-radius: 3px;
     background: var(--red);
     color: #000;
     font-size: calc(11px * var(--card-scale));
@@ -797,11 +797,12 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
   }
-  @keyframes age-pulse {
+  @keyframes rank-pulse {
     0%, 100% { opacity: 1; }
-    50%       { opacity: 0.25; }
+    50%       { opacity: 0.6; }
   }
-  .door-elapsed-oldest { color: #dc2626 !important; animation: age-pulse 3s ease-in-out infinite; }
+  .door-elapsed-oldest { color: #000 !important; }
+  .door-priority-badge-pulse { animation: rank-pulse 8s ease-in-out infinite; }
   .door-card { position: relative; }
 </style>
 </head>
@@ -2004,8 +2005,8 @@ function renderDoors() {
       const rankNum = isOther ? null : (priorityMap[door.id] || null);
       const rank = rankNum && rankNum <= 5 ? rankNum : '';
       actions = `<div class="door-actions">
-        <span class="door-priority-badge">${rank}</span>
-        <button onclick="releaseTrailer('${door.id}')" style="padding:calc(4px * var(--card-scale)) calc(12px * var(--card-scale));border:none;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#9e9e9e 0%,#757575 50%,#616161 100%);color:#fff;box-shadow:0 3px 6px rgba(0,0,0,0.25),0 1px 2px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25);transition:all 0.1s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.15)'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 6px rgba(0,0,0,0.25),0 1px 2px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.25)'">Release</button>
+        <span class="door-priority-badge${rankNum && rankNum <= 5 ? ' door-priority-badge-pulse' : ''}">${rank}</span>
+        <button onclick="releaseTrailer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>
       </div>`;
     }
 
