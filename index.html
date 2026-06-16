@@ -1953,7 +1953,7 @@ function renderDoors() {
     card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '');
     card.style.minHeight = s.doorHeight + 'px';
     const isYard = door.id.startsWith('YD');
-    if (isYard && !t) {
+    if (isYard) {
       card.style.background = 'linear-gradient(180deg,#a0a0a0 0%,#888888 100%)';
       card.style.borderColor = '#a8a8a8';
     }
