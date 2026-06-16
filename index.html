@@ -1074,9 +1074,8 @@
         <div style="padding:14px;display:flex;flex-direction:column;gap:10px;flex:1;">
           <div>
             <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Carrier / Supplier</label>
-            <select id="outlook-form-carrier" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
-              <option value="">-- Select --</option>
-            </select>
+            <input type="text" id="outlook-form-carrier" list="outlook-carrier-list" placeholder="Type or select..." autocomplete="off" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
+            <datalist id="outlook-carrier-list"></datalist>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Date Expected</label>
@@ -3709,10 +3708,10 @@ function openOutlookModal() {
   const fd = state.forecast[today] || { ltl: [], carriers: [] };
   document.getElementById('outlook-modal-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
 
-  // Populate carrier dropdown in the form
-  const carrierSel = document.getElementById('outlook-form-carrier');
-  carrierSel.innerHTML = '<option value="">-- Select --</option>' +
-    state.carriers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+  // Populate carrier datalist
+  document.getElementById('outlook-carrier-list').innerHTML =
+    state.carriers.map(c => `<option value="${c.name}">`).join('');
+  document.getElementById('outlook-form-carrier').value = '';
 
   // Set form date default to today
   document.getElementById('outlook-form-date').value = today;
