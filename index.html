@@ -1238,7 +1238,6 @@
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="width:100%;font-size:11px;min-width:300px;">
           <thead><tr>
-            <th style="width:20px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);box-shadow:0 2px 4px rgba(0,0,0,0.3);"></th>
             <th style="min-width:90px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
             <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">M</th>
             <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">T</th>
@@ -3220,11 +3219,11 @@ function renderFCSchedule(fd) {
   (fd.schedule || []).forEach((s, i) => {
     const tr = document.createElement('tr');
     const days = ['mon','tue','wed','thu','fri'];
-    let cells = `<td style="background:#fff;padding:3px 4px;"><button onclick="removeScheduleRow(${i})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>`;
-    cells += `<td style="font-size:15px;font-weight:700;color:#000;background:#fff;padding:6px 8px;">${s.name}</td>`;
+    let cells = `<td style="font-size:15px;font-weight:700;color:#000;background:#fff;padding:6px 8px;">${s.name}</td>`;
     days.forEach(d => {
       cells += `<td style="text-align:center;background:#fff;padding:5px;"><input type="checkbox" class="fc-sched-chk" ${s[d]?'checked':''} onchange="updateFCSchedule(${i},'${d}',this.checked)"></td>`;
     });
+    cells += `<td style="background:#fff;padding:3px 4px;"><button onclick="removeScheduleRow(${i})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>`;
     tr.innerHTML = cells;
     tbody.appendChild(tr);
   });
