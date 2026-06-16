@@ -2931,9 +2931,9 @@ const DEFAULT_FC_CARRIERS = [
 ];
 
 // Carriers that are always active regardless of schedule (never zeroed by day filter)
-const ALWAYS_ACTIVE = new Set(['Supplier Loads', 'Carryover', 'UU SORT', 'LTL']);
+const ALWAYS_ACTIVE = new Set(['Carryover', 'UU SORT', 'LTL']);
 // Carriers excluded from Expected Trailers sidebar
-const EXCLUDE_FROM_EXPECTED = new Set(['Supplier Loads', 'UU SORT', 'LTL', 'Carryover']);
+const EXCLUDE_FROM_EXPECTED = new Set(['UU SORT', 'LTL', 'Carryover']);
 
 const DEFAULT_FC_SCHEDULE = [
   {name:'TForce',                 mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
