@@ -883,9 +883,8 @@
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-left:16px;">
-          <button class="btn btn-teal" onclick="openAddDoorModal()">+ Add Door</button>
-          <button class="btn btn-yellow" onclick="saveDefaultLayout()" title="Save current door layout as the default that loads on reset">💾 Set as Default</button>
-          <button class="btn btn-green" onclick="toggleEditMode()">✓ Done Editing</button>
+          <button onclick="openAddDoorModal()" style="font-size:12px;font-weight:700;padding:6px 14px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#fff;box-shadow:0 4px 8px rgba(39,181,137,0.4),0 2px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;text-shadow:0 1px 2px rgba(0,0,0,0.2);transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 3px rgba(39,181,137,0.3)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 8px rgba(39,181,137,0.4),0 2px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">+ Add Door</button>
+          <button onclick="toggleEditMode()" style="font-size:12px;font-weight:700;padding:6px 14px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#ffe066 0%,#f5c842 50%,#e0a800 100%);color:#1a4731;box-shadow:0 4px 8px rgba(0,0,0,0.25),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.5);border-bottom:3px solid #b88a00;text-shadow:0 1px 0 rgba(255,255,255,0.3);transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2)';this.style.borderBottom='1px solid #b88a00'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 8px rgba(0,0,0,0.25),0 2px 3px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.5)';this.style.borderBottom='3px solid #b88a00'">✓ Done Editing</button>
         </div>
       </div>
 
