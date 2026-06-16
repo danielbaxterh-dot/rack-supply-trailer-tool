@@ -844,7 +844,7 @@
   <div class="home-layout">
     <div class="home-main">
       <div class="flex-row" style="margin-bottom:10px;">
-        <button class="btn btn-yellow" id="edit-mode-btn" onclick="toggleEditMode()">Edit Layout</button>
+        <button id="edit-mode-btn" onclick="toggleEditMode()" style="font-size:10px;font-weight:700;padding:4px 8px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 3px 5px rgba(180,0,0,0.4),0 1px 2px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;text-shadow:0 1px 1px rgba(0,0,0,0.3);transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(180,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(180,0,0,0.4),0 1px 2px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">Edit Layout</button>
         <span class="edit-mode-badge" id="edit-mode-badge">EDIT MODE</span>
       </div>
 
@@ -896,7 +896,7 @@
         <div class="sidebar-panel-header">
           <span class="sidebar-panel-title">Expected Trailers</span>
           <div style="display:flex;gap:4px;">
-            <button class="btn btn-purple btn-sm" onclick="openOutlookModal()" style="font-size:10px;padding:3px 9px;">Edit</button>
+            <button onclick="openOutlookModal()" style="font-size:11px;font-weight:700;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 3px 6px rgba(180,0,0,0.4),0 1px 2px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;text-shadow:0 1px 1px rgba(0,0,0,0.3);transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(180,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 6px rgba(180,0,0,0.4),0 1px 2px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">Edit</button>
           </div>
         </div>
         <div class="sidebar-panel-body">
@@ -3843,7 +3843,7 @@ function renderFutureDeliveries() {
       <td style="color:#1a4731;font-weight:600;">${r.carrier}</td>
       <td style="color:#2d6b4a">${r.time || '—'}</td>
       <td style="color:#2d6b4a">${r.trailerNum || '—'}</td>
-      <td><button class="btn btn-red btn-sm" onclick="removeFutureDelivery('${r.date}',${r.idx})">✕</button></td>
+      <td><button onclick="removeFutureDelivery('${r.date}',${r.idx})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;text-shadow:0 1px 1px rgba(0,0,0,0.3);transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(180,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -3869,7 +3869,6 @@ function toggleEditMode() {
   document.getElementById('edit-mode-badge').classList.toggle('visible', editModeActive);
   const btn = document.getElementById('edit-mode-btn');
   btn.textContent = editModeActive ? 'Exit Edit' : 'Edit Layout';
-  btn.className = editModeActive ? 'btn btn-red' : 'btn btn-yellow';
   if (editModeActive) {
     // Sync sliders to current settings
     const s = state.settings;
