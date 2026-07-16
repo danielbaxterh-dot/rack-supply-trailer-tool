@@ -1708,6 +1708,10 @@ function localDateTimeInputValue(date) {
 
 let _unsubTrailers = null;
 let _unsubHistory = null;
+// Nothing is allowed to write back to Firebase until a load has fully succeeded.
+// This prevents corrupted/partial/default data (from a failed load, a timeout fallback,
+// or any mid-load error) from ever being silently saved over the team's real shared data.
+let _safeToSyncToFirebase = false;
 
 function getDb() { return window._db; }
 function fb() { return window._fbFns; }
@@ -1864,7 +1868,12 @@ async function loadStateFromFirebase() {
     // Fallback to defaults
     initDefaultDoors();
     initDefaultCarriers();
+    _safeToSyncToFirebase = false;
+    toast('Data failed to load correctly — changes will not be saved until you refresh', 'error');
+    return; // don't mark sync-safe below, and don't set up the trailers listener on bad data
   }
+
+  _safeToSyncToFirebase = true;
 
   // Real-time listener for active trailers
   if (_unsubTrailers) _unsubTrailers();
@@ -1881,7 +1890,7 @@ async function loadStateFromFirebase() {
 let _fullHistoryLoaded = false;
 async function loadFullHistoryIfNeeded() {
   if (_fullHistoryLoaded) return;
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   const { getDocs, collection } = fb();
   try {
     const snap = await getDocs(collection(getDb(), 'history'));
@@ -1966,7 +1975,7 @@ async function ensureFullHistoryLoaded() {
 }
 
 async function saveDailySummaryToFirebase(dateKey) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   const todayRecs = state.history.filter(r => r.date === dateKey);
   if (!todayRecs.length) return;
   const summary = {
@@ -1982,11 +1991,11 @@ async function saveDailySummaryToFirebase(dateKey) {
 }
 
 async function saveDoorsToFirebase() {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().setDoc(fb().doc(getDb(), 'config', 'doors'), { list: state.doors }); } catch(e) { console.error(e); }
 }
 async function saveCarriersToFirebase() {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   // Save each carrier as its own document to avoid 1MB Firestore limit from logos
   const promises = state.carriers.map(carrier =>
     fb().setDoc(fb().doc(getDb(), 'carriers', carrier.id), carrier).catch(e => console.error('Failed to save carrier', carrier.id, e))
@@ -1995,7 +2004,7 @@ async function saveCarriersToFirebase() {
 }
 
 async function saveOneCarrierToFirebase(carrierId) {
-  if (!window._fbReady || !getDb()) {
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) {
     console.warn('Firebase not ready — cannot save carrier', carrierId);
     toast('Not connected to database — logo not saved', 'error');
     return;
@@ -2013,39 +2022,39 @@ async function saveOneCarrierToFirebase(carrierId) {
 }
 
 async function deleteCarrierFromFirebase(carrierId) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().deleteDoc(fb().doc(getDb(), 'carriers', carrierId)); } catch(e) { console.error(e); }
 }
 async function saveSettingsToFirebase() {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().setDoc(fb().doc(getDb(), 'config', 'settings'), state.settings); } catch(e) { console.error(e); }
 }
 async function saveForecastToFirebase(dateKey) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   const fd = state.forecast[dateKey];
   if (!fd) return;
   try { await fb().setDoc(fb().doc(getDb(), 'forecast', dateKey), fd); } catch(e) { console.error(e); }
 }
 async function deleteForecastFromFirebase(dateKey) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().deleteDoc(fb().doc(getDb(), 'forecast', dateKey)); } catch(e) { console.error(e); }
 }
 async function saveTrailerToFirebase(doorId) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   const t = state.trailers[doorId];
   if (!t) return;
   try { await fb().setDoc(fb().doc(getDb(), 'trailers', doorId), t); } catch(e) { console.error(e); }
 }
 async function deleteTrailerFromFirebase(doorId) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().deleteDoc(fb().doc(getDb(), 'trailers', doorId)); } catch(e) { console.error(e); }
 }
 async function saveHistoryRecordToFirebase(rec) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().setDoc(fb().doc(getDb(), 'history', String(rec.id)), rec); } catch(e) { console.error(e); }
 }
 async function deleteHistoryRecordFromFirebase(id) {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().deleteDoc(fb().doc(getDb(), 'history', String(id))); } catch(e) { console.error(e); }
 }
 
@@ -2910,14 +2919,14 @@ function checkSalesSideRelease(carrier, releaseTime) {
 }
 
 async function saveSalesSideToFirebase() {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try {
     await fb().setDoc(fb().doc(getDb(), 'salesside', todayStr()), { slots: salesSideState, date: todayStr() });
   } catch(e) { console.error(e); }
 }
 
 async function loadSalesSideFromFirebase() {
-  if (!window._fbReady || !getDb()) return;
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try {
     const snap = await fb().getDoc(fb().doc(getDb(), 'salesside', todayStr()));
     if (snap.exists() && snap.data().slots) {
@@ -4894,16 +4903,26 @@ window._onFirebaseReady = async () => {
     document.getElementById('forecast-date').value = todayStr();
     const dateEl = document.getElementById('date-display');
     if (dateEl) dateEl.textContent = window._currentUser.toUpperCase() + '  |  ' + new Date().toLocaleDateString('en-US', {weekday:'short', year:'numeric', month:'short', day:'numeric'});
+    if (_usingOfflineFallback) {
+      _usingOfflineFallback = false;
+      toast('Reconnected — synced with the live data ✓');
+    }
   } else {
     // Firebase ready but user hasn't logged in yet — set flag so submitLogin can proceed
     window._fbDataLoaded = true;
   }
 };
 
-// Offline fallback after 15 seconds
+// Offline fallback — only trip if Firebase genuinely hasn't responded after a generous window.
+// Mobile/cellular connections can legitimately take longer than a quick wifi load, so this waits
+// longer before giving up. If the real Firebase load does complete a little late (it keeps running
+// in the background regardless of this timeout), it will naturally overwrite this fallback data
+// and re-render — the toast below just makes that visible instead of swapping data silently.
+let _usingOfflineFallback = false;
 setTimeout(() => {
   if (document.getElementById('fb-loading')) {
     console.warn('[App] Firebase timeout — falling back to offline mode');
+    _usingOfflineFallback = true;
     setConnectionStatus('offline');
     document.getElementById('fb-loading').remove();
     try {
@@ -4931,9 +4950,9 @@ setTimeout(() => {
     renderDoors();
     renderExpectedTrailers();
     document.getElementById('forecast-date').value = todayStr();
-    toast('Offline mode — changes will not sync', 'error');
+    toast('Slow connection — showing offline data for now, still trying to reconnect…', 'error');
   }
-}, 15000);
+}, 25000);
 
 // Show login prompt AFTER _onFirebaseReady is defined
 function showLoginPrompt() {
