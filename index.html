@@ -821,6 +821,29 @@
   .edit-slider-row label { min-width: 120px; }
   .edit-slider-row input[type=range] { width: 110px; }
   .edit-slider-row span { min-width: 32px; color: var(--yellow); font-weight: 700; font-size: 11px; }
+  .edit-slider-row input.et-num-input {
+    width: 48px;
+    background: #16351f;
+    border: 1px solid #2d5a3d;
+    border-radius: 5px;
+    color: var(--yellow);
+    font-weight: 700;
+    font-size: 11px;
+    padding: 3px 4px;
+    text-align: center;
+    font-family: 'Roboto Mono', monospace;
+  }
+  .edit-slider-row input.et-num-input:focus {
+    outline: none;
+    border-color: var(--yellow);
+  }
+  /* Hide number input spinner arrows for a cleaner look */
+  .edit-slider-row input.et-num-input::-webkit-outer-spin-button,
+  .edit-slider-row input.et-num-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .edit-slider-row input.et-num-input[type=number] { -moz-appearance: textfield; }
 
   .edit-card-overlay {
     display: none;
@@ -931,32 +954,32 @@
           <div class="edit-slider-row">
             <label>Card Min Width</label>
             <input type="range" min="90" max="340" value="270" id="et-doorwidth" oninput="applyEditSlider()">
-            <span id="et-doorwidth-val">270</span>px
+            <input type="number" min="90" max="340" value="270" id="et-doorwidth-val" class="et-num-input" onchange="applyEditNumber('et-doorwidth', this.value)">px
           </div>
           <div class="edit-slider-row">
             <label>Card Min Height</label>
             <input type="range" min="90" max="240" value="120" id="et-doorheight" oninput="applyEditSlider()">
-            <span id="et-doorheight-val">120</span>px
+            <input type="number" min="90" max="240" value="120" id="et-doorheight-val" class="et-num-input" onchange="applyEditNumber('et-doorheight', this.value)">px
           </div>
           <div class="edit-slider-row">
             <label>Card Gap</label>
             <input type="range" min="4" max="28" value="10" id="et-gap" oninput="applyEditSlider()">
-            <span id="et-gap-val">10</span>px
+            <input type="number" min="4" max="28" value="10" id="et-gap-val" class="et-num-input" onchange="applyEditNumber('et-gap', this.value)">px
           </div>
           <div class="edit-slider-row">
             <label>Grid Columns</label>
             <input type="range" min="2" max="12" value="6" id="et-columns" oninput="applyEditSlider()">
-            <span id="et-columns-val">6</span>
+            <input type="number" min="2" max="12" value="6" id="et-columns-val" class="et-num-input" onchange="applyEditNumber('et-columns', this.value)">
           </div>
           <div class="edit-slider-row">
             <label>Grid Rows</label>
             <input type="range" min="2" max="12" value="8" id="et-rows" oninput="applyEditSlider()">
-            <span id="et-rows-val">8</span>
+            <input type="number" min="2" max="12" value="8" id="et-rows-val" class="et-num-input" onchange="applyEditNumber('et-rows', this.value)">
           </div>
           <div class="edit-slider-row">
             <label>Sidebar Width</label>
             <input type="range" min="180" max="520" value="320" id="et-sidebar" oninput="applyEditSlider()">
-            <span id="et-sidebar-val">320</span>px
+            <input type="number" min="180" max="520" value="320" id="et-sidebar-val" class="et-num-input" onchange="applyEditNumber('et-sidebar', this.value)">px
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-left:16px;">
@@ -4749,8 +4772,8 @@ function setSlider(id, val) {
   const el = document.getElementById(id);
   if (el) {
     el.value = val;
-    const span = document.getElementById(id + '-val');
-    if (span) span.textContent = val;
+    const numInput = document.getElementById(id + '-val');
+    if (numInput) numInput.value = val;
   }
 }
 
@@ -4762,15 +4785,29 @@ function applyEditSlider() {
   s.columns     = +document.getElementById('et-columns').value;
   s.rows        = +document.getElementById('et-rows').value;
   s.sidebar     = +document.getElementById('et-sidebar').value;
-  document.getElementById('et-doorwidth-val').textContent  = s.doorWidth;
-  document.getElementById('et-doorheight-val').textContent = s.doorHeight;
-  document.getElementById('et-gap-val').textContent        = s.cardGap;
-  document.getElementById('et-columns-val').textContent    = s.columns;
-  document.getElementById('et-rows-val').textContent       = s.rows;
-  document.getElementById('et-sidebar-val').textContent    = s.sidebar;
+  document.getElementById('et-doorwidth-val').value  = s.doorWidth;
+  document.getElementById('et-doorheight-val').value = s.doorHeight;
+  document.getElementById('et-gap-val').value        = s.cardGap;
+  document.getElementById('et-columns-val').value    = s.columns;
+  document.getElementById('et-rows-val').value       = s.rows;
+  document.getElementById('et-sidebar-val').value    = s.sidebar;
   document.querySelector('.home-layout').style.gridTemplateColumns = `1fr ${s.sidebar}px`;
   saveState();
   renderDoors();
+}
+
+// Handles direct typing into the number box next to a slider — clamps to the
+// slider's min/max, syncs the slider handle, then applies like normal.
+function applyEditNumber(sliderId, rawVal) {
+  const slider = document.getElementById(sliderId);
+  const numInput = document.getElementById(sliderId + '-val');
+  let val = parseInt(rawVal, 10);
+  if (isNaN(val)) val = +slider.value;
+  const min = +slider.min, max = +slider.max;
+  val = Math.min(max, Math.max(min, val));
+  slider.value = val;
+  numInput.value = val;
+  applyEditSlider();
 }
 
 function buildEditOverlay(doorId) {
