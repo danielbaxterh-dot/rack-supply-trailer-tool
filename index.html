@@ -1000,7 +1000,7 @@
         <div class="sidebar-panel-body">
           <table class="sidebar-table" id="future-deliveries-table">
             <thead><tr>
-              <th>Date</th><th>Carrier</th><th>Time</th><th>Trailer #</th><th></th>
+              <th>Date</th><th>Carrier</th><th>Time</th><th>Trailer #</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody id="future-deliveries-tbody"></tbody>
           </table>
@@ -1110,6 +1110,10 @@
             <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Trailer Number</label>
             <input type="text" autocomplete="off" id="outlook-form-trailer" placeholder="#" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
           </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Notes</label>
+            <input type="text" autocomplete="off" id="outlook-form-notes" placeholder="Optional notes" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
+          </div>
           <button onclick="addOutlookRowFromForm()" style="width:100%;margin-top:4px;font-size:13px;font-weight:700;padding:8px 0;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">+ Add</button>
         </div>
       </div>
@@ -1122,6 +1126,7 @@
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
             <th style="padding:6px 4px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);border-bottom:2px solid #27b589;"></th>
           </tr></thead>
           <tbody id="outlook-today-tbody"></tbody>
@@ -3328,7 +3333,7 @@ const DEFAULT_FC_CARRIERS = [
   {name:'R+L',            linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
   {name:'ESTES',          linesPerTrailer:20,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:6,  arrived:false, remaining:0, midday:0},
   {name:'ODFL',           linesPerTrailer:5,   expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:2,  arrived:false, remaining:0, midday:0},
-  {name:'DAYTON',         linesPerTrailer:16,  expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
+  {name:'DAYTON',         linesPerTrailer:16,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
   {name:'Supplier Loads', linesPerTrailer:30,  expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
   {name:'UU SORT',        linesPerTrailer:150, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
   {name:'LTL',            linesPerTrailer:10,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:2,  arrived:false, remaining:0, midday:0},
@@ -4492,6 +4497,7 @@ function openOutlookModal() {
   document.getElementById('outlook-form-date').value = today;
   document.getElementById('outlook-form-time').value = '';
   document.getElementById('outlook-form-trailer').value = '';
+  document.getElementById('outlook-form-notes').value = '';
 
   // Load existing rows from saved ltl
   window._outlookRows = JSON.parse(JSON.stringify(fd.ltl || []));
@@ -4532,6 +4538,7 @@ function renderOutlookTables() {
         <td style="${tdCss}font-weight:600;">${row.carrier||'—'}</td>
         <td style="${tdCss}">${row.trailerNum||'—'}</td>
         <td style="${tdCss}">${row.time||'—'}</td>
+        <td style="${tdCss}font-style:italic;">${row.notes||'—'}</td>
         <td style="padding:4px;"><button class="btn btn-red btn-sm" onclick="removeOutlookRow(${globalIdx})" style="font-size:11px;padding:2px 7px;">✕</button></td>
       `;
       todayTbody.appendChild(tr);
@@ -4563,9 +4570,10 @@ function addOutlookRowFromForm() {
   const date = document.getElementById('outlook-form-date').value || todayStr();
   const time = document.getElementById('outlook-form-time').value;
   const trailerNum = document.getElementById('outlook-form-trailer').value;
+  const notes = document.getElementById('outlook-form-notes').value;
   if (!carrier) { toast('Please select a carrier'); return; }
   const today = todayStr();
-  const row = { carrier, date, time, trailerNum, notes: '' };
+  const row = { carrier, date, time, trailerNum, notes };
   if (date > today) {
     window._outlookFutureRows.push(row);
   } else {
@@ -4574,6 +4582,7 @@ function addOutlookRowFromForm() {
   // Reset form fields (keep carrier/date for quick multi-add)
   document.getElementById('outlook-form-time').value = '';
   document.getElementById('outlook-form-trailer').value = '';
+  document.getElementById('outlook-form-notes').value = '';
   renderOutlookTables();
 }
 
@@ -4667,6 +4676,7 @@ function renderFutureDeliveries() {
       <td style="color:#000;font-weight:600;">${r.carrier}</td>
       <td style="color:#000">${r.time || '—'}</td>
       <td style="color:#2d6b4a">${r.trailerNum || '—'}</td>
+      <td style="color:#2d6b4a;font-style:italic;">${r.notes || '—'}</td>
       <td><button onclick="removeFutureDelivery('${r.date}',${r.idx})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;text-shadow:0 1px 1px rgba(0,0,0,0.3);transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(180,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>
     `;
     tbody.appendChild(tr);
