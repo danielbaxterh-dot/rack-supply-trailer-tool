@@ -4414,12 +4414,12 @@ function renderExpectedTrailers() {
       <td style="color:#000">${r.time || '—'}</td>
       <td style="color:#000">${r.trailerNum || '—'}</td>
     `;
-    tr.addEventListener('dblclick', () => openQuickSlotModal(r.carrier));
+    tr.addEventListener('dblclick', () => openQuickSlotModal(r.carrier, r.trailerNum, r.notes));
     tbody.appendChild(tr);
   });
 }
 
-function openQuickSlotModal(carrierName) {
+function openQuickSlotModal(carrierName, trailerNum, notes) {
   document.getElementById('qs-carrier-label').textContent = carrierName;
   document.getElementById('modal-quick-slot').dataset.carrier = carrierName;
   // Populate door datalist — empty doors only
@@ -4441,9 +4441,9 @@ function openQuickSlotModal(carrierName) {
     dl.appendChild(opt);
   });
   document.getElementById('qs-door').value = '';
-  document.getElementById('qs-trailer').value = '';
+  document.getElementById('qs-trailer').value = trailerNum || '';
   document.getElementById('qs-type').value = 'DROP';
-  document.getElementById('qs-notes').value = '';
+  document.getElementById('qs-notes').value = notes || '';
   document.getElementById('modal-quick-slot').classList.add('open');
 }
 
