@@ -978,7 +978,7 @@
         <div class="sidebar-panel-body">
           <table class="sidebar-table" id="expected-table">
             <thead><tr>
-              <th>Carrier</th><th>Time</th><th>Trailer #</th>
+              <th>Carrier</th><th>Time</th><th>Trailer #</th><th>Notes</th>
             </tr></thead>
             <tbody id="expected-tbody"></tbody>
           </table>
@@ -4413,6 +4413,7 @@ function renderExpectedTrailers() {
       <td style="color:#000;font-weight:600;">${r.carrier}</td>
       <td style="color:#000">${r.time || '—'}</td>
       <td style="color:#000">${r.trailerNum || '—'}</td>
+      <td style="color:#000;font-style:italic;">${r.notes || '—'}</td>
     `;
     tr.addEventListener('dblclick', () => openQuickSlotModal(r.carrier, r.trailerNum, r.notes));
     tbody.appendChild(tr);
