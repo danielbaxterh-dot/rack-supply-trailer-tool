@@ -1557,9 +1557,8 @@
       <label>Type</label>
       <select id="new-door-type">
         <option value="standard">Standard</option>
-        <option value="yard">Yard Door</option>
-        <option value="ltl">LTL Only</option>
-        <option value="outbound">Outbound</option>
+        <option value="yard">Main Yard</option>
+        <option value="cff_yard">CFF Yard</option>
       </select>
     </div>
     <div class="modal-actions">
@@ -2380,7 +2379,7 @@ function renderDoors() {
     const card = document.createElement('div');
     card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '');
     card.style.minHeight = s.doorHeight + 'px';
-    const isYard = door.type === 'yard' || door.id.startsWith('YD');
+    const isYard = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD');
     if (isYard) {
       card.style.background = 'linear-gradient(180deg,#a0a0a0 0%,#888888 100%)';
       card.style.borderColor = '#a8a8a8';
@@ -2702,17 +2701,25 @@ function moveTrailer(from, to) {
   showMoveBanner(moveWebhook);
 }
 
+// Returns 'CFF yard' / 'main yard' if the door is a yard door, or null if it's a regular dock door
+function yardLabelFor(door) {
+  if (!door) return null;
+  const isYard = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD');
+  if (!isYard) return null;
+  const isCFF = door.type === 'cff_yard' || door.num.toUpperCase().includes('CFF') || (door.name && door.name.toUpperCase().includes('CFF'));
+  return isCFF ? 'CFF yard' : 'main yard';
+}
+
 function sendMoveSlackNotification(t, fromDoor, toDoor) {
   if (!SLACK_RELEASE_WEBHOOK_URL) return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
   const trailerPart = t.trailerNum ? ` ${t.trailerNum}` : '';
   const destDoor = toDoor ? toDoor.num : '?';
-  const fromIsYard = fromDoor && (fromDoor.type === 'yard' || fromDoor.id.startsWith('YD'));
-  const isCFF = fromDoor && (fromDoor.num.toUpperCase().includes('CFF') || (fromDoor.name && fromDoor.name.toUpperCase().includes('CFF')));
-  const yardLabel = isCFF ? 'CFF yard' : 'main yard';
-  const message = fromIsYard
-    ? `Move ${carrier}${trailerPart} from the ${yardLabel} to door ${destDoor}`
-    : `Move ${carrier}${trailerPart} in door ${fromDoor ? fromDoor.num : '?'} to door ${destDoor}`;
+  const fromYardLabel = yardLabelFor(fromDoor);
+  const toYardLabel = yardLabelFor(toDoor);
+  const fromPart = fromYardLabel ? `from the ${fromYardLabel}` : `in door ${fromDoor ? fromDoor.num : '?'}`;
+  const toPart = toYardLabel ? `to the ${toYardLabel}` : `to door ${destDoor}`;
+  const message = `Move ${carrier}${trailerPart} ${fromPart} ${toPart}`;
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -2805,7 +2812,7 @@ function openSlotLTLModal() {
   const doorSel = document.getElementById('sltl-door');
   doorSel.innerHTML = '<option value="">— Select door —</option>';
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
-  const isYard = d => d.id.startsWith('YD') || d.type === 'yard';
+  const isYard = d => d.id.startsWith('YD') || d.type === 'yard' || d.type === 'cff_yard';
   const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
   const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
   [['Dock Doors', regularDoors], ['Yard Doors', yardDoors]].forEach(([label, list]) => {
@@ -2848,7 +2855,7 @@ function updateSlotLTLType() {
   const doorSel = document.getElementById('sltl-door');
   const prevDoor = doorSel.value;
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
-  const isYard = d => d.id.startsWith('YD') || d.type === 'yard';
+  const isYard = d => d.id.startsWith('YD') || d.type === 'yard' || d.type === 'cff_yard';
   const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
   const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
   const groups = [['Dock Doors', regularDoors], ['Yard Doors', yardDoors]];
@@ -4760,8 +4767,9 @@ function applyEditSlider() {
 function buildEditOverlay(doorId) {
   const door = state.doors.find(d => d.id === doorId);
   if (!door) return '';
-  const typeOpts = ['standard','yard','ltl','outbound'].map(t =>
-    `<option value="${t}" ${door.type===t?'selected':''}>${t}</option>`
+  const TYPE_LABELS = { standard: 'Standard', yard: 'Main Yard', cff_yard: 'CFF Yard' };
+  const typeOpts = Object.entries(TYPE_LABELS).map(([t, label]) =>
+    `<option value="${t}" ${door.type===t?'selected':''}>${label}</option>`
   ).join('');
   return `
     <div class="edit-card-overlay" draggable="false" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()">
