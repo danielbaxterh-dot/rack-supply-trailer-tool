@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy, writeBatch, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC1NDl9M4bpaxogv6ckUURzyKOv5b96DR0",
@@ -19,7 +20,7 @@
   const db = getFirestore(app);
 
   window._db = db;
-  window._fbFns = { doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy };
+  window._fbFns = { doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy, writeBatch, where };
   window._fbReady = true;
 
   // Poll until main script has registered _onFirebaseReady, then call it
@@ -706,7 +707,9 @@
   .delete-btn:hover { opacity: 1; }
   #toast {
     position: fixed;
-    bottom: 20px; right: 20px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     background: var(--teal);
     color: #fff;
     padding: 10px 18px;
@@ -717,8 +720,29 @@
     transition: opacity 0.3s;
     z-index: 9999;
     pointer-events: none;
+    white-space: nowrap;
   }
   #toast.show { opacity: 1; }
+  #release-banner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: var(--teal);
+    color: #fff;
+    padding: 18px 32px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 9999;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    white-space: nowrap;
+  }
+  #release-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   .door-info-row { clear: both; padding-top: 6px; }
   .unavail-label { font-size: 12px; color: var(--red); font-weight: 700; }
   .yd-label { font-size: 11px; color: var(--purple); font-weight: 600; }
@@ -1016,41 +1040,36 @@
 
 <!-- EDIT COMPLETED TRAILER MODAL -->
 <div class="modal-overlay" id="modal-edit-completed">
-  <div class="modal" style="width:460px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div style="background:#27b589;border-radius:7px;padding:6px 10px;font-size:18px;">🚛</div>
-      <div>
-        <h2 style="margin:0;font-size:16px;color:#1a4731;font-weight:800;" id="ec-header-carrier">Edit Trailer</h2>
-        <div style="font-size:11px;color:#2d6b4a;margin-top:2px;font-weight:600;" id="ec-header-door"></div>
-      </div>
-    </div>
+  <div class="modal" style="width:460px;background:#d0d0d0;">
+    <h2 id="ec-header-carrier" style="color:#000;">Edit Trailer</h2>
+    <div style="font-size:11px;color:#000;margin-top:-10px;margin-bottom:14px;font-weight:600;" id="ec-header-door"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;">
       <div class="form-row">
         <label>Trailer #</label>
-        <div id="ec-view-trailer" style="font-weight:700;color:#1a4731;">—</div>
+        <div id="ec-view-trailer" style="font-weight:700;color:#000;">—</div>
       </div>
       <div class="form-row">
         <label>Type</label>
-        <div id="ec-view-type" style="font-weight:700;color:#1a4731;">—</div>
+        <div id="ec-view-type" style="font-weight:700;color:#000;">—</div>
       </div>
       <div class="form-row">
-        <label>Secured</label>
-        <div id="ec-view-secured" style="font-weight:700;color:#1a4731;">—</div>
+        <label>Secure Time</label>
+        <div id="ec-view-secured" style="font-weight:700;color:#000;">—</div>
       </div>
       <div class="form-row">
         <label>Released</label>
-        <div id="ec-view-released" style="font-weight:700;color:#1a4731;">—</div>
+        <div id="ec-view-released" style="font-weight:700;color:#000;">—</div>
       </div>
     </div>
     <div class="form-row">
       <label>Notes</label>
-      <input type="text" id="ec-notes" placeholder="Optional notes">
+      <input type="text" autocomplete="off" id="ec-notes" placeholder="Optional notes">
     </div>
     <div class="modal-actions" style="margin-top:14px;">
-      <button class="btn btn-red btn-sm" onclick="removeCompleted(+document.getElementById('modal-edit-completed').dataset.recid);closeModal('modal-edit-completed')">Delete Record</button>
-      <button class="btn btn-orange btn-sm" id="ec-resecure-btn" onclick="resecureTrailer(+document.getElementById('modal-edit-completed').dataset.recid)">↩ Resecure</button>
-      <button class="btn btn-gray" onclick="closeModal('modal-edit-completed')">Cancel</button>
-      <button class="btn btn-teal" onclick="saveEditCompleted()">Save Notes</button>
+      <button class="btn btn-red btn-sm" onclick="removeCompleted(+document.getElementById('modal-edit-completed').dataset.recid);closeModal('modal-edit-completed')" style="color:#000;">Delete Record</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-edit-completed')" style="color:#000;">Cancel</button>
+      <button class="btn btn-blue" onclick="resecureTrailer()" style="color:#000;">Re-Secure</button>
+      <button class="btn btn-teal" onclick="saveEditCompleted()" style="color:#000;">Save Notes</button>
     </div>
   </div>
 </div>
@@ -1063,11 +1082,11 @@
       <span style="font-size:15px;font-weight:700;color:#f5c842;text-transform:uppercase;letter-spacing:0.8px;">📝 Morning Outlook — <span id="outlook-modal-date"></span></span>
       <div style="display:flex;gap:8px;">
         <button onclick="closeModal('modal-outlook')" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#c8c8c8 0%,#a8a8a8 50%,#989898 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:3px solid #707070;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #707070'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='3px solid #707070'">Cancel</button>
-        <button onclick="saveOutlook()" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#ffe066 0%,#f5c842 50%,#e0a800 100%);color:#1a4731;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.5);border-bottom:3px solid #b88a00;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #b88a00'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.5)';this.style.borderBottom='3px solid #b88a00'">Save Outlook</button>
+        <button onclick="saveOutlook()" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">Save Outlook</button>
       </div>
     </div>
     <!-- 3-column body -->
-    <div style="display:grid;grid-template-columns:220px 1fr 1fr;gap:14px;background:#d4e8dc;padding:14px;">
+    <div style="display:grid;grid-template-columns:220px 1fr 1fr;gap:14px;background:#d0d0d0;padding:14px;">
       <!-- LEFT: Add form -->
       <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;">
         <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;">Add Trailer</div>
@@ -1087,15 +1106,15 @@
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Trailer Number</label>
-            <input type="text" id="outlook-form-trailer" placeholder="#" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
+            <input type="text" autocomplete="off" id="outlook-form-trailer" placeholder="#" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
           </div>
-          <button onclick="addOutlookRowFromForm()" style="width:100%;margin-top:4px;font-size:13px;font-weight:700;padding:8px 0;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#fff;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">+ Add</button>
+          <button onclick="addOutlookRowFromForm()" style="width:100%;margin-top:4px;font-size:13px;font-weight:700;padding:8px 0;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">+ Add</button>
         </div>
       </div>
       <!-- CENTER: Expected Trailers Today -->
-      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
-        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;">Expected Trailers Today</div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;max-height:480px;">
+        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;flex-shrink:0;">Expected Trailers Today</div>
+        <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
           <thead><tr>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
@@ -1108,9 +1127,9 @@
         </div>
       </div>
       <!-- RIGHT: Expected Trailers Next 5 Days -->
-      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
-        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;">Expected Trailers Next 5 Days</div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;max-height:480px;">
+        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;flex-shrink:0;">Expected Trailers Next 5 Days</div>
+        <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
           <thead><tr>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
@@ -1128,29 +1147,87 @@
 
 <!-- FORECAST TAB -->
 <div id="tab-forecast" class="tab-content">
-  <div class="flex-row" style="margin-bottom:10px;align-items:center;">
-    <span style="color:var(--yellow);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Forecasting Tool</span>
-    <div style="background:#fff;border:1px solid #c8ddd4;border-radius:10px;padding:7px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 3px 8px rgba(0,0,0,0.12),0 1px 2px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);margin-left:14px;">
-      <span style="font-size:11px;font-weight:700;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.5px;">Date</span>
-      <input type="date" id="forecast-date" style="background:transparent;border:none;padding:0;color:#1a4731;font-size:14px;font-weight:700;outline:none;cursor:pointer;">
+  <div class="flex-row" style="margin-bottom:10px;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="color:var(--yellow);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Forecasting Tool</span>
+      <div style="background:#fff;border:1px solid #c8ddd4;border-radius:10px;padding:7px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 3px 8px rgba(0,0,0,0.12),0 1px 2px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+        <span style="font-size:11px;font-weight:700;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.5px;">Date</span>
+        <input type="date" id="forecast-date" onchange="changeForecastDate(this)" style="background:transparent;border:none;padding:0;color:#1a4731;font-size:14px;font-weight:700;outline:none;cursor:pointer;">
+      </div>
+      <button onclick="loadForecastToExpected()" style="font-weight:700;font-size:13px;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">▶ Load to Expected</button>
     </div>
-    <button onclick="loadForecastToExpected()" style="font-weight:700;font-size:13px;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#fff;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">▶ Load to Expected</button>
-<button onclick="openForecastSettings()" title="Forecast Settings" style="font-size:18px;padding:6px 10px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#4a7a5a 0%,#1a4731 100%);color:#f5c842;box-shadow:0 3px 6px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.1);transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)'" onmouseup="this.style.transform=''">⚙</button>
+    <button id="assump-toggle-btn" onclick="toggleAssumptionsPanel()" style="font-size:10px;font-weight:700;padding:3px 8px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #8b0000;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #8b0000'">⚙ Assumptions</button>
   </div>
 
-  <!-- Forecast Settings Modal -->
-  <div id="fc-settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:12px;padding:24px;min-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-        <span style="font-weight:700;font-size:16px;color:#1a4731;">⚙ Forecast Settings</span>
-        <button onclick="closeForecastSettings()" style="border:none;background:none;font-size:20px;cursor:pointer;color:#666;">✕</button>
+  <!-- Inline Assumptions Panel -->
+  <div id="fc-assumptions-panel" style="display:none;margin-bottom:14px;">
+    <div style="background:#1f2f24;border:1px solid #2e4a38;border-radius:10px;padding:14px 16px;">
+
+      <!-- Top row: BF Lines per Skid + Source selector -->
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;">BF Lines per Skid</span>
+          <input type="number" id="assump-lines-per-skid" min="1" value="9"
+            style="width:66px;padding:4px 8px;border:2px solid #27b589;border-radius:7px;font-size:16px;font-weight:700;color:#1a4731;background:#fff;text-align:center;outline:none;"
+            onchange="saveAssumptions()">
+          <span style="font-size:11px;color:var(--text2);">BF Lines = BF Skids × Trailers × this</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-left:auto;">
+          <span style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;">Forecast Uses</span>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text);">
+            <input type="radio" name="assump-source" value="manual" id="assump-src-manual" onchange="setAssumptionSource('manual')" style="accent-color:#27b589;">
+            Manual
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text);">
+            <input type="radio" name="assump-source" value="average" id="assump-src-average" onchange="setAssumptionSource('average')" style="accent-color:#27b589;">
+            Running Average
+          </label>
+        </div>
       </div>
-      <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:12px;font-weight:700;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Lines per BF Skid</label>
-        <input type="number" id="fc-set-lines-per-skid" min="1" style="width:100%;padding:8px 12px;border:1px solid #c8ddd4;border-radius:6px;font-size:18px;font-weight:700;color:#1a4731;outline:none;">
-        <div style="font-size:11px;color:#888;margin-top:4px;">BF Lines = BF Skids/Trailer × Trailers × this value</div>
+
+      <!-- Single unified table -->
+      <div style="border-radius:8px;overflow:hidden;border:1px solid #2e4a38;">
+        <table id="assump-unified-table" style="width:100%;font-size:12px;background:#fff;table-layout:fixed;">
+          <colgroup>
+            <col style="width:14%"><!-- Carrier -->
+            <col style="width:10%"><!-- Lines/Trlr (manual) -->
+            <col style="width:10%"><!-- BF Skids (manual) -->
+            <col style="width:4%;background:#d4eee2;"><!-- divider -->
+            <col style="width:10%"><!-- Avg Lines (avg) -->
+            <col style="width:10%"><!-- BF Skids (avg) -->
+            <col style="width:7%"><!-- Loads -->
+            <col style="width:10%"><!-- Upload -->
+          </colgroup>
+          <thead>
+            <tr>
+              <th rowspan="2" style="font-size:10px;white-space:nowrap;vertical-align:middle;">Carrier</th>
+              <th colspan="2" style="text-align:center;font-size:10px;border-bottom:1px solid #27b589;padding-bottom:3px;">
+                <span style="color:var(--yellow);">MANUAL</span>
+                <span id="assump-manual-badge" style="display:none;font-size:9px;font-weight:700;background:#27b589;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;">ACTIVE</span>
+              </th>
+              <th rowspan="2" style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 100%);border:none;padding:0;"></th>
+              <th colspan="2" style="text-align:center;font-size:10px;border-bottom:1px solid #27b589;padding-bottom:3px;">
+                <span style="color:var(--yellow);">RUNNING AVG</span>
+                <span id="assump-avg-badge" style="display:none;font-size:9px;font-weight:700;background:#27b589;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;">ACTIVE</span>
+              </th>
+              <th rowspan="2" style="text-align:center;font-size:10px;white-space:nowrap;vertical-align:middle;">Loads</th>
+              <th rowspan="2" style="text-align:center;vertical-align:middle;">
+                <label style="cursor:pointer;">
+                  <input type="file" id="assump-excel-upload" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelUpload(this)">
+                  <button class="btn btn-blue btn-sm" title="Excel format: Column A = Carrier name, Column B = Lines checked in (one row per load). Average is computed per carrier." onclick="document.getElementById('assump-excel-upload').click()" style="white-space:nowrap;">📂 Upload</button>
+                </label>
+              </th>
+            </tr>
+            <tr>
+              <th style="text-align:center;font-size:10px;white-space:nowrap;">Lines / Trlr</th>
+              <th style="text-align:center;font-size:10px;white-space:nowrap;">BF Skids / Trlr</th>
+              <th style="text-align:center;font-size:10px;white-space:nowrap;">Avg Lines / Trlr</th>
+              <th style="text-align:center;font-size:10px;white-space:nowrap;">BF Skids / Trlr</th>
+            </tr>
+          </thead>
+          <tbody id="assump-unified-tbody"></tbody>
+        </table>
       </div>
-      <button onclick="saveForecastSettings()" style="width:100%;padding:10px;border:none;border-radius:8px;background:linear-gradient(180deg,#2ecc8f 0%,#1a4731 100%);color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Save Settings</button>
     </div>
   </div>
 
@@ -1158,68 +1235,88 @@
   <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;">
     <!-- LEFT: Summary + Main Table -->
     <div>
-      <!-- Summary Stats Row -->
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px;">
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">New Lines Expected</div>
-          <div id="fc-total-lines" style="font-size:28px;font-weight:700;color:#000;margin-top:4px;">0</div>
-        </div>
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Lines Carried In</div>
-          <input type="number" id="fc-carried-in" value="0" style="width:90px;background:#f0faf5;border:none;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()">
-        </div>
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Late Arriving Carryover</div>
-          <input type="number" id="fc-late-carryover" value="0" style="width:90px;background:#f0faf5;border:none;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="saveLateCarryover(this.value)">
-        </div>
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#e8f7ef;border:1px solid #27b589;box-shadow:0 3px 8px rgba(39,181,137,0.2),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Total Lines</div>
-          <div id="fc-total-all-lines" style="font-size:28px;font-weight:800;color:#000;margin-top:4px;">0</div>
-        </div>
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Capacity</div>
-          <input type="number" id="fc-capacity" value="0" style="width:90px;background:#f0faf5;border:none;border-radius:4px;padding:4px 6px;color:#000;font-size:22px;font-weight:700;text-align:center;outline:none;margin-top:4px;" onchange="calcForecastSummary()">
-          <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;">
-            <input type="number" id="fc-checkers" value="0" min="0" style="width:50px;background:#f0faf5;border:none;border-radius:4px;padding:2px 4px;color:#000;font-size:14px;font-weight:700;text-align:center;outline:none;" onchange="saveCheckers(this.value)">
-            <span style="font-size:11px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:0.3px;">Checkers</span>
-          </div>
-        </div>
-        <div id="fc-carryover-tile" class="panel" style="padding:10px;margin:0;text-align:center;background:#fff;border:1px solid #c8ddd4;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Expected Carryover</div>
-          <div id="fc-carryover" style="font-size:28px;font-weight:700;color:#000;margin-top:4px;">0</div>
-        </div>
-        <div class="panel" style="padding:10px;margin:0;text-align:center;background:#f472b6 !important;border:1px solid #db2777 !important;box-shadow:0 3px 8px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.9);">
-          <div style="font-size:12px;color:#000;text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">BF Skid Estimate</div>
-          <div id="fc-bf-skids-total" style="font-size:28px;font-weight:700;color:#000;margin-top:4px;">0</div>
-        </div>
-      </div>
-
       <!-- Main Carrier Forecast Table -->
       <div class="panel" style="padding:0;overflow-x:auto;margin-bottom:12px;background:#fff;border:1px solid #c8ddd4;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.9);border-radius:10px;">
-        <table id="fc-carrier-table" style="width:100%;font-size:20px;background:#fff;border-radius:8px;overflow:hidden;">
+        <table id="fc-carrier-table" style="width:100%;font-size:10px;background:#fff;border-radius:8px;overflow:hidden;">
           <thead><tr>
-            <th style="min-width:200px;font-size:13px;">Carrier</th>
-            <th style="min-width:70px;text-align:center;font-size:14px;" title="Historical average rack lines per trailer">Lines/Trailer</th>
-            <th style="min-width:70px;text-align:center;font-size:14px;">Exp. Trailers</th>
-            <th style="min-width:75px;text-align:center;font-size:14px;background:#d4f0e4;color:#1a4731 !important;">Exp. Lines</th>
-            <th style="min-width:70px;text-align:center;font-size:14px;">Lines Adj.</th>
-            <th style="min-width:75px;text-align:center;font-size:14px;background:#fff9d6;color:#1a4731 !important;font-weight:700;">Total</th>
-            <th style="min-width:70px;text-align:center;font-size:14px;">BF SK/Trailer</th>
-            <th style="min-width:75px;text-align:center;font-size:14px;">BF Lines</th>
-            <th style="min-width:30px;"></th>
+            <th style="min-width:150px;font-size:10px;background:#bfbfbf;color:#000;">Carrier</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;" title="Historical average rack lines per trailer">Rack Lines per Trailer</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Expected trailers</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Expected lines</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Lines adjustment (+/-)</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Total</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">BF skids per trailer</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Line per Skid</th>
+            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Freight Lines</th>
+            <th style="min-width:25px;background:#bfbfbf;"></th>
           </tr></thead>
           <tbody id="fc-carrier-tbody"></tbody>
           <tfoot>
-            <tr style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);font-weight:700;font-size:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);">
-              <td style="padding:6px 7px;color:#f5c842;">TOTALS</td>
-              <td></td>
-              <td id="fc-tot-trailers" style="text-align:center;color:#fff;">0</td>
-              <td id="fc-tot-explines" style="text-align:center;color:#1a4731;font-weight:800;background:#d4f0e4;">0</td>
-              <td></td>
-              <td id="fc-tot-total" style="text-align:center;color:#1a4731;font-weight:800;font-size:20px;background:#fff9d6;">0</td>
-              <td></td>
-              <td id="fc-tot-bf" style="text-align:center;color:#fff;">0</td>
-              <td></td>
+            <tr style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);font-weight:700;font-size:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);">
+              <td style="padding:5px 7px;color:#f5c842;background:transparent;">TOTALS</td>
+              <td style="background:transparent;"></td>
+              <td id="fc-tot-trailers" style="text-align:center;color:#fff;background:transparent;">0</td>
+              <td id="fc-tot-explines" style="text-align:center;color:#fff;font-weight:800;background:transparent;">0</td>
+              <td style="background:transparent;"></td>
+              <td id="fc-tot-total" style="text-align:center;color:#fff;font-weight:800;font-size:15px;background:transparent;">0</td>
+              <td style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+              <td id="fc-tot-bf" style="text-align:center;color:#fff;background:transparent;">0</td>
+              <td style="background:transparent;"></td>
+            </tr>
+            <!-- New Lines -->
+            <tr style="background:#c5d9f1;">
+              <td colspan="5" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">New Lines</td>
+              <td id="fc-total-lines" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
+              <td colspan="2" style="background:transparent;"></td>
+              <td id="fc-bin-freight-lines-echo" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
+              <td style="background:transparent;"></td>
+            </tr>
+            <!-- Carryover (+ Late Arriving Carryover embedded) -->
+            <tr style="background:#da9694;">
+              <td colspan="5" style="text-align:right;font-weight:700;color:#3a1a17;background:transparent;padding:6px 10px;">Carryover</td>
+              <td style="text-align:center;background:transparent;"><input type="number" id="fc-carried-in" value="0" style="width:60px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:15px;font-weight:800;text-align:center;outline:none;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()"></td>
+              <td colspan="2" style="text-align:center;background:transparent;">
+                <span style="font-size:9px;font-weight:700;color:#3a1a17;text-transform:uppercase;letter-spacing:0.3px;margin-right:4px;">Late Arriving</span>
+                <input type="number" id="fc-late-carryover" value="0" style="width:50px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:13px;font-weight:700;text-align:center;outline:none;" onchange="saveLateCarryover(this.value)">
+              </td>
+              <td style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+            </tr>
+            <!-- Total Lines -->
+            <tr style="background:#215973;">
+              <td colspan="5" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Total Lines</td>
+              <td id="fc-total-all-lines" style="text-align:center;font-weight:800;color:#fff;background:transparent;">0</td>
+              <td colspan="2" style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+            </tr>
+            <!-- Capacity (+ Checkers embedded) -->
+            <tr style="background:#00b050;">
+              <td colspan="5" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Capacity</td>
+              <td style="text-align:center;background:transparent;"><input type="text" autocomplete="off" inputmode="numeric" id="fc-capacity" value="0" style="width:60px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:15px;font-weight:800;text-align:center;outline:none;" onchange="calcForecastSummary();saveState()"></td>
+              <td colspan="2" style="text-align:center;background:transparent;">
+                <span style="font-size:9px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.3px;margin-right:4px;">Checkers</span>
+                <input type="text" autocomplete="off" inputmode="numeric" id="fc-checkers" value="0" style="width:40px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:13px;font-weight:700;text-align:center;outline:none;" onchange="saveCheckers(this.value)">
+              </td>
+              <td style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+            </tr>
+            <!-- Deficit -->
+            <tr id="fc-carryover-tile" style="background:#f2dcdb;">
+              <td colspan="5" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">Deficit</td>
+              <td id="fc-carryover" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
+              <td colspan="2" style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+            </tr>
+            <!-- Bin Freight lines -->
+            <tr style="background:#ff66cc;">
+              <td colspan="5" style="text-align:right;font-weight:700;color:#3a0033;background:transparent;padding:6px 10px;">Bin Freight lines</td>
+              <td id="fc-bin-freight-lines" style="text-align:center;font-weight:800;color:#3a0033;background:transparent;">0</td>
+              <td colspan="2" style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
+              <td style="background:transparent;"></td>
             </tr>
           </tfoot>
         </table>
@@ -1257,10 +1354,11 @@
 <!-- HISTORY TAB -->
 <div id="tab-history" class="tab-content">
   <div class="history-filter">
-    <input type="text" id="history-search" placeholder="Search carrier, door..." oninput="renderHistory()" style="width:200px;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
-    <select id="history-date-filter" onchange="renderHistory()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
-      <option value="">All Dates</option>
-    </select>
+    <input type="text" autocomplete="off" id="history-search" placeholder="Search carrier, door..." oninput="renderHistory()" style="width:200px;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
+    <span style="font-size:11px;font-weight:700;color:#2d6b4a;">From</span>
+    <input type="date" autocomplete="off" id="history-range-start" onchange="applyHistoryRange()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
+    <span style="font-size:11px;font-weight:700;color:#2d6b4a;">To</span>
+    <input type="date" autocomplete="off" id="history-range-end" onchange="applyHistoryRange()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
     <select id="history-carrier-filter" onchange="renderHistory()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
       <option value="">All Carriers</option>
     </select>
@@ -1272,10 +1370,13 @@
     <select id="history-door-filter" onchange="renderHistory()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
       <option value="">All Doors</option>
     </select>
+    <button class="btn btn-gray btn-sm" onclick="loadEntireHistoryManual()">Load Full History</button>
     <button class="btn btn-gray btn-sm" onclick="exportHistory()">Export CSV</button>
     <button class="btn btn-blue btn-sm" onclick="document.getElementById('history-import-input').click()">Import CSV</button>
     <input type="file" id="history-import-input" accept=".csv" style="display:none;" onchange="importHistoryCSV(this)">
+    <button class="btn btn-red btn-sm" onclick="clearAllHistory()" style="color:#000;">Clear History</button>
   </div>
+  <div style="margin:-6px 0 10px;font-size:11px;color:#a8bfaf;font-style:italic;" id="history-range-label"></div>
   <div style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
     <table style="background:#fff;min-width:700px;">
       <thead><tr id="history-thead-row"></tr></thead>
@@ -1284,6 +1385,7 @@
     <div class="empty-state" id="history-empty" style="color:#4a7a5a;">No history records found.</div>
   </div>
 </div>
+
 
 <!-- CARRIERS TAB -->
 <div id="tab-carriers" class="tab-content">
@@ -1298,7 +1400,7 @@
 <!-- SETTINGS TAB -->
 <!-- MODALS -->
 <div class="modal-overlay" id="modal-slot">
-  <div class="modal">
+  <div class="modal" style="background:#d0d0d0;">
     <h2>🚛 Slot a Trailer</h2>
     <div class="form-row">
       <label>Door</label>
@@ -1310,43 +1412,47 @@
     </div>
     <div class="form-row">
       <label>Trailer Number</label>
-      <input type="text" id="slot-trailer" placeholder="#123456">
+      <input type="text" autocomplete="off" id="slot-trailer" placeholder="#123456">
     </div>
     <div class="form-row">
       <label>Type</label>
       <select id="slot-type">
         <option>DROP</option>
         <option>LIVE</option>
+        <option>OTHER</option>
       </select>
     </div>
     <div class="form-row">
-      <label>Arrival Time</label>
+      <label>Secure Time</label>
       <input type="datetime-local" id="slot-arrival">
     </div>
     <div class="form-row">
       <label>Notes</label>
-      <input type="text" id="slot-notes" placeholder="Optional notes">
+      <input type="text" autocomplete="off" id="slot-notes" placeholder="Optional notes">
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-slot')">Cancel</button>
-      <button class="btn btn-teal" onclick="slotTrailer()">Slot Trailer</button>
+      <button class="btn btn-teal" onclick="slotTrailer()" style="color:#000;">Secure Trailer</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modal-move">
-  <div class="modal" style="width:420px;">
+  <div class="modal" style="width:600px;max-width:96vw;max-height:92vh;background:#d0d0d0;">
     <h2 id="move-modal-title">Move Trailer</h2>
     <div id="move-step1">
       <p style="font-size:12px;color:#4a7a5a;margin-bottom:8px;">Select the trailer you want to move:</p>
-      <table style="border-radius:8px;overflow:hidden;">
-        <thead><tr><th>Door</th><th>Carrier</th><th>Trailer #</th></tr></thead>
-        <tbody id="move-from-tbody"></tbody>
-      </table>
+      <div style="max-height:440px;overflow-y:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.4);padding-bottom:2px;">
+        <table style="border-radius:8px;overflow:hidden;border:2px solid #000;">
+          <thead><tr><th>Door</th><th>Carrier</th><th>Trailer #</th></tr></thead>
+          <tbody id="move-from-tbody"></tbody>
+        </table>
+      </div>
       <div class="sidebar-empty" id="move-from-empty" style="display:none;">No active trailers to move.</div>
     </div>
     <div id="move-step2" style="display:none;">
       <p style="font-size:12px;color:#4a7a5a;margin-bottom:8px;">Moving <strong id="move-summary"></strong> — select the destination door:</p>
+
       <table style="border-radius:8px;overflow:hidden;">
         <thead><tr><th>Door</th></tr></thead>
         <tbody id="move-to-tbody"></tbody>
@@ -1360,42 +1466,78 @@
   </div>
 </div>
 
+<!-- BIN FREIGHT NOTE MODAL -->
+<div class="modal-overlay" id="modal-bf-note">
+  <div class="modal" style="max-width:380px;">
+    <h2>Bin Freight Trailer Update</h2>
+    <p style="font-size:12px;color:#000;margin-bottom:4px;" id="bf-note-summary"></p>
+    <div class="form-row">
+      <label>Trailer #</label>
+      <input type="text" autocomplete="off" id="bf-trailer-num" placeholder="#—" style="width:100%;padding:8px 10px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;outline:none;">
+    </div>
+    <div class="form-row">
+      <label>Type</label>
+      <select id="bf-type">
+        <option value="DROP">DROP</option>
+        <option value="LIVE">LIVE</option>
+        <option value="OTHER">OTHER</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Note</label>
+      <textarea id="bf-note-text" rows="3" placeholder="Optional note..." style="width:100%;padding:8px 10px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;outline:none;resize:vertical;font-family:inherit;"></textarea>
+    </div>
+    <p style="font-size:11px;color:#000;margin-bottom:12px;">Saving will create a release time history record, restart age counter, and create a new secure history record.</p>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('modal-bf-note')">Cancel</button>
+      <button class="btn btn-teal" onclick="saveBfNote()" style="color:#000;">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- SLOT LTL MODAL -->
 <div class="modal-overlay" id="modal-slot-ltl">
-  <div class="modal">
+  <div class="modal" style="background:#d0d0d0;">
     <h2>Slot Trailer</h2>
     <div class="form-row">
       <label>Carrier</label>
-      <input type="text" id="sltl-carrier" list="sltl-carrier-list" placeholder="Type or select carrier" autocomplete="off" oninput="updateSlotLTLType()">
-      <datalist id="sltl-carrier-list"></datalist>
+      <select id="sltl-carrier" onchange="updateSlotLTLType()">
+        <option value="">— Select carrier —</option>
+      </select>
     </div>
     <div class="form-row">
       <label>Door</label>
-      <input type="text" id="sltl-door" list="sltl-door-list" placeholder="Type or select door" autocomplete="off">
-      <datalist id="sltl-door-list"></datalist>
+      <select id="sltl-door">
+        <option value="">— Select door —</option>
+      </select>
     </div>
     <div class="form-row">
       <label>Trailer Number</label>
-      <input type="text" id="sltl-trailer" placeholder="#123456">
+      <input type="text" autocomplete="off" id="sltl-trailer" placeholder="#123456">
     </div>
     <div class="form-row">
       <label>Type</label>
       <select id="sltl-type">
         <option>DROP</option>
         <option>LIVE</option>
+        <option>OTHER</option>
       </select>
     </div>
     <div class="form-row">
-      <label>Arrival Time</label>
+      <label>Secure Time</label>
       <input type="datetime-local" id="sltl-arrival">
     </div>
     <div class="form-row">
       <label>Notes</label>
-      <input type="text" id="sltl-notes" placeholder="Optional notes">
+      <input type="text" autocomplete="off" id="sltl-notes" placeholder="Optional notes">
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <input type="checkbox" id="sltl-unexpected" style="width:16px;height:16px;cursor:pointer;">
+      <label for="sltl-unexpected" style="font-weight:700;color:#c0392b;cursor:pointer;font-size:13px;">Unexpected Load</label>
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-slot-ltl')">Cancel</button>
-      <button class="btn btn-teal" onclick="slotLTLTrailer()">Slot Trailer</button>
+      <button class="btn btn-teal" onclick="slotLTLTrailer()" style="color:#000;">Secure Trailer</button>
     </div>
   </div>
 </div>
@@ -1405,11 +1547,11 @@
     <h2 id="add-door-title">➕ Add Door</h2>
     <div class="form-row">
       <label>Door Number / ID</label>
-      <input type="text" id="new-door-num" placeholder="e.g. 30, YD1, OFFICE">
+      <input type="text" autocomplete="off" id="new-door-num" placeholder="e.g. 30, YD1, OFFICE">
     </div>
     <div class="form-row">
       <label>Door Name / Label (optional)</label>
-      <input type="text" id="new-door-name" placeholder="e.g. Yard Door, Cold Storage">
+      <input type="text" autocomplete="off" id="new-door-name" placeholder="e.g. Yard Door, Cold Storage">
     </div>
     <div class="form-row">
       <label>Type</label>
@@ -1432,7 +1574,7 @@
     <h2>🚚 Add Carrier</h2>
     <div class="form-row">
       <label>Carrier Name</label>
-      <input type="text" id="new-carrier-name" placeholder="e.g. TForce, Estes, FedEx">
+      <input type="text" autocomplete="off" id="new-carrier-name" placeholder="e.g. TForce, Estes, FedEx">
     </div>
     <div class="form-row">
       <label>Type</label>
@@ -1460,34 +1602,35 @@
 <!-- QUICK SLOT FROM EXPECTED MODAL -->
 <div class="modal-overlay" id="modal-quick-slot">
   <div class="modal" style="width:360px;">
-    <h2>🚛 Slot Expected Trailer</h2>
-    <div style="background:#f0faf5;border:1px solid #27b589;border-radius:8px;padding:8px 12px;margin-bottom:14px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.06);">
-      <span style="font-size:11px;color:#2d6b4a;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Carrier</span>
-      <div id="qs-carrier-label" style="font-size:16px;font-weight:800;color:#1a4731;margin-top:2px;"></div>
+    <h2>Secure Expected Trailer</h2>
+    <div style="margin-bottom:14px;">
+      <span style="font-size:10px;color:#2d6b4a;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Carrier</span>
+      <div id="qs-carrier-label" style="font-size:18px;font-weight:800;color:#1a4731;margin-top:2px;"></div>
     </div>
     <div class="form-row">
       <label>Door</label>
-      <select id="qs-door"></select>
+      <input type="text" id="qs-door" list="qs-door-list" placeholder="Type or select door…" autocomplete="off" style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);">
+      <datalist id="qs-door-list"></datalist>
     </div>
     <div class="form-row">
       <label>Trailer Number</label>
-      <input type="text" id="qs-trailer" placeholder="#123456">
+      <input type="text" autocomplete="off" id="qs-trailer" placeholder="#123456" style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);">
     </div>
     <div class="form-row">
       <label>Live / Drop</label>
-      <select id="qs-type">
+      <select id="qs-type" style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);">
         <option value="DROP">DROP</option>
         <option value="LIVE">LIVE</option>
       </select>
     </div>
     <div class="form-row">
       <label>Notes</label>
-      <input type="text" id="qs-notes" placeholder="Optional notes...">
+      <input type="text" autocomplete="off" id="qs-notes" placeholder="Optional notes..." style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);">
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeModal('modal-quick-slot')">Cancel</button>
-      <button class="btn btn-red" onclick="markDidNotReceive()" style="margin-right:auto;">Did Not Receive</button>
-      <button class="btn btn-teal" onclick="slotFromExpected()">Slot Trailer</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-quick-slot')" style="color:#000;">Cancel</button>
+      <button class="btn btn-red" onclick="markDidNotReceive()" style="color:#000;margin:0 auto;">Did Not Receive</button>
+      <button class="btn btn-teal" onclick="slotFromExpected()" style="color:#000;">Secure Trailer</button>
     </div>
   </div>
 </div>
@@ -1498,7 +1641,7 @@
     <h2 id="door-edit-title">Edit Door</h2>
     <div class="form-row">
       <label>Trailer Number</label>
-      <input type="text" id="de-trailer" placeholder="#123456">
+      <input type="text" autocomplete="off" id="de-trailer" placeholder="#123456">
     </div>
     <div class="form-row">
       <label>Carrier</label>
@@ -1509,14 +1652,15 @@
       <select id="de-type">
         <option value="DROP">DROP</option>
         <option value="LIVE">LIVE</option>
+        <option value="OTHER">OTHER</option>
       </select>
     </div>
     <div class="form-row">
       <label>Notes</label>
-      <input type="text" id="de-notes" placeholder="Optional notes...">
+      <input type="text" autocomplete="off" id="de-notes" placeholder="Optional notes...">
     </div>
     <div class="form-row" id="de-arrival-row" style="display:none;">
-      <label>Arrival Time (sets trailer age)</label>
+      <label>Secure Time (sets trailer age)</label>
       <input type="datetime-local" id="de-arrival">
     </div>
     <div class="modal-actions">
@@ -1527,6 +1671,7 @@
 </div>
 
 <div id="toast"></div>
+<div id="release-banner"></div>
 
 <script>
 // ===================== STATE =====================
@@ -1564,7 +1709,7 @@ function fb() { return window._fbFns; }
 
 async function loadStateFromFirebase() {
   const db = getDb();
-  const { doc, getDoc, getDocs, collection, query, orderBy } = fb();
+  const { doc, getDoc, getDocs, collection, query, orderBy, where } = fb();
   const today = todayStr();
 
   try {
@@ -1625,11 +1770,14 @@ async function loadStateFromFirebase() {
       // One-time rename: "Pitt Ohio" → "PITT"
       const pittCarrier = state.carriers.find(c => c.name === 'Pitt Ohio');
       if (pittCarrier) { pittCarrier.name = 'PITT'; await saveOneCarrierToFirebase(pittCarrier.id); }
+      // One-time rename: "Adui" → "A. Duie"
+      const aduiCarrier = state.carriers.find(c => c.name === 'Adui');
+      if (aduiCarrier) { aduiCarrier.name = 'A. Duie'; await saveOneCarrierToFirebase(aduiCarrier.id); }
       // Rename in any saved forecast records
       Object.values(state.forecast).forEach(fd => {
-        (fd.carriers||[]).forEach(c => { if (c.name === 'Pitt Ohio') c.name = 'PITT'; });
-        (fd.schedule||[]).forEach(s => { if (s.name === 'Pitt Ohio') s.name = 'PITT'; });
-        (fd.ltl||[]).forEach(r => { if (r.carrier === 'Pitt Ohio') r.carrier = 'PITT'; });
+        (fd.carriers||[]).forEach(c => { if (c.name === 'Pitt Ohio') c.name = 'PITT'; if (c.name === 'Adui') c.name = 'A. Duie'; });
+        (fd.schedule||[]).forEach(s => { if (s.name === 'Pitt Ohio') s.name = 'PITT'; if (s.name === 'Adui') s.name = 'A. Duie'; });
+        (fd.ltl||[]).forEach(r => { if (r.carrier === 'Pitt Ohio') r.carrier = 'PITT'; if (r.carrier === 'Adui') r.carrier = 'A. Duie'; });
       });
 
       // Add any new default carriers that don't exist yet
@@ -1671,7 +1819,7 @@ async function loadStateFromFirebase() {
     try {
       const allForecastSnap = await getDocs(collection(db, 'forecast'));
       allForecastSnap.forEach(d => {
-        if (d.id > today) state.forecast[d.id] = d.data();
+        if (d.id !== today) state.forecast[d.id] = d.data(); // load past + future dates
       });
     } catch(e) { console.error('Failed to load future forecasts', e); }
 
@@ -1679,21 +1827,32 @@ async function loadStateFromFirebase() {
     let forecastDirty = false;
     Object.entries(state.forecast).forEach(([dk, fd]) => {
       let dirty = false;
-      (fd.carriers||[]).forEach(c => { if (c.name === 'Pitt Ohio') { c.name = 'PITT'; dirty = true; } });
-      (fd.schedule||[]).forEach(s => { if (s.name === 'Pitt Ohio') { s.name = 'PITT'; dirty = true; } });
-      (fd.ltl||[]).forEach(r => { if (r.carrier === 'Pitt Ohio') { r.carrier = 'PITT'; dirty = true; } });
+      (fd.carriers||[]).forEach(c => { if (c.name === 'Pitt Ohio') { c.name = 'PITT'; dirty = true; } if (c.name === 'Adui') { c.name = 'A. Duie'; dirty = true; } });
+      (fd.schedule||[]).forEach(s => { if (s.name === 'Pitt Ohio') { s.name = 'PITT'; dirty = true; } if (s.name === 'Adui') { s.name = 'A. Duie'; dirty = true; } });
+      (fd.ltl||[]).forEach(r => { if (r.carrier === 'Pitt Ohio') { r.carrier = 'PITT'; dirty = true; } if (r.carrier === 'Adui') { r.carrier = 'A. Duie'; dirty = true; } });
+      // Remove the old Carryover carrier row — carryover is now entered directly in the Lines Carried In tile
+      if (fd.carriers && fd.carriers.some(c => c.name === 'Carryover')) {
+        fd.carriers = fd.carriers.filter(c => c.name !== 'Carryover');
+        dirty = true;
+      }
       if (dirty) saveForecastToFirebase(dk);
     });
 
-    // HISTORY
-    const histSnap = await getDocs(query(collection(db, 'history'), orderBy('completed', 'desc')));
+    // HISTORY — only load today's records on startup to conserve Firestore read quota
+    // Full history loads lazily when the History tab is opened
     state.history = [];
     state.completedToday = [];
-    histSnap.forEach(d => {
-      const r = { id: d.id, ...d.data() };
-      state.history.push(r);
-      if (r.date === today) state.completedToday.push(r);
-    });
+    try {
+      const todayHistSnap = await getDocs(query(collection(db, 'history'), where('date', '==', today)));
+      todayHistSnap.forEach(d => {
+        const r = { id: d.id, ...d.data() };
+        state.history.push(r);
+        state.completedToday.push(r);
+      });
+      state.history.sort((a, b) => (b.completed||b.date||'').localeCompare(a.completed||a.date||''));
+    } catch(e) {
+      console.warn('Could not load today history:', e);
+    }
 
   } catch(e) {
     console.error('Firebase load error:', e);
@@ -1711,6 +1870,94 @@ async function loadStateFromFirebase() {
     renderExpectedTrailers();
     renderCompletedTable();
   });
+
+}
+
+let _fullHistoryLoaded = false;
+async function loadFullHistoryIfNeeded() {
+  if (_fullHistoryLoaded) return;
+  if (!window._fbReady || !getDb()) return;
+  const { getDocs, collection } = fb();
+  try {
+    const snap = await getDocs(collection(getDb(), 'history'));
+    const today = todayStr();
+    state.history = [];
+    state.completedToday = [];
+    snap.forEach(d => {
+      const r = { id: d.id, ...d.data() };
+      state.history.push(r);
+      if (r.date === today) state.completedToday.push(r);
+    });
+    state.history.sort((a, b) => (b.completed||b.date||'').localeCompare(a.completed||a.date||''));
+    _fullHistoryLoaded = true;
+  } catch(e) { console.error('Failed to load full history:', e); }
+}
+
+// Loads only a specific date range from Firestore (indexed query — cheap regardless
+// of how large the full history collection has grown). Used for the History tab's
+// default 7-day view and the From/To range pickers.
+async function loadHistoryRange(startDate, endDate) {
+  if (!window._fbReady || !getDb()) { toast('Not connected — cannot load history', 'error'); return; }
+  const { getDocs, collection, query, where } = fb();
+  try {
+    const snap = await getDocs(query(collection(getDb(), 'history'), where('date', '>=', startDate), where('date', '<=', endDate)));
+    const today = todayStr();
+    state.history = [];
+    state.completedToday = [];
+    snap.forEach(d => {
+      const r = { id: d.id, ...d.data() };
+      state.history.push(r);
+      if (r.date === today) state.completedToday.push(r);
+    });
+    state.history.sort((a, b) => (b.completed||b.date||'').localeCompare(a.completed||a.date||''));
+    _fullHistoryLoaded = false; // this is a partial range, not the complete collection
+  } catch(e) {
+    console.error('Failed to load history range:', e);
+    toast('Failed to load that date range', 'error');
+  }
+}
+
+function defaultHistoryRangeDates() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 6); // last 7 days inclusive of today
+  const pad = n => String(n).padStart(2, '0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  return { start: fmt(start), end: fmt(end) };
+}
+
+function updateHistoryRangeLabel(text) {
+  const el = document.getElementById('history-range-label');
+  if (el) el.textContent = text;
+}
+
+async function applyHistoryRange() {
+  const startInp = document.getElementById('history-range-start');
+  const endInp = document.getElementById('history-range-end');
+  const start = startInp.value, end = endInp.value;
+  if (!start || !end) return;
+  if (start > end) { toast('Start date must be before end date', 'error'); return; }
+  updateHistoryRangeLabel('Loading…');
+  await loadHistoryRange(start, end);
+  populateHistoryFilters();
+  renderHistory();
+  updateHistoryRangeLabel(`Showing ${start} to ${end}`);
+}
+
+async function loadEntireHistoryManual() {
+  updateHistoryRangeLabel('Loading full history…');
+  _fullHistoryLoaded = false; // force a fresh full fetch even if a range was cached
+  await loadFullHistoryIfNeeded();
+  populateHistoryFilters();
+  renderHistory();
+  updateHistoryRangeLabel('Showing full history');
+}
+
+// Used before destructive/complete actions (Clear History, Export CSV) to guarantee
+// we're working with the entire collection, not just whatever range is currently loaded
+async function ensureFullHistoryLoaded() {
+  _fullHistoryLoaded = false;
+  await loadFullHistoryIfNeeded();
 }
 
 async function saveDailySummaryToFirebase(dateKey) {
@@ -1723,7 +1970,6 @@ async function saveDailySummaryToFirebase(dateKey) {
     expected: todayRecs.filter(r => r.expected).length,
     unexpected: todayRecs.filter(r => !r.expected).length,
     dnr: todayRecs.filter(r => r.didNotReceive).length,
-    avgDurationMin: Math.round(todayRecs.reduce((a,r) => a+(r.duration||0),0) / todayRecs.length),
     carriers: [...new Set(todayRecs.map(r => r.carrier))],
     lastUpdated: new Date().toISOString()
   };
@@ -1890,7 +2136,7 @@ function initDefaultCarriers() {
     {id:'dohrn',       name:'Dohrn',        type:'DROP'},
     {id:'pitt',        name:'PITT',    type:'DROP'},
     {id:'adp_craig',   name:'ADP Craig',    type:'DROP'},
-    {id:'adui',        name:'Adui',         type:'DROP'},
+    {id:'adui',        name:'A. Duie',      type:'DROP'},
     {id:'xpo',         name:'XPO',          type:'DROP'},
     {id:'fedex',       name:'FEDEX',        type:'DROP'},
     {id:'ward',        name:'Ward',         type:'DROP'},
@@ -1943,7 +2189,8 @@ function updateClock() {
   const s = String(now.getSeconds()).padStart(2,'0');
   document.getElementById('clock').textContent = h+':'+m+':'+s;
   const opts = {weekday:'short', year:'numeric', month:'short', day:'numeric'};
-  document.getElementById('date-display').textContent = now.toLocaleDateString('en-US', opts);
+  const dateStr = now.toLocaleDateString('en-US', opts);
+  document.getElementById('date-display').textContent = window._currentUser ? (window._currentUser.toUpperCase() + '  |  ' + dateStr) : dateStr;
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1957,8 +2204,29 @@ function switchTab(name) {
   if (btn) btn.classList.add('active');
   if (name === 'home') { renderDoors(); renderSalesSideTable(); }
   if (name === 'carriers') renderCarriers();
-  if (name === 'history') { populateHistoryFilters(); renderHistory(); }
-  if (name === 'forecast') renderForecastTab();
+  if (name === 'history') {
+    const startInp = document.getElementById('history-range-start');
+    const endInp = document.getElementById('history-range-end');
+    if (startInp && !startInp.value) {
+      const { start, end } = defaultHistoryRangeDates();
+      startInp.value = start;
+      endInp.value = end;
+      loadHistoryRange(start, end).then(() => {
+        populateHistoryFilters();
+        renderHistory();
+        updateHistoryRangeLabel(`Showing last 7 days (${start} to ${end}) — use From/To or Load Full History to see more`);
+      });
+    } else {
+      // Range already loaded — just re-render from what's in memory, no re-fetch
+      populateHistoryFilters();
+      renderHistory();
+    }
+  }
+  if (name === 'forecast') {
+    const inp = document.getElementById('forecast-date');
+    if (inp && !inp._prevDate) inp._prevDate = inp.value || todayStr();
+    renderForecastTab();
+  }
 }
 function setConnectionStatus(state) {
   const dot = document.querySelector('#connection-status div');
@@ -1994,15 +2262,43 @@ function todayStr() {
   const pad = n => String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
+function parseFlexDate(dt) {
+  if (!dt) return null;
+  // Try native parse first (ISO strings work fine)
+  let d = new Date(dt);
+  if (!isNaN(d)) return d;
+  // Normalise "YYYY-MM-DD HH:mm:ss" → ISO with T
+  d = new Date(String(dt).replace(' ', 'T'));
+  if (!isNaN(d)) return d;
+  // M/D/YYYY H:MM AM/PM  or  M/D/YYYY H:MM
+  const m = String(dt).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[, ]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (m) {
+    let h = +m[4];
+    const min = +m[5], sec = +(m[6]||0), ap = (m[7]||'').toUpperCase();
+    if (ap === 'PM' && h < 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    d = new Date(+m[3], +m[1]-1, +m[2], h, min, sec);
+    if (!isNaN(d)) return d;
+  }
+  return null;
+}
 function fmtTime(dt) {
   if (!dt) return '—';
-  const d = new Date(dt);
+  const d = parseFlexDate(dt);
+  if (!d) return String(dt);
   return d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
 }
 function fmtDate(dt) {
   if (!dt) return '—';
-  const d = new Date(dt);
+  const d = parseFlexDate(dt);
+  if (!d) return String(dt);
   return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+function fmtDateTime(dt) {
+  if (!dt) return '—';
+  const d = parseFlexDate(dt);
+  if (!d) return String(dt);
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) + ' ' + d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
 }
 function elapsedMin(start) {
   if (!start) return null;
@@ -2084,7 +2380,7 @@ function renderDoors() {
     const card = document.createElement('div');
     card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '');
     card.style.minHeight = s.doorHeight + 'px';
-    const isYard = door.id.startsWith('YD');
+    const isYard = door.type === 'yard' || door.id.startsWith('YD');
     if (isYard) {
       card.style.background = 'linear-gradient(180deg,#a0a0a0 0%,#888888 100%)';
       card.style.borderColor = '#a8a8a8';
@@ -2110,16 +2406,16 @@ function renderDoors() {
       rightCol += `<span class="door-unavail-label">UNAVAILABLE</span>`;
     } else if (t) {
       const carrierObj = state.carriers.find(c => c.name === t.carrier);
-      const isOther = carrierObj && carrierObj.type === 'OTHER';
+      const isOther = carrierObj && carrierObj.type === 'OTHER' && t.carrier !== 'Bin Freight';
       const elMins = isOther ? null : elapsedMin(t.arrival);
       const elLabel = isOther ? null : elapsedLabel(t.arrival);
       const isLong = elMins !== null && elMins > 120;
       const typeClass = t.type === 'DROP' ? 'door-type-drop' : t.type === 'LIVE' ? 'door-type-live' : t.type === 'SHUTTLE' ? 'door-type-shuttle' : 'door-type-other';
       rightCol += `
-        <span class="door-trailer-num">${t.trailerNum || '#—'}</span>
+        <span class="door-trailer-num">${t.trailerNum ? '#' + t.trailerNum : '#—'}</span>
         <span class="door-type-badge ${typeClass}">${t.type}</span>
         ${elLabel !== null ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''} ${priorityMap[door.id] && priorityMap[door.id] <= 4 ? 'door-elapsed-oldest' : ''}">${elLabel}</span>` : ''}
-        ${t.secured ? `<span class="door-secured-tag">🔒 ${t.secureTime ? fmtTime(t.secureTime) : 'SECURED'}${t.securedBy ? ' · ' + t.securedBy : ''}</span>` : ''}`;
+        `;
     }
     rightCol += `</div>`;
 
@@ -2149,8 +2445,12 @@ function renderDoors() {
     card.dataset.slot = door.slot;
     card.innerHTML = inner;
     card.addEventListener('dblclick', (e) => {
-      if (editModeActive) return; // don't interfere with edit mode
-      openDoorEditModal(door.id);
+      if (editModeActive) return;
+      if (t && t.carrier === 'Bin Freight') {
+        openBfNoteModal(door.id);
+      } else {
+        openDoorEditModal(door.id);
+      }
     });
     return card;
   }
@@ -2335,9 +2635,9 @@ function openMoveModal() {
       const tr = document.createElement('tr');
       tr.style.cursor = 'pointer';
       tr.innerHTML = `
-        <td style="font-weight:700;">${door.num}</td>
-        <td>${t.carrier || '—'}</td>
-        <td>${t.trailerNum || '—'}</td>
+        <td style="font-weight:700;color:#000;">${door.num}</td>
+        <td style="color:#000;">${t.carrier || '—'}</td>
+        <td style="color:#000;">${t.trailerNum || '—'}</td>
       `;
       tr.addEventListener('click', () => selectMoveFromDoor(door.id));
       tbody.appendChild(tr);
@@ -2355,6 +2655,7 @@ function selectMoveFromDoor(doorId) {
   document.getElementById('move-step2').style.display = '';
   document.getElementById('move-back-btn').style.display = '';
   document.getElementById('move-modal-title').textContent = 'Move Trailer — Select Destination';
+
 
   const tbody = document.getElementById('move-to-tbody');
   const empty = document.getElementById('move-to-empty');
@@ -2388,91 +2689,201 @@ function moveModalBack() {
 function moveTrailer(from, to) {
   if (!from || !to || from === to) { toast('Select different doors', 'error'); return; }
   if (!state.trailers[from]) { toast('No trailer at source door', 'error'); return; }
-  state.trailers[to] = state.trailers[from];
+  const t = state.trailers[from];
+  const fromDoor = state.doors.find(d => d.id === from);
+  const toDoor = state.doors.find(d => d.id === to);
+  state.trailers[to] = t;
   delete state.trailers[from];
   closeModal('modal-move');
   saveTrailerToFirebase(to);
   deleteTrailerFromFirebase(from);
-  saveState(); renderDoors(); toast('Trailer moved');
+  saveState(); renderDoors();
+  const moveWebhook = sendMoveSlackNotification(t, fromDoor, toDoor);
+  showMoveBanner(moveWebhook);
+}
+
+function sendMoveSlackNotification(t, fromDoor, toDoor) {
+  if (!SLACK_RELEASE_WEBHOOK_URL) return null;
+  const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
+  const trailerPart = t.trailerNum ? ` ${t.trailerNum}` : '';
+  const destDoor = toDoor ? toDoor.num : '?';
+  const fromIsYard = fromDoor && (fromDoor.type === 'yard' || fromDoor.id.startsWith('YD'));
+  const isCFF = fromDoor && (fromDoor.num.toUpperCase().includes('CFF') || (fromDoor.name && fromDoor.name.toUpperCase().includes('CFF')));
+  const yardLabel = isCFF ? 'CFF yard' : 'main yard';
+  const message = fromIsYard
+    ? `Move ${carrier}${trailerPart} from the ${yardLabel} to door ${destDoor}`
+    : `Move ${carrier}${trailerPart} in door ${fromDoor ? fromDoor.num : '?'} to door ${destDoor}`;
+  return fetch(SLACK_RELEASE_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ Rack_supply_trailer_move: message })
+  }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
+}
+
+function openBfNoteModal(doorId) {
+  const t = state.trailers[doorId];
+  const door = state.doors.find(d => d.id === doorId);
+  if (!t) return;
+  document.getElementById('modal-bf-note').dataset.doorid = doorId;
+  document.getElementById('bf-note-summary').textContent = `Door ${door?.num || doorId}`;
+  document.getElementById('bf-trailer-num').value = t.trailerNum || '';
+  document.getElementById('bf-type').value = t.type || 'DROP';
+  document.getElementById('bf-note-text').value = t.notes || '';
+  document.getElementById('modal-bf-note').classList.add('open');
+}
+
+function saveBfNote() {
+  const doorId = document.getElementById('modal-bf-note').dataset.doorid;
+  const t = state.trailers[doorId];
+  if (!t) return;
+  const door = state.doors.find(d => d.id === doorId);
+  const now = new Date().toISOString();
+  const note = document.getElementById('bf-note-text').value.trim();
+  const trailerNum = document.getElementById('bf-trailer-num').value.trim() || t.trailerNum;
+  const type = document.getElementById('bf-type').value;
+  t.type = type;
+
+  // Log a history record for this completed load
+  const rec = {
+    id: Date.now(),
+    date: todayStr(),
+    door: door?.num || doorId,
+    doorId,
+    carrier: t.carrier,
+    trailerNum: trailerNum,
+    type: t.type,
+    arrival: t.arrival,
+    released: now,
+    releasedBy: (window._currentUser || 'unknown').toUpperCase(),
+    completed: now,
+    notes: note,
+    expected: t.expected,
+    slottedBy: t.slottedBy || '',
+  };
+  state.history.push(rec);
+  state.completedToday.push(rec);
+  saveHistoryRecordToFirebase(rec);
+
+  // Keep trailer on door — reset arrival to now for the next cycle
+  t.trailerNum = trailerNum;
+  t.notes = note;
+  t.arrival = now;
+
+  closeModal('modal-bf-note');
+  saveTrailerToFirebase(doorId);
+  saveState();
+  renderDoors();
+  renderExpectedTrailers();
+  toast('Bin Freight load logged ✓');
 }
 function openSlotLTLModal() {
-  // Populate carrier datalist
-  const carrierList = document.getElementById('sltl-carrier-list');
-  carrierList.innerHTML = '';
+  // Populate carrier select with optgroups: Live → Drop → Other
+  const carrierSel = document.getElementById('sltl-carrier');
+  carrierSel.innerHTML = '<option value="">— Select carrier —</option>';
+  const groups = { LIVE: [], DROP: [], OTHER: [] };
   state.carriers.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.name;
-    carrierList.appendChild(o);
+    const t = (c.type || '').toUpperCase();
+    if (t === 'LIVE') groups.LIVE.push(c);
+    else if (t === 'DROP' || t === 'LTL') groups.DROP.push(c);
+    else groups.OTHER.push(c);
+  });
+  [['LIVE', groups.LIVE], ['DROP', groups.DROP], ['OTHER', groups.OTHER]].forEach(([label, list]) => {
+    if (!list.length) return;
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    const grp = document.createElement('optgroup');
+    grp.label = label;
+    list.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.name;
+      o.textContent = c.name;
+      grp.appendChild(o);
+    });
+    carrierSel.appendChild(grp);
   });
 
-  // Populate door datalist (empty doors only), regular doors sorted low→high, then yard doors
-  const doorList = document.getElementById('sltl-door-list');
-  doorList.innerHTML = '';
+  // Populate door select with optgroups: Dock Doors → Yard Doors
+  const doorSel = document.getElementById('sltl-door');
+  doorSel.innerHTML = '<option value="">— Select door —</option>';
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
-  const regularDoors = availDoors.filter(d => !d.id.startsWith('YD')).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
-  const yardDoors = availDoors.filter(d => d.id.startsWith('YD')).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
-  [...regularDoors, ...yardDoors].forEach(door => {
-    const o = document.createElement('option');
-    o.value = `Door ${door.num}${door.name ? ' — ' + door.name : ''}`;
-    o.dataset.doorid = door.id;
-    doorList.appendChild(o);
+  const isYard = d => d.id.startsWith('YD') || d.type === 'yard';
+  const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
+  const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
+  [['Dock Doors', regularDoors], ['Yard Doors', yardDoors]].forEach(([label, list]) => {
+    if (!list.length) return;
+    const grp = document.createElement('optgroup');
+    grp.label = label;
+    list.forEach(door => {
+      const o = document.createElement('option');
+      o.value = door.id;
+      o.textContent = door.num + (door.name ? ' — ' + door.name : '');
+      grp.appendChild(o);
+    });
+    doorSel.appendChild(grp);
   });
 
+  document.getElementById('sltl-carrier').value = '';
   document.getElementById('sltl-carrier').value = '';
   document.getElementById('sltl-door').value = '';
   document.getElementById('sltl-trailer').value = '';
   document.getElementById('sltl-notes').value = '';
   document.getElementById('sltl-type').value = 'DROP';
   document.getElementById('sltl-arrival').value = localDateTimeInputValue();
+  document.getElementById('sltl-unexpected').checked = false;
   document.getElementById('modal-slot-ltl').classList.add('open');
 }
 
-// Set the Type field based on the selected carrier's category (DROP/LTL -> DROP, LIVE -> LIVE)
+// Set Type field and re-sort door list based on the selected carrier's category
 function updateSlotLTLType() {
   const carrierName = document.getElementById('sltl-carrier').value;
   const carrierObj = state.carriers.find(c => c.name === carrierName);
   if (!carrierObj) return;
-  if (carrierObj.type === 'LIVE') {
-    document.getElementById('sltl-type').value = 'LIVE';
-  } else {
-    document.getElementById('sltl-type').value = 'DROP';
-  }
+
+  // Default type from carrier
+  const ctype = (carrierObj.type || '').toUpperCase();
+  if (ctype === 'LIVE') document.getElementById('sltl-type').value = 'LIVE';
+  else if (ctype === 'OTHER') document.getElementById('sltl-type').value = 'OTHER';
+  else document.getElementById('sltl-type').value = 'DROP';
+
+  // Re-sort door select: Live carrier → yard doors first; Drop/Other → dock doors first
+  const doorSel = document.getElementById('sltl-door');
+  const prevDoor = doorSel.value;
+  const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
+  const isYard = d => d.id.startsWith('YD') || d.type === 'yard';
+  const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
+  const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
+  const groups = [['Dock Doors', regularDoors], ['Yard Doors', yardDoors]];
+  doorSel.innerHTML = '<option value="">— Select door —</option>';
+  groups.forEach(([label, list]) => {
+    if (!list.length) return;
+    const grp = document.createElement('optgroup');
+    grp.label = label;
+    list.forEach(door => {
+      const o = document.createElement('option');
+      o.value = door.id;
+      o.textContent = door.num + (door.name ? ' — ' + door.name : '');
+      grp.appendChild(o);
+    });
+    doorSel.appendChild(grp);
+  });
+  doorSel.value = prevDoor; // restore selection if still valid
 }
 function slotLTLTrailer() {
-  const doorInput = document.getElementById('sltl-door').value.trim();
-  // Try to match typed value against datalist options (by door num or name)
-  const doorOpt = Array.from(document.getElementById('sltl-door-list').options).find(o => o.value === doorInput);
-  let doorId = doorOpt ? doorOpt.dataset.doorid : null;
-  if (!doorId) {
-    // Fallback: match by door number directly
-    const matched = state.doors.find(d => d.active && String(d.num) === doorInput);
-    if (matched) doorId = matched.id;
-  }
+  const doorId = document.getElementById('sltl-door').value;
   const carrier = document.getElementById('sltl-carrier').value.trim();
   const trailerNum = document.getElementById('sltl-trailer').value;
   const type = document.getElementById('sltl-type').value;
   const arrivalVal = document.getElementById('sltl-arrival').value;
   const notes = document.getElementById('sltl-notes').value;
+  const unexpected = document.getElementById('sltl-unexpected').checked;
   if (!doorId || !carrier) { toast('Please select carrier and door', 'error'); return; }
-  const fd = state.forecast[todayStr()];
-  let expected = false;
-  if (fd && fd.carriers) expected = fd.carriers.some(c => c.name === carrier && ((c.expTrailers||0)+(c.trailerAdj||0)) > 0);
+  const expected = !unexpected;
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers(); toast(`${carrier} slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
 }
 
-// ===================== SECURE / RELEASE / COMPLETE =====================
-function secureTrailer(doorId) {
-  if (!state.trailers[doorId]) return;
-  state.trailers[doorId].secured = true;
-  state.trailers[doorId].secureTime = new Date().toISOString();
-  state.trailers[doorId].securedBy = (window._currentUser || 'unknown').toUpperCase();
-  saveTrailerToFirebase(doorId);
-  saveState(); renderDoors(); toast('Trailer secured');
-}
 // ===================== SALES SIDE TABLE =====================
 // Tracks: PITT x2, XPO x1 per day
 const SALES_SIDE_SLOTS = [
@@ -2558,15 +2969,13 @@ function releaseTrailer(doorId) {
     trailerNum: t.trailerNum,
     type: t.type,
     arrival: t.arrival,
-    secured: t.secureTime || t.arrival,
-    securedBy: t.securedBy || '',
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
     notes: t.notes,
     expected: t.expected,
-    slottedBy: t.slottedBy || '',
-    duration: elapsedMin(t.arrival)
+    unexpected: t.unexpected || false,
+    slottedBy: t.slottedBy || ''
   };
   state.history.push(rec);
   state.completedToday.push(rec);
@@ -2575,33 +2984,41 @@ function releaseTrailer(doorId) {
   rec.salesSlotId = salesSlot ? salesSlot.id : null;
   saveHistoryRecordToFirebase(rec);
   deleteTrailerFromFirebase(doorId);
-  sendReleaseSlackNotification(rec, salesSlot);
-  saveState(); renderDoors(); renderExpectedTrailers(); toast('Trailer released ✓');
+  const webhookFired = sendReleaseSlackNotification(rec, salesSlot);
+  saveState(); renderDoors(); renderExpectedTrailers();
+  showReleaseBanner(webhookFired);
 }
 
 // Slack workflow webhook for door releases.
 const SLACK_RELEASE_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
+// Carrier name overrides for webhook messages — add entries here as needed.
+const WEBHOOK_CARRIER_ALIAS = {
+  'Dohrn':     'Craig',
+  'ADP Craig': 'Craig',
+};
 
 function sendReleaseSlackNotification(rec, salesSlot) {
-  if (!SLACK_RELEASE_WEBHOOK_URL) return; // not configured yet
+  if (!SLACK_RELEASE_WEBHOOK_URL) return null;
+  if (rec.type !== 'DROP') return null;
+  // Also check carrier type — only fire for DROP carriers
   const carrierObj = state.carriers.find(c => c.name === rec.carrier);
-  if (carrierObj && carrierObj.type === 'OTHER') return; // skip notification for "Other" category carriers
-  const carrier = rec.carrier || 'Trailer';
-  const trailerNum = rec.trailerNum || '';
+  if (carrierObj && carrierObj.type !== 'DROP') return null;
+  const carrier = WEBHOOK_CARRIER_ALIAS[rec.carrier] || rec.carrier || 'Trailer';
+  const trailerPart = rec.trailerNum ? ` ${rec.trailerNum}` : '';
   const door = rec.door;
   let message;
-  if (salesSlot && salesSlot.carrier === 'PITT') {
-    message = `${carrier} trailer ${trailerNum} in door ${door} is empty and can be spotted to doors 23/24 if open.`;
+  if (salesSlot && rec.carrier === 'PITT') {
+    message = `${carrier}${trailerPart} in door ${door} is empty and can be spotted to doors 23/24 if open.`;
   } else if (salesSlot) {
-    message = `${carrier} trailer ${trailerNum} in door ${door} is empty and can be spotted to door ${salesSlot.destDoor} if open.`;
+    message = `${carrier}${trailerPart} in door ${door} is empty and can be spotted to door ${salesSlot.destDoor} if open.`;
   } else {
-    message = `${carrier} trailer ${trailerNum} in door ${door} is empty and ready for the yard.`;
+    message = `${carrier}${trailerPart} in door ${door} is empty and ready for the yard.`;
   }
-  fetch(SLACK_RELEASE_WEBHOOK_URL, {
+  return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ Rack_supply_trailer_move: message })
-  }).catch(err => console.error('Slack webhook failed:', err));
+  }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
 }
 function completeTrailer(doorId) {
   const t = state.trailers[doorId];
@@ -2617,12 +3034,10 @@ function completeTrailer(doorId) {
     trailerNum: t.trailerNum,
     type: t.type,
     arrival: t.arrival,
-    secured: t.secureTime,
     released: t.releaseTime,
     completed: now,
     notes: t.notes,
-    expected: t.expected,
-    duration: elapsedMin(t.arrival)
+    expected: t.expected
   };
   state.history.push(rec);
   state.completedToday.push(rec);
@@ -2647,7 +3062,7 @@ function renderCompletedTable() {
     tr.innerHTML = `
       <td style="color:${r.didNotReceive?'#c0392b':'#000'};font-weight:600;">${r.carrier}${r.didNotReceive?' <span style="font-size:10px;background:#fde8e8;color:#c0392b;border-radius:3px;padding:1px 4px;">DNR</span>':''}</td>
       <td style="color:#000">${r.door}</td>
-      <td style="color:#000">${r.secured ? fmtTime(r.secured) : '—'}</td>
+      <td style="color:#000">${r.arrival ? fmtTime(r.arrival) : '—'}</td>
       <td style="color:#000">${r.released ? fmtTime(r.released) : fmtTime(r.completed)}</td>
       <td style="color:#000;font-size:11px;font-weight:600;">${r.releasedBy||''}</td>
     `;
@@ -2671,17 +3086,13 @@ function openEditCompletedModal(id) {
   // Read-only info
   document.getElementById('ec-view-trailer').textContent = rec.trailerNum || '—';
   document.getElementById('ec-view-type').textContent = rec.type || '—';
-  document.getElementById('ec-view-secured').textContent = rec.secured ? fmtTime(rec.secured) + (rec.securedBy ? ' · ' + rec.securedBy : '') : '—';
+  document.getElementById('ec-view-secured').textContent = rec.arrival ? fmtTime(rec.arrival) : '—';
   document.getElementById('ec-view-released').textContent = rec.released ? fmtTime(rec.released) + (rec.releasedBy ? ' · ' + rec.releasedBy : '') : '—';
   // Notes (only editable field)
   document.getElementById('ec-notes').value = rec.notes || '';
   // Header
   document.getElementById('ec-header-carrier').textContent = rec.carrier;
   document.getElementById('ec-header-door').textContent = 'Door ' + rec.door;
-  // Resecure only makes sense if the original door is still active and currently empty
-  const door = state.doors.find(d => d.id === rec.doorId);
-  const resecureBtn = document.getElementById('ec-resecure-btn');
-  resecureBtn.style.display = (door && door.active) ? '' : 'none';
   document.getElementById('modal-edit-completed').classList.add('open');
 }
 
@@ -2699,53 +3110,31 @@ function saveEditCompleted() {
   saveState();
 }
 
-// Re-secure a completed trailer: restores it to its original door as SECURED,
-// keeping the original secure time/by and clearing the release record.
-function resecureTrailer(id) {
+function resecureTrailer() {
+  const id = +document.getElementById('modal-edit-completed').dataset.recid;
   const rec = state.history.find(r => r.id === id);
   if (!rec) return;
-  const doorId = rec.doorId;
-  const door = state.doors.find(d => d.id === doorId);
-  if (!door || !door.active) { toast('Original door is no longer available', 'error'); return; }
-  if (state.trailers[doorId] && !confirm('Door ' + door.num + ' already has a trailer. Replace it?')) return;
-
-  state.trailers[doorId] = {
+  const door = state.doors.find(d => d.id === rec.doorId);
+  if (!door) { toast('Original door no longer exists', 'error'); return; }
+  if (state.trailers[rec.doorId]) { toast(`Door ${door.num} is currently occupied`, 'error'); return; }
+  state.trailers[rec.doorId] = {
     carrier: rec.carrier,
     trailerNum: rec.trailerNum,
     type: rec.type,
     arrival: rec.arrival,
-    secured: true,
-    secureTime: rec.secured || rec.arrival,
-    securedBy: rec.securedBy || '',
+    secured: false,
     notes: rec.notes,
     expected: rec.expected,
+    unexpected: rec.unexpected || false,
     slottedBy: rec.slottedBy || ''
   };
-
-  // If this release filled a Pitt/XPO sales-side slot, undo that too
-  let slot = rec.salesSlotId ? salesSideState.find(s => s.id === rec.salesSlotId) : null;
-  if (!slot) {
-    // Fallback for older records saved before salesSlotId tracking existed:
-    // pick the most recently-released slot for this carrier
-    const candidates = salesSideState.filter(s => s.carrier === rec.carrier && s.releasedAt);
-    if (candidates.length) {
-      slot = candidates.reduce((latest, s) => new Date(s.releasedAt) > new Date(latest.releasedAt) ? s : latest);
-    }
-  }
-  if (slot) {
-    slot.releasedAt = null;
-    renderSalesSideTable();
-    saveSalesSideToFirebase();
-  }
-
   state.history = state.history.filter(r => r.id !== id);
   state.completedToday = state.completedToday.filter(r => r.id !== id);
-
-  saveTrailerToFirebase(doorId);
   deleteHistoryRecordFromFirebase(id);
+  saveTrailerToFirebase(rec.doorId);
   closeModal('modal-edit-completed');
   saveState(); renderDoors(); renderExpectedTrailers();
-  toast('Trailer re-secured at Door ' + door.num);
+  toast(`${rec.carrier} re-secured to Door ${door.num} ✓`);
 }
 
 // ===================== CARRIERS =====================
@@ -2765,23 +3154,42 @@ function renderCarriers() {
     div.className = 'carrier-card';
     div.style.cssText = 'flex-direction:column;align-items:stretch;gap:6px;padding:10px;';
     div.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;">
-        ${c.logo
-          ? `<img src="${c.logo}" style="width:44px;height:30px;object-fit:contain;border-radius:4px;background:#fff;padding:2px;border:1px solid #d0ddd8;flex-shrink:0;" title="${c.name}">`
-          : `<div style="width:44px;height:30px;background:#f0f0f0;border:1px dashed #ccc;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999;">No logo</div>`
-        }
-        <div style="flex:1;min-width:0;">
-          <div class="carrier-name" style="font-size:14px;">${c.name}</div>
-          <span class="badge ${typeColor}" style="font-size:10px;">${typeLabel}</span>
+      <div class="carrier-view-mode">
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${c.logo
+            ? `<img src="${c.logo}" style="width:44px;height:30px;object-fit:contain;border-radius:4px;background:#fff;padding:2px;border:1px solid #d0ddd8;flex-shrink:0;" title="${c.name}">`
+            : `<div style="width:44px;height:30px;background:#f0f0f0;border:1px dashed #ccc;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999;">No logo</div>`
+          }
+          <div style="flex:1;min-width:0;">
+            <div class="carrier-name" style="font-size:14px;">${c.name}</div>
+            <span class="badge ${typeColor}" style="font-size:10px;">${typeLabel}</span>
+          </div>
+          <button class="delete-btn" onclick="removeCarrier('${c.id}')" style="align-self:flex-start;flex-shrink:0;color:#ccc;font-size:13px;">✕</button>
         </div>
-        <button class="delete-btn" onclick="removeCarrier('${c.id}')" style="align-self:flex-start;flex-shrink:0;color:#ccc;font-size:13px;">✕</button>
+        <div style="display:flex;gap:6px;align-items:center;padding-top:6px;border-top:1px solid #eee;">
+          <label class="carrier-logo-btn" for="logo-upload-${c.id}" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #c8ddd4;background:#f5faf7;color:#1a4731;cursor:pointer;white-space:nowrap;">${c.logo ? '🔄 Change' : '📷 Add Logo'}</label>
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="carrier-logo-upload" id="logo-upload-${c.id}" onchange="uploadCarrierLogo('${c.id}', this)" style="display:none;">
+          ${c.logo ? `<button onclick="removeCarrierLogo('${c.id}')" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #f5c6c6;background:#fff5f5;color:#c0392b;cursor:pointer;font-weight:600;white-space:nowrap;">✕ Remove</button>` : ''}
+        </div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;padding-top:6px;border-top:1px solid #eee;">
-        <label class="carrier-logo-btn" for="logo-upload-${c.id}" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #c8ddd4;background:#f5faf7;color:#1a4731;cursor:pointer;white-space:nowrap;">${c.logo ? '🔄 Change' : '📷 Add Logo'}</label>
-        <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="carrier-logo-upload" id="logo-upload-${c.id}" onchange="uploadCarrierLogo('${c.id}', this)" style="display:none;">
-        ${c.logo ? `<button onclick="removeCarrierLogo('${c.id}')" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #f5c6c6;background:#fff5f5;color:#c0392b;cursor:pointer;font-weight:600;white-space:nowrap;">✕ Remove</button>` : ''}
+      <div class="carrier-edit-mode" style="display:none;flex-direction:column;gap:8px;">
+        <input type="text" autocomplete="off" value="${c.name}" placeholder="Carrier name" style="padding:5px 8px;border:1px solid #c8ddd4;border-radius:5px;font-size:13px;font-weight:600;color:#000;width:100%;box-sizing:border-box;">
+        <select style="padding:5px 8px;border:1px solid #c8ddd4;border-radius:5px;font-size:13px;color:#000;">
+          <option value="DROP" ${c.type === 'DROP' ? 'selected' : ''}>DROP</option>
+          <option value="LIVE" ${c.type === 'LIVE' ? 'selected' : ''}>LIVE</option>
+          <option value="OTHER" ${(c.type !== 'DROP' && c.type !== 'LIVE') ? 'selected' : ''}>OTHER</option>
+        </select>
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #ccc;background:#eee;color:#000;cursor:pointer;" onclick="cancelCarrierEdit(this)">Cancel</button>
+          <button style="font-size:11px;padding:3px 10px;border-radius:5px;border:none;background:#27b589;color:#000;font-weight:700;cursor:pointer;" onclick="saveCarrierEdit('${c.id}', this)">Save</button>
+        </div>
       </div>
     `;
+    div.addEventListener('dblclick', (e) => {
+      if (e.target.closest('button') || e.target.closest('label') || e.target.closest('input[type=file]')) return;
+      div.querySelector('.carrier-view-mode').style.display = 'none';
+      div.querySelector('.carrier-edit-mode').style.display = 'flex';
+    });
     return div;
   }
 
@@ -2797,6 +3205,25 @@ function renderCarriers() {
   makeSection('Drop Carriers', dropCarriers, 'var(--blue)');
   makeSection('Live Carriers', liveCarriers, 'var(--orange)');
   makeSection('Other', otherCarriers, 'var(--text2)');
+}
+function cancelCarrierEdit(btn) {
+  const card = btn.closest('.carrier-card');
+  card.querySelector('.carrier-view-mode').style.display = '';
+  card.querySelector('.carrier-edit-mode').style.display = 'none';
+}
+function saveCarrierEdit(id, btn) {
+  const card = btn.closest('.carrier-card');
+  const name = card.querySelector('.carrier-edit-mode input').value.trim();
+  const type = card.querySelector('.carrier-edit-mode select').value;
+  if (!name) { toast('Carrier name required', 'error'); return; }
+  const c = state.carriers.find(c => c.id === id);
+  if (!c) return;
+  c.name = name;
+  c.type = type;
+  saveOneCarrierToFirebase(id);
+  saveState();
+  renderCarriers();
+  toast('Carrier updated ✓');
 }
 function uploadCarrierLogo(carrierId, input) {
   const file = input.files[0];
@@ -2914,6 +3341,7 @@ const DEFAULT_FC_CARRIERS = [
   {name:'Dohrn',          linesPerTrailer:40,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:10, arrived:false, remaining:0, midday:0},
   {name:'PITT',      linesPerTrailer:20,  expTrailers:2, trailerAdj:0, linesAdj:0, bfPerTrailer:7,  arrived:false, remaining:0, midday:0},
   {name:'ADP Craig',      linesPerTrailer:35,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:10, arrived:false, remaining:0, midday:0},
+  {name:'A. Duie',        linesPerTrailer:13,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:1,  arrived:false, remaining:0, midday:0},
   {name:'XPO',            linesPerTrailer:30,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:9,  arrived:false, remaining:0, midday:0},
   {name:'FEDEX',          linesPerTrailer:15,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
   {name:'Copper & Brass', linesPerTrailer:12,  expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:1,  arrived:false, remaining:0, midday:0},
@@ -2927,11 +3355,10 @@ const DEFAULT_FC_CARRIERS = [
   {name:'Supplier Loads', linesPerTrailer:30,  expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:5,  arrived:false, remaining:0, midday:0},
   {name:'UU SORT',        linesPerTrailer:150, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
   {name:'LTL',            linesPerTrailer:10,  expTrailers:3, trailerAdj:0, linesAdj:0, bfPerTrailer:2,  arrived:false, remaining:0, midday:0},
-  {name:'Carryover',      linesPerTrailer:0,   expTrailers:0, trailerAdj:0, linesAdj:0, bfPerTrailer:0,  arrived:false, remaining:0, midday:0},
 ];
 
 // Carriers that are always active regardless of schedule (never zeroed by day filter)
-const ALWAYS_ACTIVE = new Set(['Carryover', 'UU SORT', 'LTL']);
+const ALWAYS_ACTIVE = new Set(['Carryover', 'UU SORT', 'LTL', 'Supplier Loads']);
 // Carriers excluded from Expected Trailers sidebar
 const EXCLUDE_FROM_EXPECTED = new Set(['UU SORT', 'LTL', 'Carryover']);
 
@@ -2939,6 +3366,7 @@ const DEFAULT_FC_SCHEDULE = [
   {name:'TForce',                 mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'Dohrn',                  mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'ADP Craig',              mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
+  {name:'A. Duie',                mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'PITT',              mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'XPO',                    mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
   {name:'FEDEX',                  mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
@@ -3001,8 +3429,16 @@ function migrateForecastData() {
 function getForecastData(dateKey) {
   if (!dateKey) dateKey = document.getElementById('forecast-date').value || todayStr();
   if (!state.forecast[dateKey]) {
+    const overrides = state.settings.carrierAssumptions || {};
+    const seededCarriers = DEFAULT_FC_CARRIERS.map(c => {
+      const ov = overrides[c.name] || {};
+      return Object.assign({}, c,
+        ov.linesPerTrailer !== undefined ? {linesPerTrailer: ov.linesPerTrailer} : {},
+        ov.bfPerTrailer   !== undefined ? {bfPerTrailer:    ov.bfPerTrailer}    : {}
+      );
+    });
     state.forecast[dateKey] = {
-      carriers: JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS)),
+      carriers: seededCarriers,
       schedule: JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE)),
       carriedIn: 0, capacity: 0,
       yestCarried: 0, yestChecked: 0, yestForecast: 0, checkRate: 0, linesPerson: 0,
@@ -3014,6 +3450,14 @@ function getForecastData(dateKey) {
   if (!fd.carriers || fd.carriers.length === 0) fd.carriers = JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS));
   if (!fd.schedule || fd.schedule.length === 0) fd.schedule = JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE));
   return fd;
+}
+
+function changeForecastDate(inp) {
+  // Save the date we're leaving before switching views
+  const prev = inp._prevDate;
+  if (prev && state.forecast[prev]) saveForecastToFirebase(prev);
+  inp._prevDate = inp.value;
+  renderForecastTab();
 }
 
 function renderForecastTab() {
@@ -3041,28 +3485,65 @@ function renderForecastTab() {
     fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
   }
 
+  // Carriers grouped visually with background colors matching the Excel exactly
+  const UTILITY_GROUP = new Set(['Supplier Loads', 'UU SORT', 'LTL']);
+  let utilityDividerAdded = false;
+  let estesDividerAdded = false;
+
+  // Carrier "family" background colors — applied to the Carrier name cell only, matching the Excel
+  const CARRIER_COLOR = {
+    'TForce':'#c5d9f1', 'Dohrn':'#c5d9f1', 'PITT':'#c5d9f1', 'ADP Craig':'#c5d9f1',
+    'A. Duie':'#c5d9f1', 'XPO':'#c5d9f1', 'FEDEX':'#c5d9f1',
+    'ESTES':'#c5d9f1', 'ODFL':'#c5d9f1', 'DAYTON':'#c5d9f1',
+    'Copper & Brass':'#f2dcdb', 'Castle Metal':'#f2dcdb', 'Supplier Loads':'#f2dcdb',
+    'WARD':'#ebf1de', 'ABF':'#ebf1de', 'R+L':'#ebf1de', 'LTL':'#ebf1de',
+  };
+
   fd.carriers.forEach((c, i) => {
+    if (c.name === 'Carryover') return; // removed from the table — enter carryover directly in the Lines Carried In tile
+    // Blue divider row before the ESTES/ODFL/DAYTON sub-group
+    if (c.name === 'ESTES' && !estesDividerAdded) {
+      estesDividerAdded = true;
+      const divider = document.createElement('tr');
+      divider.innerHTML = `<td colspan="10" style="background:#b8cce4;height:10px;padding:0;"></td>`;
+      tbody.appendChild(divider);
+    }
+    // Section divider before the first bulk/misc-load carrier
+    if (UTILITY_GROUP.has(c.name) && !utilityDividerAdded) {
+      utilityDividerAdded = true;
+      const divider = document.createElement('tr');
+      divider.innerHTML = `<td colspan="10" style="background:#bfbfbf;height:10px;padding:0;"></td>`;
+      tbody.appendChild(divider);
+    }
     // Use 0 trailers if not scheduled for this day (but still show row)
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers || 0);
     const adjTrailers = schedTrailers + (c.trailerAdj || 0);
-    const expLines = (c.linesPerTrailer || 0) * adjTrailers;
+    // Pull linesPerTrailer and bfPerTrailer from assumptions
+    const rawLpt = getCarrierAssumption(c.name, 'linesPerTrailer');
+    const rawBfpt = getCarrierAssumption(c.name, 'bfPerTrailer');
+    const noData = rawLpt === null;
+    const linesPerTrailer = noData ? 0 : rawLpt;
+    const bfPerTrailer = rawBfpt ?? 0;
+    const expLines = linesPerTrailer * adjTrailers;
     const total = expLines + (c.linesAdj || 0);
     const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
-    const bf = (c.bfPerTrailer || 0) * adjTrailers * linesPerSkid;
+    const bf = bfPerTrailer * adjTrailers * linesPerSkid;
     const tr = document.createElement('tr');
     const notScheduled = !ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name);
+    const carrierBg = CARRIER_COLOR[c.name] || '';
     tr.innerHTML = `
-      <td class="carrier-name-cell"><input type="text" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:20px;${notScheduled?'color:var(--text2);':''}" value="${c.name}" onchange="updateFCCarrier(${i},'name',this.value)"></td>
-      <td><input type="number" class="fc-tbl-input" style="font-size:20px;" value="${c.linesPerTrailer||0}" onchange="${c.name==='Carryover'?`syncCarryoverToCarriedIn(+this.value);`:''}updateFCCarrier(${i},'linesPerTrailer',+this.value)"></td>
-      <td><input type="number" class="fc-tbl-input" style="font-size:20px;${notScheduled?'color:var(--text2);':''}" value="${schedTrailers}" onchange="updateFCCarrier(${i},'expTrailers',+this.value)"></td>
-      <td style="background:#e8f7ef;"><input type="text" class="fc-tbl-input fc-calc" style="font-size:20px;background:#e8f7ef;" value="${expLines}" readonly></td>
-      <td><input type="number" class="fc-tbl-input" style="font-size:20px;color:${c.linesAdj?'var(--orange)':'inherit'}" value="${c.linesAdj||0}" onchange="updateFCCarrier(${i},'linesAdj',+this.value)"></td>
-      <td style="background:#fffae8;"><input type="text" class="fc-tbl-input fc-total-calc" style="font-size:15px;background:#fffae8;font-size:20px;" value="${total}" readonly></td>
-      <td><input type="number" class="fc-tbl-input" style="font-size:20px;" value="${c.bfPerTrailer||0}" onchange="updateFCCarrier(${i},'bfPerTrailer',+this.value)"></td>
-      <td><input type="text" class="fc-tbl-input fc-calc" style="font-size:20px;" value="${bf}" readonly></td>
+      <td class="carrier-name-cell" style="${carrierBg?`background:${carrierBg};`:''}"><input type="text" autocomplete="off" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:15px;${carrierBg?`background:${carrierBg};`:''}${notScheduled?'color:var(--text2);':''}" value="${c.name}" onchange="updateFCCarrier(${i},'name',this.value)"></td>
+      <td style="text-align:center;"><span style="font-size:15px;font-weight:700;color:${noData?'#aaa':'#1a4731'};display:block;text-align:center;">${noData?'—':rawLpt}</span></td>
+      <td><input type="number" class="fc-tbl-input" style="font-size:15px;${notScheduled?'color:var(--text2);':''}" value="${schedTrailers}" onchange="updateFCCarrier(${i},'expTrailers',+this.value)"></td>
+      <td><input type="text" autocomplete="off" class="fc-tbl-input fc-calc" style="font-size:15px;" value="${expLines}" readonly></td>
+      <td style="background:#ebf1de;"><input type="number" class="fc-tbl-input" style="font-size:15px;background:#ebf1de;color:${c.linesAdj?'var(--orange)':'inherit'}" value="${c.linesAdj||0}" onchange="updateFCCarrier(${i},'linesAdj',+this.value)"></td>
+      <td><input type="text" autocomplete="off" class="fc-tbl-input fc-total-calc" style="font-size:15px;" value="${total}" readonly></td>
+      <td style="text-align:center;"><span style="font-size:15px;font-weight:700;color:#1a4731;display:block;text-align:center;">${bfPerTrailer}</span></td>
+      <td style="text-align:center;"><span style="font-size:15px;font-weight:700;color:#1a4731;display:block;text-align:center;">${linesPerSkid}</span></td>
+      <td><input type="text" autocomplete="off" class="fc-tbl-input fc-calc" style="font-size:15px;" value="${bf}" readonly></td>
       <td><button class="delete-btn" onclick="removeFCCarrier(${i})" title="Remove row">\u2715</button></td>
     `;
-    if (notScheduled) tr.style.opacity = '0.5';
+    if (notScheduled) tr.style.opacity = '0.72';
     tbody.appendChild(tr);
   });
   calcForecastSummary();
@@ -3133,6 +3614,181 @@ function saveForecastSettings() {
   toast('Forecast settings saved ✓');
 }
 
+// ===================== ASSUMPTIONS TAB =====================
+function getCarrierAssumption(name, field) {
+  const source = state.settings.assumptionSource || 'manual';
+  if (source === 'average') {
+    const avg = (state.settings.carrierAverages || {})[name] || {};
+    // linesPerTrailer: only return if we have real average data (count > 0)
+    if (field === 'linesPerTrailer') return (avg.count > 0 && avg.linesPerTrailer !== undefined) ? avg.linesPerTrailer : null;
+    // bfPerTrailer: use avg table editable value if set, else manual fallback
+    if (field === 'bfPerTrailer') {
+      if (avg.bfPerTrailer !== undefined) return avg.bfPerTrailer;
+      const manualOv = (state.settings.carrierAssumptions || {})[name] || {};
+      if (manualOv.bfPerTrailer !== undefined) return manualOv.bfPerTrailer;
+      const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
+      return def ? def.bfPerTrailer : 0;
+    }
+  }
+  // Manual source: use overrides then defaults
+  const overrides = (state.settings.carrierAssumptions || {})[name] || {};
+  if (overrides[field] !== undefined) return overrides[field];
+  const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
+  return def ? def[field] : 0;
+}
+
+function toggleAssumptionsPanel() {
+  const panel = document.getElementById('fc-assumptions-panel');
+  const btn   = document.getElementById('assump-toggle-btn');
+  const open  = panel.style.display === 'none' || panel.style.display === '';
+  panel.style.display = open ? 'block' : 'none';
+  btn.style.background = open
+    ? 'linear-gradient(180deg,#f5c842 0%,#e0a800 100%)'
+    : 'linear-gradient(180deg,#4a7a5a 0%,#1a4731 100%)';
+  btn.style.color = open ? '#1a4731' : '#f5c842';
+  if (open) renderAssumptionsTab();
+}
+
+function setAssumptionSource(src) {
+  state.settings.assumptionSource = src;
+  saveState();
+  renderAssumptionsTab();
+  renderForecastTab();
+}
+
+function renderAssumptionsTab() {
+  const source = state.settings.assumptionSource || 'manual';
+
+  document.getElementById('assump-lines-per-skid').value = state.settings.bfLinesPerSkid || 9;
+  document.getElementById('assump-src-manual').checked   = source === 'manual';
+  document.getElementById('assump-src-average').checked  = source === 'average';
+  document.getElementById('assump-manual-badge').style.display = source === 'manual'  ? '' : 'none';
+  document.getElementById('assump-avg-badge').style.display    = source === 'average' ? '' : 'none';
+
+  const carriers        = DEFAULT_FC_CARRIERS.filter(c => c.name !== 'Carryover');
+  const manualOverrides = state.settings.carrierAssumptions || {};
+  const averages        = state.settings.carrierAverages    || {};
+
+  const tbody = document.getElementById('assump-unified-tbody');
+  tbody.innerHTML = '';
+  carriers.forEach(def => {
+    const lpt     = manualOverrides[def.name]?.linesPerTrailer ?? def.linesPerTrailer;
+    const bfptM   = manualOverrides[def.name]?.bfPerTrailer    ?? def.bfPerTrailer;
+    const avgData = averages[def.name] || {};
+    const avgLpt  = avgData.linesPerTrailer !== undefined ? avgData.linesPerTrailer.toFixed(1) : '—';
+    const bfptA   = avgData.bfPerTrailer ?? bfptM;
+    const loads   = avgData.count || 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;color:#1a4731;white-space:nowrap;padding:4px 7px;">${def.name}</td>
+      <td style="text-align:center;padding:3px 4px;">
+        <input type="number" min="0" value="${lpt}" data-carrier="${def.name}" data-field="linesPerTrailer" data-table="manual"
+          style="width:100%;padding:3px 4px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;font-weight:700;color:#1a4731;text-align:center;outline:none;"
+          onchange="saveAssumptions()">
+      </td>
+      <td style="text-align:center;padding:3px 4px;">
+        <input type="number" min="0" value="${bfptM}" data-carrier="${def.name}" data-field="bfPerTrailer" data-table="manual"
+          style="width:100%;padding:3px 4px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;font-weight:700;color:#1a4731;text-align:center;outline:none;"
+          onchange="saveAssumptions()">
+      </td>
+      <td style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 100%);padding:0;"></td>
+      <td style="text-align:center;padding:4px 7px;font-size:12px;font-weight:700;color:${loads>0?'#1a4731':'#bbb'};">${avgLpt}</td>
+      <td style="text-align:center;padding:3px 4px;">
+        <input type="number" min="0" value="${bfptA}" data-carrier="${def.name}" data-field="bfPerTrailer" data-table="average"
+          style="width:100%;padding:3px 4px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;font-weight:700;color:#1a4731;text-align:center;outline:none;"
+          onchange="saveAssumptions()">
+      </td>
+      <td style="text-align:center;padding:4px 7px;font-size:12px;color:#888;">${loads || '—'}</td>
+      <td></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function saveAssumptions() {
+  state.settings.bfLinesPerSkid = +(document.getElementById('assump-lines-per-skid').value) || 9;
+
+  const manualOverrides = state.settings.carrierAssumptions || {};
+  const averages        = state.settings.carrierAverages    || {};
+
+  document.querySelectorAll('#assump-unified-tbody input').forEach(inp => {
+    const carrier = inp.dataset.carrier;
+    const field   = inp.dataset.field;
+    const tbl     = inp.dataset.table;
+    if (tbl === 'manual') {
+      if (!manualOverrides[carrier]) manualOverrides[carrier] = {};
+      manualOverrides[carrier][field] = +inp.value || 0;
+    } else {
+      if (!averages[carrier]) averages[carrier] = {};
+      averages[carrier][field] = +inp.value || 0;
+    }
+  });
+
+  state.settings.carrierAssumptions = manualOverrides;
+  state.settings.carrierAverages    = averages;
+  saveState();
+  renderForecastTab();
+  toast('Assumptions saved ✓');
+}
+
+function handleExcelUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      // Find header row: look for a row with something like "carrier" and "lines"
+      let headerIdx = 0;
+      let carrierCol = 0, linesCol = 1;
+      for (let r = 0; r < Math.min(5, rows.length); r++) {
+        const low = rows[r].map(v => String(v).toLowerCase());
+        const ci = low.findIndex(v => v.includes('carrier'));
+        const li = low.findIndex(v => v.includes('line'));
+        if (ci >= 0 && li >= 0) { headerIdx = r; carrierCol = ci; linesCol = li; break; }
+      }
+
+      // Aggregate: sum lines and count per carrier
+      const agg = {}; // { carrierName: { sum, count } }
+      for (let r = headerIdx + 1; r < rows.length; r++) {
+        const row = rows[r];
+        const rawName = String(row[carrierCol] || '').trim();
+        const rawLines = parseFloat(row[linesCol]);
+        if (!rawName || isNaN(rawLines)) continue;
+        // Try to match to a known carrier (case-insensitive)
+        const matched = DEFAULT_FC_CARRIERS.find(c =>
+          c.name.toLowerCase() === rawName.toLowerCase() ||
+          rawName.toLowerCase().includes(c.name.toLowerCase()) ||
+          c.name.toLowerCase().includes(rawName.toLowerCase())
+        );
+        const key = matched ? matched.name : rawName;
+        if (!agg[key]) agg[key] = {sum:0, count:0};
+        agg[key].sum   += rawLines;
+        agg[key].count += 1;
+      }
+
+      // Merge into state.settings.carrierAverages (preserve existing bfPerTrailer edits)
+      const existing = state.settings.carrierAverages || {};
+      Object.entries(agg).forEach(([name, {sum, count}]) => {
+        if (!existing[name]) existing[name] = {};
+        existing[name].linesPerTrailer = sum / count;
+        existing[name].count           = count;
+      });
+      state.settings.carrierAverages = existing;
+      saveState();
+      renderAssumptionsTab();
+      toast(`Excel loaded — ${Object.keys(agg).length} carriers updated ✓`);
+    } catch(err) {
+      console.error(err);
+      toast('Failed to parse Excel file ✗');
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 function calcForecastSummary() {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
@@ -3148,10 +3804,11 @@ function calcForecastSummary() {
   if (fd.schedule && isWeekday) fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
 
   let totTrailers = 0, totExpLines = 0, totTotal = 0, totBF = 0, totBFSkids = 0;
-  let newLines = 0; // excludes Carryover row
-  let carryoverLines = 0;
+  let newLines = 0;
+  const carryoverLines = fd.carriedIn; // carryover now comes directly from the Lines Carried In tile
   const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
   fd.carriers.forEach(c => {
+    if (c.name === 'Carryover') return; // legacy row from old saved forecasts — no longer tracked here
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
     const expLines = (c.linesPerTrailer||0) * adjTrailers;
@@ -3163,11 +3820,7 @@ function calcForecastSummary() {
     totTotal += total;
     totBF += bf;
     totBFSkids += skids;
-    if (c.name === 'Carryover') {
-      carryoverLines = total;
-    } else {
-      newLines += total;
-    }
+    newLines += total;
   });
 
   document.getElementById('fc-tot-trailers').textContent = totTrailers;
@@ -3177,7 +3830,8 @@ function calcForecastSummary() {
   document.getElementById('fc-total-lines').textContent = newLines;
   document.getElementById('fc-total-all-lines').textContent = newLines + carryoverLines;
   document.getElementById('fc-bf-total').textContent = totBF;
-  document.getElementById('fc-bf-skids-total').textContent = totBFSkids;
+  document.getElementById('fc-bin-freight-lines').textContent = totBF;
+  document.getElementById('fc-bin-freight-lines-echo').textContent = totBF;
   document.getElementById('fc-late-carryover').value = fd.lateCarryover || 0;
   document.getElementById('fc-checkers').value = fd.checkers || 0;
 
@@ -3185,16 +3839,13 @@ function calcForecastSummary() {
   const carryEl = document.getElementById('fc-carryover');
   const carryTile = document.getElementById('fc-carryover-tile');
   carryEl.textContent = carryover;
-  carryEl.style.color = '#000';
+  carryEl.style.color = '#1a4731';
   if (carryover > 0) {
     carryTile.style.background = '#e53e3e';
-    carryTile.style.borderColor = '#b91c1c';
   } else if (carryover < 0) {
     carryTile.style.background = '#bbf7d0';
-    carryTile.style.borderColor = '#22c55e';
   } else {
-    carryTile.style.background = '#fff';
-    carryTile.style.borderColor = '#c8ddd4';
+    carryTile.style.background = '#f2dcdb';
   }
 }
 
@@ -3363,13 +4014,11 @@ const HISTORY_COLS = [
   { key: 'carrier',   label: 'Carrier' },
   { key: 'trailerNum',label: 'Trailer #' },
   { key: 'type',      label: 'Type' },
-  { key: 'slottedBy', label: 'Slotted By' },
-  { key: 'arrival',   label: 'Arrived' },
-  { key: 'secured',   label: 'Secured' },
-  { key: 'securedBy', label: 'Sec. By' },
-  { key: 'released',  label: 'Released' },
+  { key: 'slottedBy', label: 'Secured By' },
+  { key: 'arrival',   label: 'Secure Time' },
+  { key: 'released',  label: 'Release Time' },
   { key: 'releasedBy',label: 'Rel. By' },
-  { key: 'duration',  label: 'Duration' },
+  { key: 'notes',     label: 'Notes' },
   { key: 'expected',  label: 'Status' },
 ];
 
@@ -3395,17 +4044,12 @@ function renderHistoryHeader() {
 }
 
 function populateHistoryFilters() {
-  const dates    = [...new Set(state.history.map(r => r.date))].sort().reverse();
   const carriers = [...new Set(state.history.map(r => r.carrier))].sort();
   const doors    = [...new Set(state.history.map(r => r.door))].sort();
 
-  const ds = document.getElementById('history-date-filter');
   const cs = document.getElementById('history-carrier-filter');
   const drs = document.getElementById('history-door-filter');
-  const dv = ds.value, cv = cs.value, drv = drs ? drs.value : '';
-
-  ds.innerHTML = '<option value="">All Dates</option>';
-  dates.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; if (d===dv) o.selected=true; ds.appendChild(o); });
+  const cv = cs.value, drv = drs ? drs.value : '';
 
   cs.innerHTML = '<option value="">All Carriers</option>';
   carriers.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; if (c===cv) o.selected=true; cs.appendChild(o); });
@@ -3421,13 +4065,11 @@ function populateHistoryFilters() {
 function renderHistory() {
   renderHistoryHeader();
   const search  = (document.getElementById('history-search').value||'').toLowerCase();
-  const dateF   = document.getElementById('history-date-filter').value;
   const carrierF= document.getElementById('history-carrier-filter').value;
   const typeF   = document.getElementById('history-type-filter')?.value || '';
   const doorF   = document.getElementById('history-door-filter')?.value || '';
 
   let recs = state.history.slice();
-  if (dateF)    recs = recs.filter(r => r.date === dateF);
   if (carrierF) recs = recs.filter(r => r.carrier === carrierF);
   if (typeF)    recs = recs.filter(r => r.type === typeF);
   if (doorF)    recs = recs.filter(r => r.door === doorF);
@@ -3449,32 +4091,56 @@ function renderHistory() {
   tbody.innerHTML = '';
   if (!recs.length) { empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  recs.forEach(r => {
+
+  const PAGE = 500;
+  const displayed = recs.slice(0, PAGE);
+  const overflow = recs.length - displayed.length;
+
+  const frag = document.createDocumentFragment();
+  displayed.forEach(r => {
     const tr = document.createElement('tr');
     const typeColor = r.type === 'DROP' ? 'badge-blue' : r.type === 'LIVE' ? 'badge-orange' : r.type === 'DNR' ? 'badge-red' : 'badge-purple';
-    const expBadge = r.expected ? '<span class="badge badge-green">EXP</span>' : '<span class="badge badge-yellow">UNEXP</span>';
+    const expBadge = (r.expected === null || r.expected === undefined) ? '—' : (r.expected ? '<span class="badge badge-green">EXP</span>' : '<span class="badge badge-yellow">UNEXP</span>') + (r.unexpected ? ' <span class="badge badge-red">UNEXPECTED</span>' : '');
     tr.innerHTML = `
       <td style="color:#1a4731;font-weight:600;">${r.date}</td>
       <td style="color:#2d6b4a;">${r.door}</td>
       <td style="color:#1a4731;font-weight:700;">${r.carrier}</td>
       <td style="color:#2d6b4a;">${r.trailerNum||'—'}</td>
-      <td><span class="badge ${typeColor}">${r.type}</span></td>
+      <td><span class="badge ${typeColor}">${r.type||'—'}</span></td>
       <td style="color:#2d6b4a;font-weight:600;">${r.slottedBy||'—'}</td>
-      <td style="color:#2d6b4a;">${fmtTime(r.arrival)}</td>
-      <td style="color:#2d6b4a;">${fmtTime(r.secured)}</td>
-      <td style="color:#2d6b4a;font-weight:600;">${r.securedBy||'—'}</td>
-      <td style="color:#2d6b4a;">${fmtTime(r.released)}</td>
+      <td style="color:#2d6b4a;">${fmtDateTime(r.arrival)}</td>
+      <td style="color:#2d6b4a;">${fmtDateTime(r.released)}</td>
       <td style="color:#2d6b4a;font-weight:600;">${r.releasedBy||'—'}</td>
-      <td style="color:#2d6b4a;">${minsToHM(r.duration)}</td>
+      <td style="color:#2d6b4a;font-style:italic;">${r.notes||'—'}</td>
       <td>${expBadge}</td>
     `;
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   });
+  if (overflow > 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="11" style="text-align:center;color:#888;font-size:11px;padding:8px;">… ${overflow.toLocaleString()} more records — use filters to narrow results</td>`;
+    frag.appendChild(tr);
+  }
+  tbody.appendChild(frag);
 }
-function exportHistory() {
-  const rows = [['Date','Door','Carrier','Trailer#','Type','SlottedBy','Arrival','Secured','SecuredBy','Released','ReleasedBy','Duration(min)','Expected']];
-  state.history.forEach(r => rows.push([r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.slottedBy||'', r.arrival||'', r.secured||'', r.securedBy||'', r.released||'', r.releasedBy||'', r.duration||'', r.expected?'Y':'N']));
+async function clearAllHistory() {
+  if (!confirm('Delete ALL history records? This will load the full history first to make sure everything is removed. This cannot be undone.')) return;
+  toast('Loading full history before clearing…');
+  await ensureFullHistoryLoaded();
+  const ids = state.history.map(r => r.id);
+  state.history = [];
+  state.completedToday = [];
+  ids.forEach(id => deleteHistoryRecordFromFirebase(id));
+  saveState(); renderHistory(); renderCompletedTable();
+  toast('History cleared');
+}
+async function exportHistory() {
+  toast('Loading full history for export…');
+  await ensureFullHistoryLoaded();
+  const rows = [['Date','Door','Carrier','Trailer#','Type','SlottedBy','Secure Time','Released','ReleasedBy','Notes','Expected']];
+  state.history.forEach(r => rows.push([r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.slottedBy||'', r.arrival||'', r.released||'', r.releasedBy||'', r.notes||'', r.expected?'Y':'N']));
   downloadCSV('dock_history.csv', rows);
+  toast('History exported ✓');
 }
 
 function importHistoryCSV(input) {
@@ -3486,12 +4152,20 @@ function importHistoryCSV(input) {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length < 2) { toast('CSV appears empty', 'error'); return; }
 
-    // Parse header row — flexible column mapping
-    const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
-    const col = (name) => headers.indexOf(name);
+    // Parse header row — normalize + substring fallback for fuzzy matching
+    const norm = s => s.replace(/"/g,'').trim().toLowerCase().replace(/[\s_#\-\.]+/g,'');
+    const rawHeaders = lines[0].split(',').map(h => h.replace(/^﻿/,'').replace(/"/g,'').trim());  // strip BOM + quotes
+    const normHeaders = rawHeaders.map(norm);
+    // Exact match first, then substring match
+    const col = (name) => {
+      const n = norm(name);
+      const exact = normHeaders.indexOf(n);
+      if (exact !== -1) return exact;
+      return normHeaders.findIndex(h => h.includes(n) || n.includes(h));
+    };
 
     let imported = 0, skipped = 0;
-    const existingIds = new Set(state.history.map(r => String(r.id)));
+    const newRecs = [];
 
     lines.slice(1).forEach((line, idx) => {
       // Handle quoted CSV fields
@@ -3503,38 +4177,85 @@ function importHistoryCSV(input) {
         else cur += ch;
       }
 
-      const get = (name) => fields[col(name)] || '';
+      const get = (...names) => { for (const n of names) { const v = fields[col(n)]; if (v && v !== '—' && v !== '-') return v; } return ''; };
       const id = Date.now() + idx;
 
-      // Try to map common column names flexibly
-      const date     = get('date') || get('arrival date') || get('date received') || todayStr();
-      const door     = get('door') || get('door #') || get('door number') || '';
-      const carrier  = get('carrier') || get('carrier name') || '';
-      const trailerNum = get('trailer#') || get('trailer #') || get('trailer number') || get('trailer') || '';
-      const type     = get('type') || 'DROP';
-      const arrival  = get('arrival') || get('arrived') || get('arrival time') || '';
-      const secured  = get('secured') || '';
-      const released = get('released') || '';
-      const duration = +(get('duration(min)') || get('duration') || 0);
-      const expected = (get('expected') || '').toLowerCase() === 'y';
+      const date       = get('date') || todayStr();
+      const door       = get('door', 'door number', 'door#') || '';
+      const carrier    = get('carrier', 'carrier name') || '';
+      const trailerNum = get('trailer#', 'trailer #', 'trailer number', 'trailer') || '';
+      const type       = get('type') || '';
+      const arrival    = get('secure time', 'secure_time', 'arrival', 'arrived', 'arrival time') || '';
+      const released   = get('released time', 'release time', 'release_time', 'released', 'release') || '';
+      const slottedBy  = get('secured by', 'secured_by', 'slottedby', 'slotted by') || '';
+      const releasedBy = get('releasedby', 'released by', 'released_by', 'rel. by') || '';
+      const duration   = 0;
+      const expected   = null;
+      const unexpected = false;
 
       if (!carrier && !door) { skipped++; return; }
 
+      // completed must always have a value — Firestore orderBy excludes docs without the field
+      const completed = released || arrival || date;
       const rec = { id, date, door, doorId: null, carrier, trailerNum, type,
-        arrival, secured, released, completed: released || arrival,
-        notes: get('notes') || '', expected, duration, imported: true };
+        arrival, released, completed,
+        slottedBy, releasedBy,
+        notes: get('notes') || '', expected, unexpected, duration, imported: true };
 
       state.history.push(rec);
       if (date === todayStr()) state.completedToday.push(rec);
-      saveHistoryRecordToFirebase(rec);
       imported++;
+      newRecs.push(rec);
     });
 
     saveState();
     populateHistoryFilters();
     renderHistory();
     input.value = '';
-    toast(`Imported ${imported} records${skipped ? `, skipped ${skipped}` : ''} ✓`);
+
+    // Use writeBatch — up to 500 ops per batch, one round-trip each
+    (async () => {
+      const db = getDb();
+      if (!window._fbReady || !db) { toast('Firebase not ready — refresh and try again', 'error'); return; }
+      toast(`Saving ${imported} records… please wait`);
+      const CHUNK = 100; // smaller batches to stay under Firestore rate limits
+      const DELAY = 800; // ms between batches
+      const totalBatches = Math.ceil(newRecs.length / CHUNK);
+      let failed = 0;
+      for (let i = 0; i < newRecs.length; i += CHUNK) {
+        const slice = newRecs.slice(i, i + CHUNK);
+        const batchNum = Math.floor(i / CHUNK) + 1;
+        const pct = Math.round(Math.min(100, (batchNum / totalBatches) * 100));
+        toast(`Saving… ${pct}% (batch ${batchNum}/${totalBatches})`);
+        let delay = DELAY;
+        let success = false;
+        for (let attempt = 1; attempt <= 4; attempt++) {
+          try {
+            const batch = fb().writeBatch(db);
+            slice.forEach(r => batch.set(fb().doc(db, 'history', String(r.id)), r));
+            await batch.commit();
+            success = true;
+            break;
+          } catch(e) {
+            console.warn(`Batch ${batchNum} attempt ${attempt} failed:`, e.message);
+            toast(`Batch ${batchNum} throttled — waiting ${delay/1000}s…`);
+            await new Promise(r => setTimeout(r, delay));
+            delay *= 2; // exponential backoff
+          }
+        }
+        if (!success) {
+          failed += slice.length;
+          toast(`Batch ${batchNum} failed after 4 attempts — ${failed} records lost`, 'error');
+        }
+        // Pause between batches to avoid hitting Firestore rate limits
+        if (i + CHUNK < newRecs.length) await new Promise(r => setTimeout(r, DELAY));
+      }
+      if (failed > 0) {
+        toast(`Imported ${imported - failed} of ${imported} records — ${failed} failed, check console`, 'error');
+      } else {
+        toast(`Imported ${imported} records${skipped ? `, skipped ${skipped}` : ''} ✓ — safe to refresh`);
+      }
+    })();
   };
   reader.readAsText(file);
 }
@@ -3570,6 +4291,38 @@ function exportAllData() {
 
 // ===================== UTILS =====================
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showMoveBanner(webhookPromise) {
+  const el = document.getElementById('release-banner');
+  el.textContent = webhookPromise ? 'Trailer Moved & Move Request Sent' : 'Trailer Moved';
+  el.style.background = 'var(--teal)';
+  el.classList.add('show');
+  if (webhookPromise) {
+    webhookPromise.catch(() => {
+      el.textContent = 'Trailer Moved · Move Request Failed';
+      el.style.background = 'var(--red)';
+    }).finally(() => {
+      setTimeout(() => el.classList.remove('show'), 3000);
+    });
+  } else {
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+}
+function showReleaseBanner(webhookPromise) {
+  const el = document.getElementById('release-banner');
+  el.textContent = webhookPromise ? 'Trailer Released & Move Request Sent' : 'Trailer Released';
+  el.style.background = 'var(--teal)';
+  el.classList.add('show');
+  if (webhookPromise) {
+    webhookPromise.catch(() => {
+      el.textContent = 'Trailer Released · Move Request Failed';
+      el.style.background = 'var(--red)';
+    }).finally(() => {
+      setTimeout(() => el.classList.remove('show'), 3000);
+    });
+  } else {
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+}
 function toast(msg, type) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -3607,8 +4360,17 @@ function renderExpectedTrailers() {
   state.history.filter(h => h.date === today).forEach(h => {
     arrivedCounts[h.carrier] = (arrivedCounts[h.carrier] || 0) + 1;
   });
-  // Also count currently slotted
+  // Also count currently slotted — but ONLY trailers secured today.
+  // Trailers still sitting in a door from a previous day shouldn't eat into
+  // today's freshly-loaded forecast counts (each day's forecast is independent).
   Object.values(state.trailers).forEach(t => {
+    if (!t.arrival) { arrivedCounts[t.carrier] = (arrivedCounts[t.carrier] || 0) + 1; return; }
+    const d = parseFlexDate(t.arrival);
+    if (d) {
+      const pad = n => String(n).padStart(2, '0');
+      const arrivalDateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      if (arrivalDateStr !== today) return; // carried over from a previous day — don't count it
+    }
     arrivedCounts[t.carrier] = (arrivedCounts[t.carrier] || 0) + 1;
   });
 
@@ -3658,19 +4420,29 @@ function renderExpectedTrailers() {
 
 function openQuickSlotModal(carrierName) {
   document.getElementById('qs-carrier-label').textContent = carrierName;
-  // Populate door dropdown — empty doors only
-  const sel = document.getElementById('qs-door');
-  sel.innerHTML = '<option value="">— Select Door —</option>';
-  state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).forEach(door => {
-    const opt = document.createElement('option');
-    opt.value = door.id;
-    opt.textContent = `Door ${door.num}${door.name ? ' — ' + door.name : ''}`;
-    sel.appendChild(opt);
+  document.getElementById('modal-quick-slot').dataset.carrier = carrierName;
+  // Populate door datalist — empty doors only
+  const dl = document.getElementById('qs-door-list');
+  dl.innerHTML = '';
+  const sortedDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).slice().sort((a, b) => {
+    const ka = doorSortKey(a), kb = doorSortKey(b);
+    if (ka.isYard !== kb.isYard) return ka.isYard ? 1 : -1;
+    // Push single-digit standard doors to end of standard section
+    const aLow = !ka.isYard && ka.num < 10;
+    const bLow = !kb.isYard && kb.num < 10;
+    if (aLow !== bLow) return aLow ? 1 : -1;
+    return ka.num - kb.num;
   });
+  sortedDoors.forEach(door => {
+    const opt = document.createElement('option');
+    opt.value = door.num;
+    opt.textContent = door.name ? `${door.num} — ${door.name}` : door.num;
+    dl.appendChild(opt);
+  });
+  document.getElementById('qs-door').value = '';
   document.getElementById('qs-trailer').value = '';
   document.getElementById('qs-type').value = 'DROP';
   document.getElementById('qs-notes').value = '';
-  document.getElementById('modal-quick-slot').dataset.carrier = carrierName;
   document.getElementById('modal-quick-slot').classList.add('open');
 }
 
@@ -3706,11 +4478,13 @@ function markDidNotReceive() {
 
 function slotFromExpected() {
   const carrierName = document.getElementById('modal-quick-slot').dataset.carrier;
-  const doorId = document.getElementById('qs-door').value;
+  const doorNum = document.getElementById('qs-door').value.trim();
+  const door = state.doors.find(d => d.num === doorNum && d.active);
+  const doorId = door ? door.id : null;
   const trailerNum = document.getElementById('qs-trailer').value;
   const type = document.getElementById('qs-type').value;
   const notes = document.getElementById('qs-notes').value;
-  if (!doorId) { toast('Please select a door', 'error'); return; }
+  if (!doorId) { toast('Please enter a valid door number', 'error'); return; }
   state.trailers[doorId] = {
     carrier: carrierName,
     trailerNum,
@@ -3993,11 +4767,11 @@ function buildEditOverlay(doorId) {
     <div class="edit-card-overlay" draggable="false" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()">
       <div>
         <div class="edit-card-label">Door # / ID</div>
-        <input type="text" value="${door.num}" onchange="editDoorNum('${doorId}',this.value)" placeholder="Door number">
+        <input type="text" autocomplete="off" value="${door.num}" onchange="editDoorNum('${doorId}',this.value)" placeholder="Door number">
       </div>
       <div>
         <div class="edit-card-label">Title / Label</div>
-        <input type="text" value="${door.name||''}" onchange="editDoorName('${doorId}',this.value)" placeholder="Optional label">
+        <input type="text" autocomplete="off" value="${door.name||''}" onchange="editDoorName('${doorId}',this.value)" placeholder="Optional label">
       </div>
       <div>
         <div class="edit-card-label">Type</div>
@@ -4181,7 +4955,7 @@ function showLoginPrompt() {
         <div style="font-size:48px;margin-bottom:14px;">🔐</div>
         <div style="font-size:20px;font-weight:800;color:#1a1a1a;font-family:Roboto,sans-serif;margin-bottom:6px;">Log In</div>
         <div style="font-size:13px;color:#666;margin-bottom:24px;font-family:Roboto,sans-serif;">Please enter your T-ID to begin</div>
-        <input id="tid-input" type="text" placeholder="TXXXX" maxlength="20"
+        <input id="tid-input" type="text" autocomplete="off" placeholder="TXXXX" maxlength="20"
           style="width:100%;background:#f5f5f5;border:none;border-radius:10px;padding:13px 14px;color:#27b589;font-size:18px;font-weight:700;outline:none;font-family:Roboto,sans-serif;text-align:center;margin-bottom:16px;letter-spacing:2px;"
           onkeydown="if(event.key==='Enter')submitLogin()">
         <button onclick="submitLogin()"
@@ -4200,6 +4974,7 @@ function submitLogin() {
   if (!val) { document.getElementById('login-error').textContent = 'Please enter your tID.'; return; }
   if (!val.startsWith('t') || val.length < 3) { document.getElementById('login-error').textContent = 'Invalid tID format. Should start with "t" (e.g. t12345).'; return; }
   window._currentUser = val;
+  saveLogin(val);
   document.getElementById('login-overlay')?.remove();
   // Log the login to Firebase
   if (window._fbReady && getDb()) {
@@ -4232,9 +5007,47 @@ function showConnecting() {
   `);
 }
 
+// ===================== 24-HOUR LOGIN MEMORY =====================
+function getSavedLogin() {
+  try {
+    const raw = localStorage.getItem('dockManagerLogin');
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved.tid || !saved.timestamp) return null;
+    const ageMs = Date.now() - saved.timestamp;
+    if (ageMs > 24 * 60 * 60 * 1000) return null; // expired after 24 hours
+    return saved.tid;
+  } catch(e) { return null; }
+}
+function saveLogin(tid) {
+  try { localStorage.setItem('dockManagerLogin', JSON.stringify({ tid, timestamp: Date.now() })); } catch(e) {}
+}
+
+function autoLogin(tid) {
+  window._currentUser = tid;
+  if (window._fbReady && getDb()) {
+    const loginRec = { tId: tid.toUpperCase(), timestamp: new Date().toISOString(), date: todayStr(), auto: true };
+    fb().setDoc(fb().doc(getDb(), 'logins', `${tid}_${Date.now()}`), loginRec).catch(e => console.error(e));
+  }
+  if (window._fbDataLoaded) {
+    applyStoredSettings();
+    autoLoadExpectedBySchedule();
+    renderDoors();
+    renderExpectedTrailers();
+    document.getElementById('forecast-date').value = todayStr();
+  } else {
+    showConnecting();
+  }
+}
+
 // Start the app
 initZoom();
-showLoginPrompt();
+const _savedTid = getSavedLogin();
+if (_savedTid) {
+  autoLogin(_savedTid);
+} else {
+  showLoginPrompt();
+}
 let _lastKnownDate = todayStr();
 function checkDayRollover() {
   const today = todayStr();
