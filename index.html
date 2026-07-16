@@ -2965,6 +2965,7 @@ function releaseTrailer(doorId) {
     completed: now,
     notes: t.notes,
     expected: t.expected,
+    slottedFromExpected: t.slottedFromExpected || false,
     unexpected: t.unexpected || false,
     slottedBy: t.slottedBy || ''
   };
@@ -3028,7 +3029,8 @@ function completeTrailer(doorId) {
     released: t.releaseTime,
     completed: now,
     notes: t.notes,
-    expected: t.expected
+    expected: t.expected,
+    slottedFromExpected: t.slottedFromExpected || false
   };
   state.history.push(rec);
   state.completedToday.push(rec);
@@ -4342,19 +4344,19 @@ function resetTodayForecast() {
   toast('Today\'s forecast reset ✓');
 }
 
-function renderExpectedTrailers() {
-  renderFutureDeliveries();
+// Shared by renderExpectedTrailers() and the Morning Outlook modal so both
+// views agree on which carriers have already been slotted from the expected
+// list for today. Only trailers/history slotted via the expected-list flow
+// (double-click → Quick Slot / Did Not Receive) count — manually slotting a
+// carrier through "Slot LTL Trailer" does NOT consume an expected slot.
+function getTodayArrivedCounts() {
   const today = todayStr();
-  const fd = state.forecast[today] || { ltl: [], carriers: [] };
-  // Count completed trailers today (released/completed) — NOT currently slotted
   const arrivedCounts = {};
-  state.history.filter(h => h.date === today).forEach(h => {
+  state.history.filter(h => h.date === today && h.slottedFromExpected).forEach(h => {
     arrivedCounts[h.carrier] = (arrivedCounts[h.carrier] || 0) + 1;
   });
-  // Also count currently slotted — but ONLY trailers secured today.
-  // Trailers still sitting in a door from a previous day shouldn't eat into
-  // today's freshly-loaded forecast counts (each day's forecast is independent).
   Object.values(state.trailers).forEach(t => {
+    if (!t.slottedFromExpected) return;
     if (!t.arrival) { arrivedCounts[t.carrier] = (arrivedCounts[t.carrier] || 0) + 1; return; }
     const d = parseFlexDate(t.arrival);
     if (d) {
@@ -4364,6 +4366,14 @@ function renderExpectedTrailers() {
     }
     arrivedCounts[t.carrier] = (arrivedCounts[t.carrier] || 0) + 1;
   });
+  return arrivedCounts;
+}
+
+function renderExpectedTrailers() {
+  renderFutureDeliveries();
+  const today = todayStr();
+  const fd = state.forecast[today] || { ltl: [], carriers: [] };
+  const arrivedCounts = getTodayArrivedCounts();
 
   // Name normalization map for display
   const nameNorm = {'T-Force Freight':'TForce','ADP-Craig':'ADP Craig'};
@@ -4454,6 +4464,7 @@ function markDidNotReceive() {
     completed: now,
     notes: 'Did Not Receive',
     expected: true,
+    slottedFromExpected: true,
     duration: 0,
     didNotReceive: true
   };
@@ -4484,6 +4495,7 @@ function slotFromExpected() {
     secured: false,
     notes,
     expected: true,
+    slottedFromExpected: true,
     slottedBy: (window._currentUser || 'unknown').toUpperCase()
   };
   closeModal('modal-quick-slot');
@@ -4533,10 +4545,17 @@ function renderOutlookTables() {
   const today = todayStr();
   const tdCss = 'padding:6px 8px;font-size:12px;color:#000;border-bottom:1px solid #d4ead8;';
 
-  // Today's table
+  // Today's table — hide rows for carriers already slotted from the expected
+  // list, same logic as the Expected Trailers table, so the two stay in sync.
   const todayTbody = document.getElementById('outlook-today-tbody');
   todayTbody.innerHTML = '';
-  const todayRows = window._outlookRows.filter(r => !r.date || r.date <= today);
+  const arrivedCounts = getTodayArrivedCounts();
+  const usedCounts = {};
+  const todayRows = window._outlookRows.filter(r => !r.date || r.date <= today).filter(r => {
+    const used = usedCounts[r.carrier] || 0;
+    usedCounts[r.carrier] = used + 1;
+    return used >= (arrivedCounts[r.carrier] || 0);
+  });
   if (todayRows.length === 0) {
     todayTbody.innerHTML = `<tr><td colspan="5" style="${tdCss}color:#4a7a5a;font-style:italic;">No trailers added yet</td></tr>`;
   } else {
