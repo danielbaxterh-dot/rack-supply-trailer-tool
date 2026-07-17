@@ -924,6 +924,7 @@
       <button onclick="resetZoom()" title="Reset zoom" style="border:none;background:#fff;border-radius:12px;padding:2px 8px;cursor:pointer;font-weight:700;font-size:10px;box-shadow:0 1px 2px rgba(0,0,0,0.15);">Reset</button>
     </div>
     <span id="date-display" style="color:#1a4731;font-weight:700;font-size:12px;"></span>
+    <button id="app-settings-btn" onclick="openAppSettingsModal()" title="App Settings" style="border:none;background:#f5f5f5;border:1px solid #ddd;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,0.15);">⚙️</button>
     <div id="connection-status" title="Offline" style="display:flex;align-items:center;gap:5px;background:#f5f5f5;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:#888;font-family:Roboto,sans-serif;">
       <div style="width:8px;height:8px;border-radius:50%;background:#ccc;"></div>
       <span id="connection-label">Connecting...</span>
@@ -1048,6 +1049,7 @@
       <div class="sidebar-panel">
         <div class="sidebar-panel-header">
           <span class="sidebar-panel-title">Completed Trailers</span>
+          <span id="completed-count-badge" style="font-size:11px;font-weight:700;color:#1a4731;background:#f5c842;border-radius:10px;padding:2px 9px;box-shadow:0 1px 2px rgba(0,0,0,0.25);"></span>
         </div>
         <div class="sidebar-panel-body" id="completed-table-wrap">
           <table class="sidebar-table">
@@ -1059,6 +1061,23 @@
           <div class="sidebar-empty" id="completed-empty">No completions yet today.</div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SETTINGS MODAL -->
+<div class="modal-overlay" id="modal-app-settings">
+  <div class="modal" style="width:420px;background:#d0d0d0;">
+    <h2 style="color:#000;">App Settings</h2>
+    <div style="display:flex;align-items:flex-start;gap:10px;margin:16px 0;padding:12px;background:#fff;border-radius:8px;border:1px solid #ccc;">
+      <input type="checkbox" id="app-set-slack-release" style="width:18px;height:18px;cursor:pointer;margin-top:2px;" onchange="toggleSlackReleaseSetting(this.checked)">
+      <label for="app-set-slack-release" style="cursor:pointer;color:#000;">
+        <div style="font-weight:700;font-size:13px;">Trailer Move Slack Notifications</div>
+        <div style="font-size:11px;color:#555;margin-top:2px;">When ON, releasing a DROP trailer sends a "door is empty" message to Slack, same as it does today. Turn this OFF to stop those messages without touching the webhook or automation itself.</div>
+      </label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button onclick="closeModal('modal-app-settings')" style="font-size:13px;font-weight:700;padding:8px 18px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#c8c8c8 0%,#a8a8a8 50%,#989898 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:3px solid #707070;">Close</button>
     </div>
   </div>
 </div>
@@ -1730,6 +1749,7 @@ function localDateTimeInputValue(date) {
 //   history/{id}       - completed trailer records
 
 let _unsubTrailers = null;
+let _unsubForecast = null;
 let _unsubHistory = null;
 // Nothing is allowed to write back to Firebase until a load has fully succeeded.
 // This prevents corrupted/partial/default data (from a failed load, a timeout fallback,
@@ -1830,7 +1850,7 @@ async function loadStateFromFirebase() {
 
     // SETTINGS
     const settingsSnap = await getDoc(doc(db, 'config', 'settings'));
-    const defaultSettings = { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8, bfLinesPerSkid:9 };
+    const defaultSettings = { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8, bfLinesPerSkid:9, slackReleaseEnabled:true };
     if (settingsSnap.exists()) state.settings = Object.assign({}, defaultSettings, settingsSnap.data());
     else state.settings = defaultSettings;
 
@@ -1906,6 +1926,16 @@ async function loadStateFromFirebase() {
     if (document.getElementById('tab-home').classList.contains('active')) renderDoors();
     renderExpectedTrailers();
     renderCompletedTable();
+  });
+
+  // Real-time listener for forecast / future deliveries — keeps the Expected
+  // Trailers list and Future Deliveries panel in sync across devices without
+  // needing a manual refresh.
+  if (_unsubForecast) _unsubForecast();
+  _unsubForecast = fb().onSnapshot(fb().collection(db, 'forecast'), snap => {
+    state.forecast = {};
+    snap.forEach(d => { state.forecast[d.id] = d.data(); });
+    renderExpectedTrailers();
   });
 
 }
@@ -2051,6 +2081,18 @@ async function deleteCarrierFromFirebase(carrierId) {
 async function saveSettingsToFirebase() {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
   try { await fb().setDoc(fb().doc(getDb(), 'config', 'settings'), state.settings); } catch(e) { console.error(e); }
+}
+
+function openAppSettingsModal() {
+  document.getElementById('app-set-slack-release').checked = state.settings.slackReleaseEnabled !== false;
+  document.getElementById('modal-app-settings').classList.add('open');
+}
+
+function toggleSlackReleaseSetting(checked) {
+  state.settings.slackReleaseEnabled = checked;
+  saveState();
+  saveSettingsToFirebase();
+  toast(checked ? 'Trailer move Slack notifications turned ON' : 'Trailer move Slack notifications turned OFF');
 }
 async function saveForecastToFirebase(dateKey) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase) return;
@@ -3020,6 +3062,7 @@ const WEBHOOK_CARRIER_ALIAS = {
 
 function sendReleaseSlackNotification(rec, salesSlot) {
   if (!SLACK_RELEASE_WEBHOOK_URL) return null;
+  if (state.settings.slackReleaseEnabled === false) return null;
   if (rec.type !== 'DROP') return null;
   // Also check carrier type — only fire for DROP carriers
   const carrierObj = state.carriers.find(c => c.name === rec.carrier);
@@ -3074,6 +3117,12 @@ function renderCompletedTable() {
   const recs = state.completedToday;
   const tbody = document.getElementById('completed-tbody');
   const empty = document.getElementById('completed-empty');
+  const badge = document.getElementById('completed-count-badge');
+  if (badge) {
+    const drops = recs.filter(r => r.type === 'DROP').length;
+    const lives = recs.filter(r => r.type === 'LIVE').length;
+    badge.textContent = `${recs.length} · ${drops} DROP · ${lives} LIVE`;
+  }
   tbody.innerHTML = '';
   if (!recs.length) { empty.style.display = 'block'; tbody.closest('table').style.display='none'; return; }
   empty.style.display = 'none'; tbody.closest('table').style.display='';
@@ -4299,7 +4348,7 @@ function clearTodayData() {
 }
 async function resetAll() {
   localStorage.removeItem('dockManagerState');
-  state = { doors:[], carriers:[], trailers:{}, history:[], forecast:{}, settings:{doorWidth:270,doorNum:30,carrierFont:18,doorHeight:120,sidebar:320,tableFont:12,columns:6,cardGap:10,rows:8}, completedToday:[] };
+  state = { doors:[], carriers:[], trailers:{}, history:[], forecast:{}, settings:{doorWidth:270,doorNum:30,carrierFont:18,doorHeight:120,sidebar:320,tableFont:12,columns:6,cardGap:10,rows:8,slackReleaseEnabled:true}, completedToday:[] };
   state.doors = await loadDefaultDoorsLayout();
   initDefaultCarriers();
   saveState(); renderDoors(); toast('All data reset');
