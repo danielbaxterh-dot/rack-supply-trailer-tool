@@ -1054,7 +1054,7 @@
         <div class="sidebar-panel-body" id="completed-table-wrap">
           <table class="sidebar-table">
             <thead><tr>
-              <th>Carrier</th><th>Door</th><th>Secured</th><th>Released</th><th>By</th><th>Notes</th>
+              <th>Carrier</th><th>Trailer #</th><th>Secured</th><th>Released</th><th>By</th><th>Notes</th>
             </tr></thead>
             <tbody id="completed-tbody"></tbody>
           </table>
@@ -1544,14 +1544,14 @@
   </div>
 </div>
 
-<!-- RELEASE CONFIRM MODAL -->
+<!-- RELEASE/MOVE CONFIRM MODAL -->
 <div class="modal-overlay" id="modal-release-confirm">
   <div class="modal" style="max-width:360px;">
-    <h2>Release Trailer</h2>
+    <h2 id="release-confirm-title">Release Trailer</h2>
     <p style="font-size:13px;color:#000;margin-bottom:16px;" id="release-confirm-summary"></p>
     <div class="modal-actions" style="flex-direction:column;gap:8px;">
-      <button class="btn btn-teal" onclick="releaseConfirmChoice(true)" style="color:#000;width:100%;">Release &amp; Notify Slack</button>
-      <button class="btn btn-gray" onclick="releaseConfirmChoice(false)" style="width:100%;">Release (No Message)</button>
+      <button class="btn btn-teal" onclick="releaseConfirmChoice(true)" style="color:#000;width:100%;">Release &amp; Request Move</button>
+      <button class="btn btn-gray" onclick="releaseConfirmChoice(false)" style="width:100%;">Release &amp; No Request</button>
       <button class="btn btn-gray" onclick="closeModal('modal-release-confirm')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;font-size:12px;padding:4px;">Cancel</button>
     </div>
   </div>
@@ -2773,7 +2773,7 @@ function selectMoveFromDoor(doorId) {
       const tr = document.createElement('tr');
       tr.style.cursor = 'pointer';
       tr.innerHTML = `<td style="font-weight:700;">${door.num}${door.name ? ' — ' + door.name : ''}</td>`;
-      tr.addEventListener('click', () => moveTrailer(doorId, door.id));
+      tr.addEventListener('click', () => confirmMove(doorId, door.id));
       tbody.appendChild(tr);
     });
   }
@@ -2786,7 +2786,17 @@ function moveModalBack() {
   document.getElementById('move-modal-title').textContent = 'Move Trailer';
 }
 
-function moveTrailer(from, to) {
+function confirmMove(from, to) {
+  const t = state.trailers[from];
+  if (!t) return;
+  if (state.settings.slackReleaseEnabled === false) { moveTrailer(from, to, false); return; }
+  const fromDoor = state.doors.find(d => d.id === from);
+  const toDoor = state.doors.find(d => d.id === to);
+  const summary = `${t.carrier || ''}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${fromDoor?.num || from} → Door ${toDoor?.num || to}`;
+  openSendRequestConfirm('Move Trailer', summary, (sendSlack) => moveTrailer(from, to, sendSlack));
+}
+
+function moveTrailer(from, to, sendSlack = true) {
   if (!from || !to || from === to) { toast('Select different doors', 'error'); return; }
   if (!state.trailers[from]) { toast('No trailer at source door', 'error'); return; }
   const t = state.trailers[from];
@@ -2798,7 +2808,7 @@ function moveTrailer(from, to) {
   saveTrailerToFirebase(to);
   deleteTrailerFromFirebase(from);
   saveState(); renderDoors();
-  const moveWebhook = sendMoveSlackNotification(t, fromDoor, toDoor);
+  const moveWebhook = sendSlack ? sendMoveSlackNotification(t, fromDoor, toDoor) : null;
   showMoveBanner(moveWebhook);
 }
 
@@ -3038,20 +3048,29 @@ function isSlackEligible(t) {
   return true;
 }
 
+window._pendingConfirmAction = null;
+
+function openSendRequestConfirm(title, summaryText, action) {
+  window._pendingConfirmAction = action;
+  document.getElementById('release-confirm-title').textContent = title;
+  document.getElementById('release-confirm-summary').textContent = summaryText;
+  document.getElementById('modal-release-confirm').classList.add('open');
+}
+
+function releaseConfirmChoice(sendSlack) {
+  closeModal('modal-release-confirm');
+  const action = window._pendingConfirmAction;
+  window._pendingConfirmAction = null;
+  if (action) action(sendSlack);
+}
+
 function confirmRelease(doorId) {
   const t = state.trailers[doorId];
   if (!t) return;
   if (!isSlackEligible(t)) { releaseTrailer(doorId, false); return; }
   const door = state.doors.find(d => d.id === doorId);
-  document.getElementById('modal-release-confirm').dataset.doorid = doorId;
-  document.getElementById('release-confirm-summary').textContent = `${t.carrier}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${door?.num || doorId}`;
-  document.getElementById('modal-release-confirm').classList.add('open');
-}
-
-function releaseConfirmChoice(sendSlack) {
-  const doorId = document.getElementById('modal-release-confirm').dataset.doorid;
-  closeModal('modal-release-confirm');
-  releaseTrailer(doorId, sendSlack);
+  const summary = `${t.carrier}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${door?.num || doorId}`;
+  openSendRequestConfirm('Release Trailer', summary, (sendSlack) => releaseTrailer(doorId, sendSlack));
 }
 
 function releaseTrailer(doorId, sendSlack = true) {
@@ -3169,7 +3188,7 @@ function renderCompletedTable() {
     tr.title = 'Double-click to edit or re-slot';
     tr.innerHTML = `
       <td style="color:${r.didNotReceive?'#c0392b':'#000'};font-weight:600;">${r.carrier}${r.didNotReceive?' <span style="font-size:10px;background:#fde8e8;color:#c0392b;border-radius:3px;padding:1px 4px;">DNR</span>':''}</td>
-      <td style="color:#000">${r.door}</td>
+      <td style="color:#000">${r.trailerNum || '—'}</td>
       <td style="color:#000">${r.arrival ? fmtTime(r.arrival) : '—'}</td>
       <td style="color:#000">${r.released ? fmtTime(r.released) : fmtTime(r.completed)}</td>
       <td style="color:#000;font-size:11px;font-weight:600;">${r.releasedBy||''}</td>
