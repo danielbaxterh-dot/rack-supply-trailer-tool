@@ -2824,13 +2824,9 @@ function yardLabelFor(door) {
 function sendMoveSlackNotification(t, fromDoor, toDoor) {
   if (!SLACK_RELEASE_WEBHOOK_URL) return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
-  const trailerPart = t.trailerNum ? ` ${t.trailerNum}` : '';
-  const destDoor = toDoor ? toDoor.num : '?';
-  const fromYardLabel = yardLabelFor(fromDoor);
-  const toYardLabel = yardLabelFor(toDoor);
-  const fromPart = fromYardLabel ? `from the ${fromYardLabel}` : `in door ${fromDoor ? fromDoor.num : '?'}`;
-  const toPart = toYardLabel ? `to the ${toYardLabel}` : `to door ${destDoor}`;
-  const message = `Move ${carrier}${trailerPart} ${fromPart} ${toPart}`;
+  const fromNum = fromDoor ? fromDoor.num : '?';
+  const toNum = toDoor ? toDoor.num : '?';
+  const message = ['Move', carrier, t.trailerNum || '', `Door ${fromNum}`, 'to', `Door ${toNum}`].filter(Boolean).join(' ');
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -3124,16 +3120,16 @@ function sendReleaseSlackNotification(rec, salesSlot) {
   const carrierObj = state.carriers.find(c => c.name === rec.carrier);
   if (carrierObj && carrierObj.type !== 'DROP') return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[rec.carrier] || rec.carrier || 'Trailer';
-  const trailerPart = rec.trailerNum ? ` ${rec.trailerNum}` : '';
   const door = rec.door;
-  let message;
+  let tail;
   if (salesSlot && rec.carrier === 'PITT') {
-    message = `${carrier}${trailerPart} in door ${door} is empty and can be spotted to doors 23/24 if open.`;
+    tail = 'Ready for 23/24';
   } else if (salesSlot) {
-    message = `${carrier}${trailerPart} in door ${door} is empty and can be spotted to door ${salesSlot.destDoor} if open.`;
+    tail = `Ready for door ${salesSlot.destDoor}`;
   } else {
-    message = `${carrier}${trailerPart} in door ${door} is empty and ready for the yard.`;
+    tail = 'Ready for the yard';
   }
+  const message = [carrier, rec.trailerNum || '', `Door ${door}`, tail].filter(Boolean).join(' ');
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -3176,7 +3172,7 @@ function renderCompletedTable() {
   const badge = document.getElementById('completed-count-badge');
   if (badge) {
     const drops = recs.filter(r => r.type === 'DROP').length;
-    const lives = recs.filter(r => r.type === 'LIVE').length;
+    const lives = recs.filter(r => r.type !== 'DROP').length;
     badge.textContent = `${recs.length} · ${drops} DROP · ${lives} LIVE`;
   }
   tbody.innerHTML = '';
