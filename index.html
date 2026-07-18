@@ -229,7 +229,7 @@
   .door-trailer-num {
     font-size: calc(18px * var(--card-scale));
     font-weight: 700;
-    color: #1a3528;
+    color: #000;
     white-space: normal;
     word-break: break-word;
   }
@@ -547,6 +547,36 @@
       0 1px 0 rgba(255,255,255,0.9) inset;
   }
   .modal > * { padding-left: 22px; padding-right: 22px; }
+  .modal.modal-xl { width: 840px; }
+  .modal.modal-xl > * { padding-left: 44px; padding-right: 44px; }
+  .modal.modal-xl h2 { font-size: 32px; padding: 28px 44px; border-radius: 14px 14px 0 0; }
+  .modal.modal-xl .modal-xl-summary { font-size: 32px !important; font-weight: 700 !important; margin-bottom: 32px !important; }
+  .modal.modal-xl .modal-actions { padding: 24px 44px !important; gap: 16px !important; }
+  .modal.modal-xl .modal-actions .btn { font-size: 22px !important; padding: 18px 28px !important; border-radius: 12px !important; }
+  .modal.modal-xl .modal-actions .btn-cancel { font-size: 18px !important; padding: 10px !important; }
+
+  /* FILTERABLE SELECT (search-as-you-type dropdown) */
+  .fsel-wrap { position: relative; width: 100%; }
+  .fsel-input {
+    width: 100%; box-sizing: border-box;
+    padding: 8px 10px; border: 1px solid #c8ddd4; border-radius: 6px;
+    font-size: 13px; color: #000; outline: none; background: #fff;
+    font-family: inherit;
+  }
+  .fsel-input:focus { border-color: #27b589; box-shadow: 0 0 0 3px rgba(39,181,137,0.15); }
+  .fsel-list {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    max-height: 220px; overflow-y: auto; z-index: 1200;
+    background: #fff; border: 1px solid #c8ddd4; border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  }
+  .fsel-option {
+    padding: 9px 12px; font-size: 13px; color: #1a4731; cursor: pointer;
+    border-bottom: 1px solid #f0f5f2;
+  }
+  .fsel-option:last-child { border-bottom: none; }
+  .fsel-option:hover, .fsel-option.fsel-active { background: #eaf7f1; }
+  .fsel-empty { padding: 9px 12px; font-size: 12px; color: #888; font-style: italic; }
   .modal h2 {
     font-size: 16px;
     font-weight: 800;
@@ -1546,13 +1576,13 @@
 
 <!-- RELEASE/MOVE CONFIRM MODAL -->
 <div class="modal-overlay" id="modal-release-confirm">
-  <div class="modal" style="max-width:360px;">
+  <div class="modal modal-xl">
     <h2 id="release-confirm-title">Release Trailer</h2>
-    <p style="font-size:13px;color:#000;margin-bottom:16px;" id="release-confirm-summary"></p>
+    <p class="modal-xl-summary" style="font-size:13px;color:#000;margin-bottom:16px;" id="release-confirm-summary"></p>
     <div class="modal-actions" style="flex-direction:column;gap:8px;">
       <button class="btn btn-teal" onclick="releaseConfirmChoice(true)" style="color:#000;width:100%;">Release &amp; Request Move</button>
       <button class="btn btn-gray" onclick="releaseConfirmChoice(false)" style="width:100%;">Release &amp; No Request</button>
-      <button class="btn btn-gray" onclick="closeModal('modal-release-confirm')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;font-size:12px;padding:4px;">Cancel</button>
+      <button class="btn btn-gray btn-cancel" onclick="closeModal('modal-release-confirm')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;font-size:12px;padding:4px;">Cancel</button>
     </div>
   </div>
 </div>
@@ -2519,7 +2549,7 @@ function renderDoors() {
 
     // Full-width notes bar
     const notesBar = t && t.notes
-      ? `<div style="font-size:14px;color:#000;font-style:italic;padding:4px 6px 2px;border-top:1px solid #e8eeeb;word-break:break-word;line-height:1.4;">${t.notes}</div>`
+      ? `<div style="font-size:14px;color:#000;font-style:italic;font-weight:700;padding:4px 6px 2px;border-top:1px solid #e8eeeb;word-break:break-word;line-height:1.4;">${t.notes}</div>`
       : '';
 
     // Actions row
@@ -2792,7 +2822,9 @@ function confirmMove(from, to) {
   if (state.settings.slackReleaseEnabled === false) { moveTrailer(from, to, false); return; }
   const fromDoor = state.doors.find(d => d.id === from);
   const toDoor = state.doors.find(d => d.id === to);
-  const summary = `${t.carrier || ''}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${fromDoor?.num || from} → Door ${toDoor?.num || to}`;
+  const fromLabel = yardLabelFor(fromDoor) || `Door ${fromDoor?.num || from}`;
+  const toLabel = yardLabelFor(toDoor) || `Door ${toDoor?.num || to}`;
+  const summary = `${t.carrier || ''}${t.trailerNum ? ' #' + t.trailerNum : ''} — ${fromLabel} → ${toLabel}`;
   openSendRequestConfirm('Move Trailer', summary, (sendSlack) => moveTrailer(from, to, sendSlack));
 }
 
@@ -2824,9 +2856,9 @@ function yardLabelFor(door) {
 function sendMoveSlackNotification(t, fromDoor, toDoor) {
   if (!SLACK_RELEASE_WEBHOOK_URL) return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
-  const fromNum = fromDoor ? fromDoor.num : '?';
-  const toNum = toDoor ? toDoor.num : '?';
-  const message = ['Move', carrier, t.trailerNum || '', `Door ${fromNum}`, 'to', `Door ${toNum}`].filter(Boolean).join(' ');
+  const fromLabel = yardLabelFor(fromDoor) || `Door ${fromDoor ? fromDoor.num : '?'}`;
+  const toLabel = yardLabelFor(toDoor) || `Door ${toDoor ? toDoor.num : '?'}`;
+  const message = ['Move', carrier, t.trailerNum || '', 'in', fromLabel, 'to', toLabel].filter(Boolean).join(' ');
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -3129,7 +3161,7 @@ function sendReleaseSlackNotification(rec, salesSlot) {
   } else {
     tail = 'Ready for the yard';
   }
-  const message = [carrier, rec.trailerNum || '', `Door ${door}`, tail].filter(Boolean).join(' ');
+  const message = [carrier, rec.trailerNum || '', 'in', `Door ${door}`, tail].filter(Boolean).join(' ');
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -5047,6 +5079,102 @@ function initDragDrop() {
   });
 }
 
+// ===================== FILTERABLE SELECT (type-to-filter dropdown) =====================
+function enhanceSelect(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select || select.dataset.fselEnhanced) return;
+  select.dataset.fselEnhanced = '1';
+
+  // Keep the real <select> in the DOM (still readable/writable by existing code via .value),
+  // just visually hidden, so no other logic needs to change.
+  select.style.position = 'absolute';
+  select.style.opacity = '0';
+  select.style.height = '0';
+  select.style.width = '0';
+  select.style.padding = '0';
+  select.style.border = 'none';
+  select.style.pointerEvents = 'none';
+  select.tabIndex = -1;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'fsel-wrap';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'fsel-input';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  const list = document.createElement('div');
+  list.className = 'fsel-list';
+
+  select.parentNode.insertBefore(wrap, select);
+  wrap.appendChild(select);
+  wrap.appendChild(input);
+  wrap.appendChild(list);
+
+  function currentLabel() {
+    const opt = select.options[select.selectedIndex];
+    return opt ? opt.textContent : '';
+  }
+
+  function renderList(filter) {
+    const f = (filter || '').trim().toLowerCase();
+    list.innerHTML = '';
+    let any = false;
+    Array.from(select.options).forEach(opt => {
+      if (!f || opt.textContent.toLowerCase().includes(f)) {
+        any = true;
+        const item = document.createElement('div');
+        item.className = 'fsel-option';
+        item.textContent = opt.textContent;
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          select.value = opt.value;
+          input.value = opt.textContent;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          hideList();
+        });
+        list.appendChild(item);
+      }
+    });
+    if (!any) {
+      const none = document.createElement('div');
+      none.className = 'fsel-empty';
+      none.textContent = 'No matches';
+      list.appendChild(none);
+    }
+    list.style.display = 'block';
+  }
+
+  function hideList() { list.style.display = 'none'; }
+
+  input.addEventListener('focus', () => { input.select(); renderList(''); });
+  input.addEventListener('input', () => renderList(input.value));
+  input.addEventListener('blur', () => {
+    setTimeout(() => { hideList(); input.value = currentLabel(); }, 150);
+  });
+
+  // Intercept programmatic .value assignments elsewhere in the app so the
+  // visible text input always stays in sync with the real select's value.
+  const desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  Object.defineProperty(select, 'value', {
+    get() { return desc.get.call(select); },
+    set(v) { desc.set.call(select, v); input.value = currentLabel(); },
+    configurable: true
+  });
+
+  // Existing code repopulates some of these selects via innerHTML each time a
+  // modal opens (carrier/door lists) — catch that and refresh the display text.
+  const mo = new MutationObserver(() => { input.value = currentLabel(); });
+  mo.observe(select, { childList: true });
+
+  input.value = currentLabel();
+}
+
+function enhanceAllModalSelects() {
+  ['slot-door', 'slot-carrier', 'slot-type', 'bf-type', 'new-door-type',
+   'new-carrier-type', 'qs-type', 'de-carrier', 'de-type'].forEach(enhanceSelect);
+}
+
 // ===================== INIT =====================
 loadState();
 
@@ -5214,6 +5342,7 @@ function autoLogin(tid) {
 
 // Start the app
 initZoom();
+enhanceAllModalSelects();
 const _savedTid = getSavedLogin();
 if (_savedTid) {
   autoLogin(_savedTid);
