@@ -537,7 +537,7 @@
     border: none;
     border-radius: 14px;
     padding: 0;
-    width: 420px;
+    width: 840px;
     max-width: 95vw;
     max-height: 90vh;
     overflow-y: auto;
@@ -546,7 +546,7 @@
       0 8px 20px rgba(0,0,0,0.2),
       0 1px 0 rgba(255,255,255,0.9) inset;
   }
-  .modal > * { padding-left: 22px; padding-right: 22px; }
+  .modal > * { padding-left: 44px; padding-right: 44px; }
   .modal.modal-xl { width: 840px; }
   .modal.modal-xl > * { padding-left: 44px; padding-right: 44px; }
   .modal.modal-xl h2 { font-size: 32px; padding: 28px 44px; border-radius: 14px 14px 0 0; }
@@ -605,11 +605,11 @@
   .fsel-option:hover, .fsel-option.fsel-active { background: #eaf7f1; }
   .fsel-empty { padding: 9px 12px; font-size: 12px; color: #888; font-style: italic; }
   .modal h2 {
-    font-size: 16px;
+    font-size: 32px;
     font-weight: 800;
     color: #ffffff;
     margin-bottom: 0;
-    padding: 14px 22px;
+    padding: 28px 44px;
     background: linear-gradient(180deg, #2a6045 0%, #1a4731 60%, #153d29 100%);
     border-radius: 14px 14px 0 0;
     border-bottom: 2px solid #27b589;
@@ -618,12 +618,12 @@
     letter-spacing: 0.3px;
   }
   .modal > div:not(.modal-actions):not([style*="grid"]) { padding-top: 16px; }
-  .form-row { margin-bottom: 10px; padding-left: 0; padding-right: 0; }
+  .form-row { margin-bottom: 20px; padding-left: 0; padding-right: 0; }
   .form-row label {
     display: block;
-    font-size: 10px;
+    font-size: 18px;
     color: #2d6b4a;
-    margin-bottom: 3px;
+    margin-bottom: 6px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -632,10 +632,10 @@
     width: 100%;
     background: #f5faf7;
     border: 1px solid #b0d4c0;
-    border-radius: 6px;
-    padding: 6px 10px;
+    border-radius: 10px;
+    padding: 12px 18px;
     color: #1a4731;
-    font-size: 13px;
+    font-size: 24px;
     font-weight: 600;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -650,14 +650,18 @@
   .form-row textarea { color: #1a4731; font-weight: 500; }
   .modal-actions {
     display: flex;
-    gap: 8px;
+    gap: 16px;
     justify-content: flex-end;
     margin-top: 0;
-    padding: 12px 20px;
+    padding: 24px 44px;
     border-top: 1px solid #e0eeea;
     background: #f8fcfa;
     border-radius: 0 0 14px 14px;
   }
+  .modal-actions .btn { font-size: 22px; padding: 16px 26px; border-radius: 12px; }
+  .modal table:not(#assump-unified-table):not(#fc-carrier-table) { font-size: 22px; }
+  .modal th:not(#assump-unified-table th):not(#fc-carrier-table th) { font-size: 18px; padding: 12px 14px; }
+  .modal td:not(#assump-unified-table td):not(#fc-carrier-table td) { font-size: 20px; padding: 10px 14px; }
   .modal > *:not(h2) { padding-left: 20px; padding-right: 20px; }
   .modal > div:not(.modal-actions) { padding-top: 14px; }
   .modal > p { padding-top: 8px; }
@@ -1131,7 +1135,7 @@
 
 <!-- APP SETTINGS MODAL -->
 <div class="modal-overlay" id="modal-app-settings">
-  <div class="modal" style="width:420px;background:#d0d0d0;">
+  <div class="modal" style="width:840px;background:#d0d0d0;">
     <h2 style="color:#000;">App Settings</h2>
     <div style="display:flex;align-items:flex-start;gap:10px;margin:16px 0;padding:12px;background:#fff;border-radius:8px;border:1px solid #ccc;">
       <input type="checkbox" id="app-set-slack-release" style="width:18px;height:18px;cursor:pointer;margin-top:2px;" onchange="toggleSlackReleaseSetting(this.checked)">
@@ -1155,7 +1159,7 @@
 
 <!-- EDIT COMPLETED TRAILER MODAL -->
 <div class="modal-overlay" id="modal-edit-completed">
-  <div class="modal" style="width:460px;background:#d0d0d0;">
+  <div class="modal" style="width:920px;background:#d0d0d0;">
     <h2 id="ec-header-carrier" style="color:#000;">Edit Trailer</h2>
     <div style="font-size:11px;color:#000;margin-top:-10px;margin-bottom:14px;font-weight:600;" id="ec-header-door"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;">
@@ -1589,7 +1593,7 @@
 
 <!-- BIN FREIGHT NOTE MODAL -->
 <div class="modal-overlay" id="modal-bf-note">
-  <div class="modal" style="max-width:380px;">
+  <div class="modal" style="max-width:760px;">
     <h2>Bin Freight Trailer Update</h2>
     <p style="font-size:12px;color:#000;margin-bottom:4px;" id="bf-note-summary"></p>
     <div class="form-row">
@@ -1733,7 +1737,7 @@
 
 <!-- QUICK SLOT FROM EXPECTED MODAL -->
 <div class="modal-overlay" id="modal-quick-slot">
-  <div class="modal" style="width:360px;">
+  <div class="modal" style="width:720px;">
     <h2>Secure Expected Trailer</h2>
     <div style="margin-bottom:14px;">
       <span style="font-size:10px;color:#2d6b4a;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Carrier</span>
@@ -1769,7 +1773,7 @@
 
 <!-- DOOR EDIT MODAL -->
 <div class="modal-overlay" id="modal-door-edit">
-  <div class="modal" style="width:380px;">
+  <div class="modal" style="width:760px;">
     <h2 id="door-edit-title">Edit Door</h2>
     <div class="form-row">
       <label>Trailer Number</label>
