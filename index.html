@@ -911,18 +911,6 @@
 
   .edit-card-overlay {
     display: none;
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(14,42,26,0.88);
-    border-radius: 7px;
-    z-index: 10;
-    flex-direction: column;
-    gap: 6px;
-    padding: 8px;
-    justify-content: center;
-  }
-  body.edit-mode .door-card:hover .edit-card-overlay { display: flex; }
-  body.edit-mode .door-card.overlay-open .edit-card-overlay { display: flex; }
   .edit-card-overlay input, .edit-card-overlay select {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -1773,6 +1761,34 @@
 </div>
 
 <!-- DOOR EDIT MODAL -->
+<!-- DOOR LAYOUT EDIT MODAL (Edit Layout mode — door #, name, type, delete, enable/disable) -->
+<div class="modal-overlay" id="modal-door-layout">
+  <div class="modal">
+    <h2 id="door-layout-title">Edit Door</h2>
+    <div class="form-row">
+      <label>Door # / ID</label>
+      <input type="text" autocomplete="off" id="dl-num" onchange="editDoorNum(window._doorLayoutEditId, this.value)" placeholder="Door number">
+    </div>
+    <div class="form-row">
+      <label>Title / Label</label>
+      <input type="text" autocomplete="off" id="dl-name" onchange="editDoorName(window._doorLayoutEditId, this.value)" placeholder="Optional label">
+    </div>
+    <div class="form-row">
+      <label>Type</label>
+      <select id="dl-type" onchange="editDoorType(window._doorLayoutEditId, this.value)">
+        <option value="standard">Standard</option>
+        <option value="yard">Main Yard</option>
+        <option value="cff_yard">CFF Yard</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-red" onclick="editDeleteDoor(window._doorLayoutEditId)">🗑 Delete Door</button>
+      <button class="btn btn-gray" id="dl-toggle-unavail-btn" onclick="editToggleUnavailFromModal()">⊘ Disable</button>
+      <button class="btn btn-teal" onclick="closeModal('modal-door-layout')" style="color:#000;">Done</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-door-edit">
   <div class="modal" style="width:760px;">
     <h2 id="door-edit-title">Edit Door</h2>
@@ -2655,17 +2671,17 @@ function renderDoors() {
 
     let inner = `<div class="door-body">${leftCol}${rightCol}</div>${notesBar}${actions}`;
     if (editModeActive) {
-      inner += buildEditOverlay(door.id);
       inner += `<button onclick="event.stopPropagation();removeDoor('${door.id}')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:#d93535;color:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);z-index:11;">✕</button>`;
     }
     card.dataset.doorid = door.id;
     card.dataset.slot = door.slot;
     card.innerHTML = inner;
     if (editModeActive) {
-      // Hover reveals the edit panel on desktop; tapping does the same on touch devices.
+      // Tap/click the card in edit mode to open the full door-editing modal
+      // (in-tile hover panel was too cramped to show every field on smaller cards).
       card.addEventListener('click', (e) => {
-        if (e.target.closest('.edit-card-overlay')) return;
-        card.classList.toggle('overlay-open');
+        if (e.target.closest('button')) return;
+        openDoorLayoutModal(door.id);
       });
     }
     card.addEventListener('dblclick', (e) => {
@@ -5087,6 +5103,23 @@ function buildEditOverlay(doorId) {
     </div>`;
 }
 
+function openDoorLayoutModal(doorId) {
+  const door = state.doors.find(d => d.id === doorId);
+  if (!door) return;
+  window._doorLayoutEditId = doorId;
+  document.getElementById('door-layout-title').textContent = `Edit Door ${door.num}`;
+  document.getElementById('dl-num').value = door.num;
+  document.getElementById('dl-name').value = door.name || '';
+  document.getElementById('dl-type').value = door.type || 'standard';
+  document.getElementById('dl-toggle-unavail-btn').textContent = door.unavailable ? '✓ Enable' : '⊘ Disable';
+  document.getElementById('modal-door-layout').classList.add('open');
+}
+function editToggleUnavailFromModal() {
+  editToggleUnavail(window._doorLayoutEditId);
+  const door = state.doors.find(d => d.id === window._doorLayoutEditId);
+  if (door) document.getElementById('dl-toggle-unavail-btn').textContent = door.unavailable ? '✓ Enable' : '⊘ Disable';
+}
+
 function editDoorNum(id, val) {
   const d = state.doors.find(x => x.id === id);
   if (d && val.trim()) { d.num = val.trim(); saveState(); renderDoors(); }
@@ -5102,6 +5135,7 @@ function editDoorType(id, val) {
 function editDeleteDoor(id) {
   const d = state.doors.find(x => x.id === id);
   if (!d) return;
+  closeModal('modal-door-layout');
   // Use a modal-based confirm instead of native confirm (which steals hover)
   const m = document.getElementById('modal-door-action');
   document.getElementById('door-action-title').textContent = 'Delete Door ' + d.num + '?';
