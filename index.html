@@ -4220,7 +4220,9 @@ function loadForecastToExpected() {
   syncForecastToLTL(fd, dateKey);
   saveState();
   renderExpectedTrailers();
-  toast('Forecast loaded to Expected Trailers ✓');
+  const [dky, dkm, dkd] = dateKey.split('-').map(Number);
+  const dateLabel = new Date(dky, dkm - 1, dkd).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  toast(`Expected trailers added to ${dateLabel} morning outlook ✓`);
 }
 
 function clearForecast() {
