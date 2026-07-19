@@ -1107,7 +1107,7 @@
       <div class="sidebar-panel">
         <div class="sidebar-panel-header">
           <span class="sidebar-panel-title">Completed Trailers</span>
-          <span id="completed-count-badge" style="font-size:11px;font-weight:700;color:#1a4731;background:#f5c842;border-radius:10px;padding:2px 9px;box-shadow:0 1px 2px rgba(0,0,0,0.25);"></span>
+          <span id="completed-count-badge" style="font-size:11px;font-weight:700;color:#1a4731;background:linear-gradient(180deg,#ffffff 0%,#f0f0f0 100%);border:1px solid #d8d8d8;border-radius:10px;padding:2px 9px;box-shadow:0 2px 4px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 1px rgba(0,0,0,0.05);"></span>
         </div>
         <div class="sidebar-panel-body" id="completed-table-wrap">
           <table class="sidebar-table">
@@ -1629,8 +1629,17 @@
   <div class="modal modal-slot-xl" style="background:#d0d0d0;">
     <h2>Slot Trailer</h2>
     <div class="form-row">
+      <label>Type</label>
+      <input type="text" autocomplete="off" id="sltl-type" list="sltl-type-list" placeholder="Type or select…" onchange="filterSltlCarriersByType()">
+      <datalist id="sltl-type-list">
+        <option value="DROP">
+        <option value="LIVE">
+        <option value="OTHER">
+      </datalist>
+    </div>
+    <div class="form-row">
       <label>Carrier</label>
-      <input type="text" autocomplete="off" id="sltl-carrier" list="sltl-carrier-list" placeholder="Type or select carrier…" onchange="updateSlotLTLType()">
+      <input type="text" autocomplete="off" id="sltl-carrier" list="sltl-carrier-list" placeholder="Type or select carrier…">
       <datalist id="sltl-carrier-list"></datalist>
     </div>
     <div class="form-row">
@@ -1641,15 +1650,6 @@
     <div class="form-row">
       <label>Trailer Number</label>
       <input type="text" autocomplete="off" id="sltl-trailer" placeholder="#123456">
-    </div>
-    <div class="form-row">
-      <label>Type</label>
-      <input type="text" autocomplete="off" id="sltl-type" list="sltl-type-list" placeholder="Type or select…">
-      <datalist id="sltl-type-list">
-        <option value="DROP">
-        <option value="LIVE">
-        <option value="OTHER">
-      </datalist>
     </div>
     <div class="form-row">
       <label>Secure Time</label>
@@ -3181,18 +3181,6 @@ function saveBfNote() {
   toast('Bin Freight load logged ✓');
 }
 function openSlotLTLModal() {
-  // Populate carrier datalist — sorted LIVE, then DROP, then OTHER, then alphabetically within each
-  const carrierList = document.getElementById('sltl-carrier-list');
-  const groups = { LIVE: [], DROP: [], OTHER: [] };
-  state.carriers.forEach(c => {
-    const t = (c.type || '').toUpperCase();
-    if (t === 'LIVE') groups.LIVE.push(c);
-    else if (t === 'DROP' || t === 'LTL') groups.DROP.push(c);
-    else groups.OTHER.push(c);
-  });
-  const orderedCarriers = [...groups.LIVE, ...groups.DROP, ...groups.OTHER].sort((a, b) => a.name.localeCompare(b.name));
-  carrierList.innerHTML = orderedCarriers.map(c => `<option value="${c.name}">`).join('');
-
   // Populate door datalist — dock doors first, then yard doors (CFF + Main)
   const doorList = document.getElementById('sltl-door-list');
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
@@ -3210,28 +3198,35 @@ function openSlotLTLModal() {
   document.getElementById('sltl-type').value = 'DROP';
   document.getElementById('sltl-arrival').value = localDateTimeInputValue();
   document.getElementById('sltl-unexpected').checked = false;
+  filterSltlCarriersByType();
   document.getElementById('modal-slot-ltl').classList.add('open');
 }
 
-// Set Type field and re-sort door list based on the selected carrier's category
-function updateSlotLTLType() {
-  const carrierName = document.getElementById('sltl-carrier').value;
-  const carrierObj = state.carriers.find(c => c.name === carrierName);
-  if (!carrierObj) return;
+// Type field drives both the carrier list (filtered to matching carriers) and the door sort order
+function filterSltlCarriersByType() {
+  const type = (document.getElementById('sltl-type').value || 'DROP').toUpperCase();
 
-  // Default type from carrier
-  const ctype = (carrierObj.type || '').toUpperCase();
-  if (ctype === 'LIVE') document.getElementById('sltl-type').value = 'LIVE';
-  else if (ctype === 'OTHER') document.getElementById('sltl-type').value = 'OTHER';
-  else document.getElementById('sltl-type').value = 'DROP';
+  // Filter + populate carrier datalist to only carriers matching the selected type
+  const carrierList = document.getElementById('sltl-carrier-list');
+  const matches = state.carriers.filter(c => {
+    const ctype = (c.type || '').toUpperCase();
+    if (type === 'DROP') return ctype === 'DROP' || ctype === 'LTL';
+    if (type === 'LIVE') return ctype === 'LIVE';
+    return ctype !== 'DROP' && ctype !== 'LTL' && ctype !== 'LIVE';
+  }).sort((a, b) => a.name.localeCompare(b.name));
+  carrierList.innerHTML = matches.map(c => `<option value="${c.name}">`).join('');
 
-  // Re-sort door datalist: Live carrier → yard doors first; Drop/Other → dock doors first
+  // Clear the carrier field if it no longer matches the selected type
+  const carrierInput = document.getElementById('sltl-carrier');
+  if (carrierInput.value && !matches.some(c => c.name === carrierInput.value)) carrierInput.value = '';
+
+  // Re-sort door datalist: Live → yard doors first; Drop/Other → dock doors first
   const doorList = document.getElementById('sltl-door-list');
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
   const isYard = d => d.id.startsWith('YD') || d.type === 'yard' || d.type === 'cff_yard';
   const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
   const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
-  const ordered = ctype === 'LIVE' ? [...yardDoors, ...regularDoors] : [...regularDoors, ...yardDoors];
+  const ordered = type === 'LIVE' ? [...yardDoors, ...regularDoors] : [...regularDoors, ...yardDoors];
   doorList.innerHTML = ordered.map(door =>
     `<option value="${door.num}">${door.num}${door.name ? ' — ' + door.name : ''}</option>`
   ).join('');
