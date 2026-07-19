@@ -5033,6 +5033,9 @@ function toggleEditMode() {
     setSlider('et-columns', s.columns || 6);
     setSlider('et-rows', s.rows || 8);
     setSlider('et-sidebar', s.sidebar);
+  } else {
+    // Exiting edit mode — this is the one point where the layout gets pushed to Firebase
+    saveSettingsToFirebase();
   }
   renderDoors();
 }
@@ -5062,7 +5065,6 @@ function applyEditSlider() {
   document.getElementById('et-sidebar-val').value    = s.sidebar;
   document.querySelector('.home-layout').style.gridTemplateColumns = `1fr ${s.sidebar}px`;
   saveState();
-  saveSettingsToFirebase();
   renderDoors();
 }
 
