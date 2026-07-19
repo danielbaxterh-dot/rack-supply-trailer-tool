@@ -568,6 +568,20 @@
   .modal.modal-move-xl .modal-actions .btn { font-size: 22px !important; padding: 18px 28px !important; border-radius: 12px !important; }
   .modal.modal-move-xl #move-to-filter { font-size: 22px !important; padding: 14px 16px !important; }
 
+  /* SLOT LTL TRAILER MODAL — doubled size */
+  .modal.modal-slot-xl { width: 840px !important; max-width: 96vw !important; }
+  .modal.modal-slot-xl h2 { font-size: 32px; padding: 28px 44px; }
+  .modal.modal-slot-xl > * { padding-left: 44px; padding-right: 44px; }
+  .modal.modal-slot-xl .form-row { margin-bottom: 20px !important; }
+  .modal.modal-slot-xl .form-row label { font-size: 18px !important; margin-bottom: 6px !important; }
+  .modal.modal-slot-xl .form-row input,
+  .modal.modal-slot-xl .form-row select,
+  .modal.modal-slot-xl .form-row textarea { font-size: 24px !important; padding: 14px 18px !important; border-radius: 10px !important; }
+  .modal.modal-slot-xl label[for="sltl-unexpected"] { font-size: 22px !important; }
+  .modal.modal-slot-xl input#sltl-unexpected { width: 28px !important; height: 28px !important; }
+  .modal.modal-slot-xl .modal-actions { padding: 24px 44px !important; gap: 16px !important; }
+  .modal.modal-slot-xl .modal-actions .btn { font-size: 22px !important; padding: 18px 28px !important; border-radius: 12px !important; }
+
   /* FILTERABLE SELECT (search-as-you-type dropdown) */
   .fsel-wrap { position: relative; width: 100%; }
   .fsel-input {
@@ -752,20 +766,23 @@
   .delete-btn:hover { opacity: 1; }
   #toast {
     position: fixed;
-    bottom: 20px;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     background: var(--teal);
     color: #fff;
-    padding: 10px 18px;
-    border-radius: 7px;
-    font-size: 13px;
-    font-weight: 600;
+    padding: 22px 36px;
+    border-radius: 12px;
+    font-size: 22px;
+    font-weight: 700;
     opacity: 0;
     transition: opacity 0.3s;
     z-index: 9999;
     pointer-events: none;
-    white-space: nowrap;
+    white-space: normal;
+    max-width: 90vw;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
   }
   #toast.show { opacity: 1; }
   #release-banner {
@@ -1614,7 +1631,7 @@
 
 <!-- SLOT LTL MODAL -->
 <div class="modal-overlay" id="modal-slot-ltl">
-  <div class="modal" style="background:#d0d0d0;">
+  <div class="modal modal-slot-xl" style="background:#d0d0d0;">
     <h2>Slot Trailer</h2>
     <div class="form-row">
       <label>Carrier</label>
