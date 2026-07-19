@@ -2688,9 +2688,8 @@ function renderDoors() {
       rightCol += `<span class="door-unavail-label">UNAVAILABLE</span>`;
     } else if (t) {
       const carrierObj = state.carriers.find(c => c.name === t.carrier);
-      const isOther = carrierObj && carrierObj.type === 'OTHER' && t.carrier !== 'Bin Freight';
-      const elMins = isOther ? null : elapsedMin(t.arrival);
-      const elLabel = isOther ? null : elapsedLabel(t.arrival);
+      const elMins = elapsedMin(t.arrival);
+      const elLabel = elapsedLabel(t.arrival);
       const isLong = elMins !== null && elMins > 120;
       const typeClass = t.type === 'DROP' ? 'door-type-drop' : t.type === 'LIVE' ? 'door-type-live' : t.type === 'SHUTTLE' ? 'door-type-shuttle' : 'door-type-other';
       rightCol += `
@@ -2715,7 +2714,7 @@ function renderDoors() {
       const rank = rankNum && rankNum <= 5 ? rankNum : '';
       actions = `<div class="door-actions">
         <span class="door-priority-badge${rankNum && rankNum <= 5 ? ' door-priority-badge-pulse' : ''}">${rank}</span>
-        ${t.carrier === 'Junk Skids' ? '' : t.carrier === 'Bin Freight' ? `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a4731;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#4fd1a5 0%,#27b589 50%,#1a9c72 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>` : `<button onclick="confirmRelease('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>`}
+        ${t.carrier === 'Junk Skids' ? '' : t.carrier === 'Bin Freight' ? `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a4731;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#4fd1a5 0%,#27b589 50%,#1a9c72 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>` : (carrierObj && carrierObj.type === 'OTHER') ? `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a6b8a;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#5fb8e0 0%,#3a97c9 50%,#2a7aab 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Timer</button>` : `<button onclick="confirmRelease('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>`}
       </div>`;
     }
 
@@ -3342,6 +3341,42 @@ function releaseConfirmChoice(sendSlack) {
   const action = window._pendingConfirmAction;
   window._pendingConfirmAction = null;
   if (action) action(sendSlack);
+}
+
+function resetOtherCarrierTimer(doorId) {
+  const t = state.trailers[doorId];
+  if (!t) return;
+  const door = state.doors.find(d => d.id === doorId);
+  const now = new Date().toISOString();
+
+  const rec = {
+    id: Date.now(),
+    date: todayStr(),
+    door: door?.num || doorId,
+    doorId,
+    carrier: t.carrier,
+    trailerNum: t.trailerNum || '',
+    type: t.type,
+    arrival: t.arrival,
+    released: now,
+    releasedBy: (window._currentUser || 'unknown').toUpperCase(),
+    completed: now,
+    notes: t.notes || '',
+    expected: t.expected,
+    slottedBy: t.slottedBy || '',
+  };
+  state.history.push(rec);
+  state.completedToday.push(rec);
+  saveHistoryRecordToFirebase(rec);
+
+  // Keep the trailer on the door — just clear the age
+  t.arrival = now;
+
+  saveTrailerToFirebase(doorId);
+  saveState();
+  renderDoors();
+  renderExpectedTrailers();
+  toast('Timer reset ✓');
 }
 
 function confirmRelease(doorId) {
