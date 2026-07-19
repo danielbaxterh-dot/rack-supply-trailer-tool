@@ -922,6 +922,7 @@
     justify-content: center;
   }
   body.edit-mode .door-card:hover .edit-card-overlay { display: flex; }
+  body.edit-mode .door-card.overlay-open .edit-card-overlay { display: flex; }
   .edit-card-overlay input, .edit-card-overlay select {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -2654,11 +2655,19 @@ function renderDoors() {
 
     let inner = `<div class="door-body">${leftCol}${rightCol}</div>${notesBar}${actions}`;
     if (editModeActive) {
-      inner += `<button onclick="event.stopPropagation();removeDoor('${door.id}')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:#d93535;color:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);">✕</button>`;
+      inner += buildEditOverlay(door.id);
+      inner += `<button onclick="event.stopPropagation();removeDoor('${door.id}')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:#d93535;color:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);z-index:11;">✕</button>`;
     }
     card.dataset.doorid = door.id;
     card.dataset.slot = door.slot;
     card.innerHTML = inner;
+    if (editModeActive) {
+      // Hover reveals the edit panel on desktop; tapping does the same on touch devices.
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.edit-card-overlay')) return;
+        card.classList.toggle('overlay-open');
+      });
+    }
     card.addEventListener('dblclick', (e) => {
       if (editModeActive) return;
       if (t && t.carrier === 'Bin Freight') {
