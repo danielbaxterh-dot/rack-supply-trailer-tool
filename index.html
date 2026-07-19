@@ -1763,6 +1763,35 @@
 
 <!-- DOOR EDIT MODAL -->
 <!-- DOOR LAYOUT EDIT MODAL (Edit Layout mode — door #, name, type, delete, enable/disable) -->
+<!-- JUNK SKIDS MODAL (double-click) -->
+<div class="modal-overlay" id="modal-junk-skids">
+  <div class="modal">
+    <h2>Junk Skids Trailer</h2>
+    <p style="font-size:12px;color:#000;margin-bottom:4px;" id="js-summary"></p>
+    <div class="form-row">
+      <label>Trailer #</label>
+      <input type="text" autocomplete="off" id="js-trailer-num" placeholder="#—">
+    </div>
+    <div class="modal-actions" style="flex-direction:column;gap:12px;">
+      <button class="btn btn-teal" onclick="confirmJunkSkidsReset()" style="color:#000;width:100%;">Confirm | Send Message | Reset Timer</button>
+      <button class="btn btn-gray" onclick="saveJunkSkidsTrailerNum()" style="width:100%;">Save</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-junk-skids')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- BIN FREIGHT RELEASE SECOND CONFIRMATION -->
+<div class="modal-overlay" id="modal-bf-release-confirm">
+  <div class="modal">
+    <h2>Are You Sure?</h2>
+    <p style="font-size:24px;color:#000;font-weight:700;padding:28px 44px 0;">Releasing this trailer will take it out of the tool completely. Proceed?</p>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('modal-bf-release-confirm')">Cancel</button>
+      <button class="btn btn-teal" onclick="confirmBfRelease()" style="color:#000;">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <!-- AUTO READY MODAL (Craig yard-ready Slack message) -->
 <div class="modal-overlay" id="modal-auto-ready">
   <div class="modal">
@@ -2709,6 +2738,8 @@ function renderDoors() {
       if (editModeActive) return;
       if (t && t.carrier === 'Bin Freight') {
         openBfNoteModal(door.id);
+      } else if (t && t.carrier === 'Junk Skids') {
+        openJunkSkidsModal(door.id);
       } else {
         openDoorEditModal(door.id);
       }
@@ -3008,6 +3039,78 @@ function sendMoveSlackNotification(t, fromDoor, toDoor) {
   }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
 }
 
+function openJunkSkidsModal(doorId) {
+  const t = state.trailers[doorId];
+  const door = state.doors.find(d => d.id === doorId);
+  if (!t) return;
+  document.getElementById('modal-junk-skids').dataset.doorid = doorId;
+  document.getElementById('js-summary').textContent = `Door ${door?.num || doorId}`;
+  document.getElementById('js-trailer-num').value = t.trailerNum || '';
+  document.getElementById('modal-junk-skids').classList.add('open');
+}
+
+function saveJunkSkidsTrailerNum() {
+  const doorId = document.getElementById('modal-junk-skids').dataset.doorid;
+  const t = state.trailers[doorId];
+  if (!t) return;
+  t.trailerNum = document.getElementById('js-trailer-num').value.trim();
+  closeModal('modal-junk-skids');
+  saveTrailerToFirebase(doorId);
+  saveState();
+  renderDoors();
+  toast('Trailer number updated ✓');
+}
+
+function confirmJunkSkidsReset() {
+  const doorId = document.getElementById('modal-junk-skids').dataset.doorid;
+  const t = state.trailers[doorId];
+  if (!t) return;
+  const door = state.doors.find(d => d.id === doorId);
+  const now = new Date().toISOString();
+  const newTrailerNum = document.getElementById('js-trailer-num').value.trim() || t.trailerNum;
+
+  // Log a history record for the cycle that just completed
+  const rec = {
+    id: Date.now(),
+    date: todayStr(),
+    door: door?.num || doorId,
+    doorId,
+    carrier: t.carrier,
+    trailerNum: t.trailerNum,
+    type: t.type,
+    arrival: t.arrival,
+    released: now,
+    releasedBy: (window._currentUser || 'unknown').toUpperCase(),
+    completed: now,
+    notes: t.notes || '',
+    expected: t.expected,
+    slottedBy: t.slottedBy || '',
+  };
+  state.history.push(rec);
+  state.completedToday.push(rec);
+  saveHistoryRecordToFirebase(rec);
+
+  // Keep the trailer on the door — reset the timer for the next cycle
+  t.trailerNum = newTrailerNum;
+  t.arrival = now;
+
+  closeModal('modal-junk-skids');
+  saveTrailerToFirebase(doorId);
+  saveState();
+  renderDoors();
+  renderExpectedTrailers();
+
+  if (SLACK_RELEASE_WEBHOOK_URL && state.settings.slackReleaseEnabled !== false) {
+    const message = ['RCS', newTrailerNum || '', `in Door ${door?.num || doorId} is ready to be swapped with an empty RCS trailer from the yard. Please reply with new RCS trailer #.`].filter(Boolean).join(' ');
+    fetch(SLACK_RELEASE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ Rack_supply_trailer_move: message })
+    }).catch(err => console.error('Slack webhook failed:', err));
+  }
+  toast('Timer reset & message sent ✓');
+}
+
 function openBfNoteModal(doorId) {
   const t = state.trailers[doorId];
   const door = state.doors.find(d => d.id === doorId);
@@ -3238,10 +3341,27 @@ function releaseConfirmChoice(sendSlack) {
 function confirmRelease(doorId) {
   const t = state.trailers[doorId];
   if (!t) return;
-  if (!isSlackEligible(t)) { releaseTrailer(doorId, false); return; }
+  if (!isSlackEligible(t)) { proceedWithRelease(doorId, false); return; }
   const door = state.doors.find(d => d.id === doorId);
   const summary = `${t.carrier}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${door?.num || doorId}`;
-  openSendRequestConfirm('Release Trailer', summary, (sendSlack) => releaseTrailer(doorId, sendSlack));
+  openSendRequestConfirm('Release Trailer', summary, (sendSlack) => proceedWithRelease(doorId, sendSlack));
+}
+
+function proceedWithRelease(doorId, sendSlack) {
+  const t = state.trailers[doorId];
+  if (t && t.carrier === 'Bin Freight') {
+    window._pendingBfRelease = { doorId, sendSlack };
+    document.getElementById('modal-bf-release-confirm').classList.add('open');
+  } else {
+    releaseTrailer(doorId, sendSlack);
+  }
+}
+
+function confirmBfRelease() {
+  const p = window._pendingBfRelease;
+  closeModal('modal-bf-release-confirm');
+  window._pendingBfRelease = null;
+  if (p) releaseTrailer(p.doorId, p.sendSlack);
 }
 
 function releaseTrailer(doorId, sendSlack = true) {
