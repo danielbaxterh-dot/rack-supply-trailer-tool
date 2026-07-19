@@ -2311,7 +2311,6 @@ function saveState() {
   // to prevent race conditions overwriting logos with empty defaults
   const today = todayStr();
   saveDoorsToFirebase();
-  saveSettingsToFirebase();
   if (state.forecast[today]) saveForecastToFirebase(today);
   // If the user is viewing/editing a different (e.g. future) date on the Forecast tab,
   // persist that date's forecast too so it's there when that date becomes "today"
@@ -2577,6 +2576,8 @@ function renderDoors() {
   grid.style.minWidth = `${cols * s.doorWidth + (cols - 1) * (s.cardGap || 10)}px`;
   grid.style.gap = (s.cardGap || 10) + 'px';
   grid.style.setProperty('--card-scale', (s.doorWidth / 270).toFixed(3));
+  const homeLayoutEl = document.querySelector('.home-layout');
+  if (homeLayoutEl) homeLayoutEl.style.gridTemplateColumns = `1fr ${s.sidebar || 320}px`;
 
   assignMissingSlots(totalSlots);
 
@@ -3888,6 +3889,7 @@ function saveForecastSettings() {
   state.settings.bfLinesPerSkid = +(document.getElementById('fc-set-lines-per-skid').value) || 9;
   closeForecastSettings();
   saveState();
+  saveSettingsToFirebase();
   renderForecastTab();
   toast('Forecast settings saved ✓');
 }
@@ -3930,6 +3932,7 @@ function toggleAssumptionsPanel() {
 function setAssumptionSource(src) {
   state.settings.assumptionSource = src;
   saveState();
+  saveSettingsToFirebase();
   renderAssumptionsTab();
   renderForecastTab();
 }
@@ -4004,6 +4007,7 @@ function saveAssumptions() {
   state.settings.carrierAssumptions = manualOverrides;
   state.settings.carrierAverages    = averages;
   saveState();
+  saveSettingsToFirebase();
   renderForecastTab();
   toast('Assumptions saved ✓');
 }
@@ -4056,6 +4060,7 @@ function handleExcelUpload(input) {
       });
       state.settings.carrierAverages = existing;
       saveState();
+      saveSettingsToFirebase();
       renderAssumptionsTab();
       toast(`Excel loaded — ${Object.keys(agg).length} carriers updated ✓`);
     } catch(err) {
@@ -5057,6 +5062,7 @@ function applyEditSlider() {
   document.getElementById('et-sidebar-val').value    = s.sidebar;
   document.querySelector('.home-layout').style.gridTemplateColumns = `1fr ${s.sidebar}px`;
   saveState();
+  saveSettingsToFirebase();
   renderDoors();
 }
 
