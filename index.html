@@ -1003,6 +1003,7 @@
           <button onclick="adjustZoom(10)" style="border:none;background:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,0.15);">+</button>
           <button onclick="resetZoom()" title="Reset zoom" style="border:none;background:#fff;border-radius:15px;padding:3px 10px;cursor:pointer;font-weight:700;font-size:13px;box-shadow:0 1px 2px rgba(0,0,0,0.15);">Reset</button>
         </div>
+        <button onclick="openAutoReadyModal()" style="font-size:10px;font-weight:700;padding:4px 8px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ffe066 0%,#f5c842 50%,#e0a800 100%);color:#1a4731;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.5);border-bottom:2px solid #b88a00;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #b88a00'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.5)';this.style.borderBottom='2px solid #b88a00'">Auto Ready</button>
         <span class="edit-mode-badge" id="edit-mode-badge">EDIT MODE</span>
       </div>
 
@@ -1762,6 +1763,25 @@
 
 <!-- DOOR EDIT MODAL -->
 <!-- DOOR LAYOUT EDIT MODAL (Edit Layout mode — door #, name, type, delete, enable/disable) -->
+<!-- AUTO READY MODAL (Craig yard-ready Slack message) -->
+<div class="modal-overlay" id="modal-auto-ready">
+  <div class="modal">
+    <h2>Auto Ready</h2>
+    <div class="form-row">
+      <label>Door Number</label>
+      <input type="text" autocomplete="off" id="ar-door" placeholder="Door number">
+    </div>
+    <div class="form-row">
+      <label>Trailer Number</label>
+      <input type="text" autocomplete="off" id="ar-trailer" placeholder="Optional">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('modal-auto-ready')">Cancel</button>
+      <button class="btn btn-teal" onclick="sendAutoReadyMessage()" style="color:#000;">Confirm | Send Request</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-door-layout">
   <div class="modal">
     <h2 id="door-layout-title">Edit Door</h2>
@@ -3276,15 +3296,22 @@ function sendReleaseSlackNotification(rec, salesSlot) {
   if (carrierObj && carrierObj.type !== 'DROP') return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[rec.carrier] || rec.carrier || 'Trailer';
   const door = rec.door;
-  let tail;
-  if (salesSlot && rec.carrier === 'PITT') {
-    tail = 'Ready for 23/24';
-  } else if (salesSlot) {
-    tail = `Ready for door ${salesSlot.destDoor}`;
+
+  let message;
+  if (rec.carrier === 'Junk Skids') {
+    message = ['RCS', rec.trailerNum || '', `in Door ${door} is ready to be swapped with an empty RCS trailer from the yard. Please reply with new RCS trailer #.`].filter(Boolean).join(' ');
   } else {
-    tail = 'Ready for the yard';
+    let tail;
+    if (salesSlot && rec.carrier === 'PITT') {
+      tail = 'Ready for 23/24';
+    } else if (salesSlot) {
+      tail = `Ready for door ${salesSlot.destDoor}`;
+    } else {
+      tail = 'Ready for the yard';
+    }
+    message = [carrier, rec.trailerNum || '', 'in', `Door ${door}`, tail].filter(Boolean).join(' ');
   }
-  const message = [carrier, rec.trailerNum || '', 'in', `Door ${door}`, tail].filter(Boolean).join(' ');
+
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -5109,6 +5136,28 @@ function buildEditOverlay(doorId) {
       </div>
       <div class="edit-drag-hint">☰ Drag to reorder</div>
     </div>`;
+}
+
+function openAutoReadyModal() {
+  document.getElementById('ar-door').value = '';
+  document.getElementById('ar-trailer').value = '';
+  document.getElementById('modal-auto-ready').classList.add('open');
+}
+
+function sendAutoReadyMessage() {
+  const door = document.getElementById('ar-door').value.trim();
+  const trailerNum = document.getElementById('ar-trailer').value.trim();
+  if (!door) { toast('Enter a door number ✗'); return; }
+  if (SLACK_RELEASE_WEBHOOK_URL) {
+    const message = ['Craig', trailerNum || '', `in ${door} is ready for the yard.`].filter(Boolean).join(' ');
+    fetch(SLACK_RELEASE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ Rack_supply_trailer_move: message })
+    }).catch(err => console.error('Slack webhook failed:', err));
+  }
+  closeModal('modal-auto-ready');
+  toast('Request sent ✓');
 }
 
 function openDoorLayoutModal(doorId) {
