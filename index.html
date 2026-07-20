@@ -2769,9 +2769,11 @@ function renderDoors() {
     }
     card.addEventListener('dblclick', (e) => {
       if (editModeActive) return;
-      if (t && t.carrier === 'Bin Freight') {
+      if (!t) {
+        openSlotLTLModal(door.num);
+      } else if (t.carrier === 'Bin Freight') {
         openBfNoteModal(door.id);
-      } else if (t && t.carrier === 'Junk Skids') {
+      } else if (t.carrier === 'Junk Skids') {
         openJunkSkidsModal(door.id);
       } else {
         openDoorEditModal(door.id);
@@ -3221,7 +3223,7 @@ function saveBfNote() {
   renderExpectedTrailers();
   toast('Bin Freight load logged ✓');
 }
-function openSlotLTLModal() {
+function openSlotLTLModal(presetDoorNum) {
   // Populate door select — regular doors, then main yard, then CFF yard (each numeric)
   const doorList = document.getElementById('sltl-door');
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).sort(compareDoorsForMove);
@@ -3235,6 +3237,7 @@ function openSlotLTLModal() {
   document.getElementById('sltl-arrival').value = localDateTimeInputValue();
   document.getElementById('sltl-unexpected').checked = false;
   filterSltlCarriersByType();
+  if (presetDoorNum) document.getElementById('sltl-door').value = presetDoorNum;
   document.getElementById('modal-slot-ltl').classList.add('open');
 }
 
