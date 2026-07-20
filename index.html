@@ -1861,6 +1861,7 @@
       <label>Secure Time (sets trailer age)</label>
       <input type="datetime-local" id="de-arrival">
     </div>
+    <div id="de-secured-by-row" style="display:none;font-size:14px;color:#4a7a5a;font-weight:600;margin:0 0 14px;padding-left:2px;"></div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-door-edit')">Cancel</button>
       <button class="btn btn-teal" onclick="saveDoorEdit()">Save</button>
@@ -2803,6 +2804,13 @@ function openDoorEditModal(doorId) {
     document.getElementById('de-arrival').value = t.arrival ? localDateTimeInputValue(new Date(t.arrival)) : localDateTimeInputValue();
   } else {
     arrivalRow.style.display = 'none';
+  }
+  const securedByRow = document.getElementById('de-secured-by-row');
+  if (t && t.slottedBy) {
+    securedByRow.textContent = `Secured by ${t.slottedBy}`;
+    securedByRow.style.display = '';
+  } else {
+    securedByRow.style.display = 'none';
   }
   document.getElementById('modal-door-edit').classList.add('open');
 }
