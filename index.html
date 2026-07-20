@@ -1202,8 +1202,7 @@
         <div style="padding:14px;display:flex;flex-direction:column;gap:10px;flex:1;">
           <div>
             <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Carrier / Supplier</label>
-            <input type="text" id="outlook-form-carrier" list="outlook-carrier-list" placeholder="Type or select..." autocomplete="off" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;">
-            <datalist id="outlook-carrier-list"></datalist>
+            <select id="outlook-form-carrier" style="width:100%;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 8px;color:#000;font-size:13px;font-weight:600;outline:none;box-sizing:border-box;"></select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#000;display:block;margin-bottom:3px;">Date Expected</label>
@@ -1638,13 +1637,11 @@
     </div>
     <div class="form-row">
       <label>Carrier</label>
-      <input type="text" autocomplete="off" id="sltl-carrier" list="sltl-carrier-list" placeholder="Type or select carrier…">
-      <datalist id="sltl-carrier-list"></datalist>
+      <select id="sltl-carrier"></select>
     </div>
     <div class="form-row">
       <label>Door</label>
-      <input type="text" autocomplete="off" id="sltl-door" list="sltl-door-list" placeholder="Type or select door…">
-      <datalist id="sltl-door-list"></datalist>
+      <select id="sltl-door"></select>
     </div>
     <div class="form-row">
       <label>Trailer Number</label>
@@ -1735,8 +1732,7 @@
     </div>
     <div class="form-row">
       <label>Door</label>
-      <input type="text" id="qs-door" list="qs-door-list" placeholder="Type or select door…" autocomplete="off" style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);">
-      <datalist id="qs-door-list"></datalist>
+      <select id="qs-door" style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);"></select>
     </div>
     <div class="form-row">
       <label>Trailer Number</label>
@@ -3182,18 +3178,16 @@ function saveBfNote() {
   toast('Bin Freight load logged ✓');
 }
 function openSlotLTLModal() {
-  // Populate door datalist — dock doors first, then yard doors (CFF + Main)
-  const doorList = document.getElementById('sltl-door-list');
+  // Populate door select — dock doors first, then yard doors (CFF + Main)
+  const doorList = document.getElementById('sltl-door');
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
   const isYard = d => d.id.startsWith('YD') || d.type === 'yard' || d.type === 'cff_yard';
   const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
   const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
-  doorList.innerHTML = [...regularDoors, ...yardDoors].map(door =>
+  doorList.innerHTML = `<option value="" disabled selected>Select door…</option>` + [...regularDoors, ...yardDoors].map(door =>
     `<option value="${door.num}">${door.num}${door.name ? ' — ' + door.name : ''}</option>`
   ).join('');
 
-  document.getElementById('sltl-carrier').value = '';
-  document.getElementById('sltl-door').value = '';
   document.getElementById('sltl-trailer').value = '';
   document.getElementById('sltl-notes').value = '';
   document.getElementById('sltl-type').value = 'LIVE';
@@ -3207,29 +3201,28 @@ function openSlotLTLModal() {
 function filterSltlCarriersByType() {
   const type = (document.getElementById('sltl-type').value || 'LIVE').toUpperCase();
 
-  // Filter + populate carrier datalist to only carriers matching the selected type
-  const carrierList = document.getElementById('sltl-carrier-list');
+  // Filter + populate carrier select to only carriers matching the selected type
+  const carrierSelect = document.getElementById('sltl-carrier');
+  const prevValue = carrierSelect.value;
   const matches = state.carriers.filter(c => {
     const ctype = (c.type || '').toUpperCase();
     if (type === 'DROP') return ctype === 'DROP' || ctype === 'LTL';
     if (type === 'LIVE') return ctype === 'LIVE';
     return ctype !== 'DROP' && ctype !== 'LTL' && ctype !== 'LIVE';
   }).sort((a, b) => a.name.localeCompare(b.name));
-  carrierList.innerHTML = matches.map(c => `<option value="${c.name}">`).join('');
+  carrierSelect.innerHTML = `<option value="" disabled${matches.some(c=>c.name===prevValue)?'':' selected'}>Select carrier…</option>` +
+    matches.map(c => `<option value="${c.name}"${c.name===prevValue?' selected':''}>${c.name}</option>`).join('');
 
-  // Clear the carrier field if it no longer matches the selected type
-  const carrierInput = document.getElementById('sltl-carrier');
-  if (carrierInput.value && !matches.some(c => c.name === carrierInput.value)) carrierInput.value = '';
-
-  // Re-sort door datalist: Live → yard doors first; Drop/Other → dock doors first
-  const doorList = document.getElementById('sltl-door-list');
+  // Re-sort door select: Live → yard doors first; Drop/Other → dock doors first
+  const doorSelect = document.getElementById('sltl-door');
+  const prevDoor = doorSelect.value;
   const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
   const isYard = d => d.id.startsWith('YD') || d.type === 'yard' || d.type === 'cff_yard';
   const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
   const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
   const ordered = type === 'LIVE' ? [...yardDoors, ...regularDoors] : [...regularDoors, ...yardDoors];
-  doorList.innerHTML = ordered.map(door =>
-    `<option value="${door.num}">${door.num}${door.name ? ' — ' + door.name : ''}</option>`
+  doorSelect.innerHTML = `<option value="" disabled${ordered.some(d=>d.num===prevDoor)?'':' selected'}>Select door…</option>` + ordered.map(door =>
+    `<option value="${door.num}"${door.num===prevDoor?' selected':''}>${door.num}${door.name ? ' — ' + door.name : ''}</option>`
   ).join('');
 }
 function slotLTLTrailer() {
@@ -4914,9 +4907,15 @@ function renderExpectedTrailers() {
 function openQuickSlotModal(carrierName, trailerNum, notes) {
   document.getElementById('qs-carrier-label').textContent = carrierName;
   document.getElementById('modal-quick-slot').dataset.carrier = carrierName;
-  // Populate door datalist — empty doors only
-  const dl = document.getElementById('qs-door-list');
+  // Populate door select — empty doors only
+  const dl = document.getElementById('qs-door');
   dl.innerHTML = '';
+  const placeholderOpt = document.createElement('option');
+  placeholderOpt.value = '';
+  placeholderOpt.disabled = true;
+  placeholderOpt.selected = true;
+  placeholderOpt.textContent = 'Select door…';
+  dl.appendChild(placeholderOpt);
   const sortedDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).slice().sort((a, b) => {
     const ka = doorSortKey(a), kb = doorSortKey(b);
     if (ka.isYard !== kb.isYard) return ka.isYard ? 1 : -1;
@@ -4932,7 +4931,6 @@ function openQuickSlotModal(carrierName, trailerNum, notes) {
     opt.textContent = door.name ? `${door.num} — ${door.name}` : door.num;
     dl.appendChild(opt);
   });
-  document.getElementById('qs-door').value = '';
   document.getElementById('qs-trailer').value = trailerNum || '';
   document.getElementById('qs-type').value = 'DROP';
   document.getElementById('qs-notes').value = notes || '';
@@ -5001,10 +4999,10 @@ function openOutlookModal() {
   const fd = state.forecast[today] || { ltl: [], carriers: [] };
   document.getElementById('outlook-modal-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
 
-  // Populate carrier datalist
-  document.getElementById('outlook-carrier-list').innerHTML =
-    state.carriers.map(c => `<option value="${c.name}">`).join('');
-  document.getElementById('outlook-form-carrier').value = '';
+  // Populate carrier select
+  document.getElementById('outlook-form-carrier').innerHTML =
+    `<option value="" disabled selected>Select carrier…</option>` +
+    state.carriers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 
   // Set form date default to today
   document.getElementById('outlook-form-date').value = today;
