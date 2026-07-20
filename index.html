@@ -4010,7 +4010,7 @@ function renderForecastTab() {
     const notScheduled = !ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name);
     const carrierBg = CARRIER_COLOR[c.name] || '';
     tr.innerHTML = `
-      <td class="carrier-name-cell" style="${carrierBg?`background:${carrierBg};`:''}"><input type="text" autocomplete="off" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:15px;${carrierBg?`background:${carrierBg};`:''}${notScheduled?'color:var(--text2);':''}" value="${c.name}" onchange="updateFCCarrier(${i},'name',this.value)"></td>
+      <td class="carrier-name-cell" style="${carrierBg?`background:${carrierBg};`:''}"><select id="fc-carrier-select-${i}" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:15px;${carrierBg?`background:${carrierBg};`:''}${notScheduled?'color:var(--text2);':''}" onchange="updateFCCarrier(${i},'name',this.value)">${state.carriers.map(sc => `<option value="${sc.name}"${sc.name===c.name?' selected':''}>${sc.name}</option>`).join('')}${state.carriers.some(sc=>sc.name===c.name)?'':`<option value="${c.name}" selected>${c.name}</option>`}</select></td>
       <td style="text-align:center;"><span style="font-size:15px;font-weight:700;color:${noData?'#aaa':'#1a4731'};display:block;text-align:center;">${noData?'—':rawLpt}</span></td>
       <td><input type="number" class="fc-tbl-input" style="font-size:15px;${notScheduled?'color:var(--text2);':''}" value="${schedTrailers}" onchange="updateFCCarrier(${i},'expTrailers',+this.value)"></td>
       <td><input type="text" autocomplete="off" class="fc-tbl-input fc-calc" style="font-size:15px;" value="${expLines}" readonly></td>
