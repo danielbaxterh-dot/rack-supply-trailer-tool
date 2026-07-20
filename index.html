@@ -268,6 +268,15 @@
     color: #6b8878;
     font-style: italic;
   }
+  .door-name-label-top {
+    font-size: calc(11px * var(--card-scale));
+    color: #6b8878;
+    font-style: italic;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+    margin-bottom: calc(3px * var(--card-scale));
+  }
   .door-actions {
     display: flex;
     gap: calc(5px * var(--card-scale));
@@ -2700,7 +2709,6 @@ function renderDoors() {
 
     // Right column: trailer info or door label
     let rightCol = `<div class="door-right">`;
-    if (door.name) rightCol += `<span class="door-name-label">${door.name}</span>`;
     if (door.unavailable && !t) {
       rightCol += `<span class="door-unavail-label">UNAVAILABLE</span>`;
     } else if (t) {
@@ -2734,7 +2742,7 @@ function renderDoors() {
         ${(() => {
           const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a4731;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#4fd1a5 0%,#27b589 50%,#1a9c72 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
           const wrap = inner => `<div style="display:flex;gap:calc(5px * var(--card-scale));align-items:center;">${inner}</div>`;
-          if (t.carrier === 'Junk Skids') return '';
+          if (t.carrier === 'Junk Skids') return moveBtn;
           if (t.carrier === 'Bin Freight') return moveBtn;
           if (carrierObj && carrierObj.type === 'OTHER') {
             return wrap(moveBtn + `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a6b8a;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#5fb8e0 0%,#3a97c9 50%,#2a7aab 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Timer</button>`);
@@ -2744,7 +2752,7 @@ function renderDoors() {
       </div>`;
     }
 
-    let inner = `<div class="door-body">${leftCol}${rightCol}</div>${notesBar}${actions}`;
+    let inner = `${door.name ? `<div class="door-name-label-top">${door.name}</div>` : ''}<div class="door-body">${leftCol}${rightCol}</div>${notesBar}${actions}`;
     if (editModeActive) {
       inner += `<button onclick="event.stopPropagation();removeDoor('${door.id}')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:#d93535;color:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);z-index:11;">✕</button>`;
     }
