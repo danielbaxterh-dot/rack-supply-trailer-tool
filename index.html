@@ -972,6 +972,23 @@
   .door-elapsed-oldest { color: #000 !important; }
   .door-priority-badge-pulse { animation: rank-pulse 8s ease-in-out infinite; }
   .door-card { position: relative; }
+  .door-card[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20,40,30,0.94);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 50;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
 </style>
 </head>
 <body>
@@ -2758,6 +2775,19 @@ function renderDoors() {
     }
     card.dataset.doorid = door.id;
     card.dataset.slot = door.slot;
+    {
+      const tooltipCarrierObj = t ? state.carriers.find(c => c.name === t.carrier) : null;
+      const tooltip = !t
+        ? 'Double click to slot LTL trailer'
+        : t.carrier === 'Bin Freight'
+          ? 'Double click to edit note/reset timer'
+          : t.carrier === 'Junk Skids'
+            ? 'Double click to edit/send Slack message'
+            : (tooltipCarrierObj && tooltipCarrierObj.type === 'OTHER')
+              ? ''
+              : 'Double click to edit or add notes';
+      if (tooltip) card.dataset.tooltip = tooltip;
+    }
     card.innerHTML = inner;
     if (editModeActive) {
       // Tap/click the card in edit mode to open the full door-editing modal
