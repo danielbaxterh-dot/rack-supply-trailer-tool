@@ -2630,10 +2630,11 @@ function renderDoors() {
 
   assignMissingSlots(totalSlots);
 
-  // Build priority map: oldest arrival = rank 1 (excluding "Other" category carriers)
+  // Build priority map: oldest arrival = rank 1 (excluding "Other" category carriers and Junk Skids)
   const activeTrailers = Object.entries(state.trailers)
-    .filter(([, t]) => t && t.arrival)
+    .filter(([doorId, t]) => t && t.arrival && state.doors.some(d => d.id === doorId && d.active))
     .filter(([, t]) => {
+      if (t.carrier === 'Junk Skids') return false;
       const c = state.carriers.find(c => c.name === t.carrier);
       return !c || c.type !== 'OTHER';
     })
@@ -2709,7 +2710,7 @@ function renderDoors() {
     let actions = '';
     if (t) {
       const carrierObj = state.carriers.find(c => c.name === t.carrier);
-      const isOther = carrierObj && carrierObj.type === 'OTHER';
+      const isOther = (carrierObj && carrierObj.type === 'OTHER') || t.carrier === 'Junk Skids';
       const rankNum = isOther ? null : (priorityMap[door.id] || null);
       const rank = rankNum && rankNum <= 5 ? rankNum : '';
       actions = `<div class="door-actions">
@@ -2896,13 +2897,15 @@ function doorSortKey(door) {
   const isYard = door.type === 'yard' || door.type === 'cff_yard'
     || door.id.startsWith('YD') || /^YD/i.test(door.num)
     || /CFF/i.test(door.num) || (door.name && /CFF/i.test(door.name));
+  const isCFF = door.type === 'cff_yard' || /CFF/i.test(door.num) || (door.name && /CFF/i.test(door.name));
   const m = String(door.num).match(/\d+/);
   const num = m ? parseInt(m[0], 10) : 0;
-  return { isYard, num };
+  return { isYard, isCFF, num };
 }
 function compareDoorsForMove(a, b) {
   const ka = doorSortKey(a), kb = doorSortKey(b);
   if (ka.isYard !== kb.isYard) return ka.isYard ? 1 : -1;
+  if (ka.isYard && kb.isYard && ka.isCFF !== kb.isCFF) return ka.isCFF ? 1 : -1;
   return ka.num - kb.num;
 }
 
@@ -3464,11 +3467,11 @@ function sendReleaseSlackNotification(rec, salesSlot) {
   } else {
     let tail;
     if (salesSlot && rec.carrier === 'PITT') {
-      tail = 'Ready for 23/24';
+      tail = 'ready for 23/24';
     } else if (salesSlot) {
-      tail = `Ready for door ${salesSlot.destDoor}`;
+      tail = `ready for door ${salesSlot.destDoor}`;
     } else {
-      tail = 'Ready for the yard';
+      tail = 'ready for the yard';
     }
     message = [carrier, rec.trailerNum || '', 'in', `Door ${door}`, tail].filter(Boolean).join(' ');
   }
@@ -5310,7 +5313,7 @@ function sendAutoReadyMessage() {
   const trailerNum = document.getElementById('ar-trailer').value.trim();
   if (!door) { toast('Enter a door number ✗'); return; }
   if (SLACK_RELEASE_WEBHOOK_URL) {
-    const message = ['Craig', trailerNum || '', `in ${door} is ready for the yard.`].filter(Boolean).join(' ');
+    const message = ['Craig', trailerNum || '', `in Door ${door} is ready for the yard.`].filter(Boolean).join(' ');
     fetch(SLACK_RELEASE_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
