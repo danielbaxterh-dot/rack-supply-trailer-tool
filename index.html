@@ -2711,7 +2711,7 @@ function renderDoors() {
       const typeClass = t.type === 'DROP' ? 'door-type-drop' : t.type === 'LIVE' ? 'door-type-live' : t.type === 'SHUTTLE' ? 'door-type-shuttle' : 'door-type-other';
       rightCol += `
         <span class="door-trailer-num">${t.trailerNum ? '#' + t.trailerNum : '#—'}</span>
-        <span class="door-type-badge ${typeClass}">${t.type}</span>
+        ${t.type === 'LIVE' ? `<span class="door-type-badge ${typeClass}">${t.type}</span>` : ''}
         ${elLabel !== null ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''} ${priorityMap[door.id] && priorityMap[door.id] <= 4 ? 'door-elapsed-oldest' : ''}">${elLabel}</span>` : ''}
         `;
     }
