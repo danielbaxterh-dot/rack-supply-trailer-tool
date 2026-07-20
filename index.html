@@ -2091,6 +2091,25 @@ async function loadStateFromFirebase() {
     renderExpectedTrailers();
   });
 
+  // Real-time listener for today's completed trailers — keeps the Completed
+  // Trailers panel in sync across devices without needing a manual refresh.
+  if (_unsubHistory) _unsubHistory();
+  _unsubHistory = fb().onSnapshot(
+    fb().query(fb().collection(db, 'history'), fb().where('date', '==', todayStr())),
+    snap => {
+      if (window._sandboxMode) return;
+      const records = [];
+      snap.forEach(d => records.push({ id: d.id, ...d.data() }));
+      state.completedToday = records;
+      // Keep state.history's today-portion in sync too, without disturbing any
+      // older records that may have been separately loaded via the History tab.
+      state.history = state.history.filter(r => r.date !== todayStr()).concat(records);
+      state.history.sort((a, b) => (b.completed||b.date||'').localeCompare(a.completed||a.date||''));
+      renderCompletedTable();
+      if (document.getElementById('tab-history').classList.contains('active')) renderHistory();
+    }
+  );
+
 }
 
 let _fullHistoryLoaded = false;
