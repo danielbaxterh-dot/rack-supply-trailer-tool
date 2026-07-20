@@ -3178,13 +3178,10 @@ function saveBfNote() {
   toast('Bin Freight load logged ✓');
 }
 function openSlotLTLModal() {
-  // Populate door select — dock doors first, then yard doors (CFF + Main)
+  // Populate door select — regular doors, then main yard, then CFF yard (each numeric)
   const doorList = document.getElementById('sltl-door');
-  const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
-  const isYard = d => d.id.startsWith('YD') || d.type === 'yard' || d.type === 'cff_yard';
-  const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
-  const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
-  doorList.innerHTML = `<option value="" disabled selected>Select door…</option>` + [...regularDoors, ...yardDoors].map(door =>
+  const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).sort(compareDoorsForMove);
+  doorList.innerHTML = `<option value="" disabled selected>Select door…</option>` + availDoors.map(door =>
     `<option value="${door.num}">${door.num}${door.name ? ' — ' + door.name : ''}</option>`
   ).join('');
 
@@ -3213,15 +3210,11 @@ function filterSltlCarriersByType() {
   carrierSelect.innerHTML = `<option value="" disabled${matches.some(c=>c.name===prevValue)?'':' selected'}>Select carrier…</option>` +
     matches.map(c => `<option value="${c.name}"${c.name===prevValue?' selected':''}>${c.name}</option>`).join('');
 
-  // Re-sort door select: Live → yard doors first; Drop/Other → dock doors first
+  // Re-sort door select — regular doors, then main yard, then CFF yard (each numeric)
   const doorSelect = document.getElementById('sltl-door');
   const prevDoor = doorSelect.value;
-  const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]);
-  const isYard = d => d.id.startsWith('YD') || d.type === 'yard' || d.type === 'cff_yard';
-  const regularDoors = availDoors.filter(d => !isYard(d)).sort((a, b) => parseFloat(a.num) - parseFloat(b.num));
-  const yardDoors    = availDoors.filter(d =>  isYard(d)).sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
-  const ordered = type === 'LIVE' ? [...yardDoors, ...regularDoors] : [...regularDoors, ...yardDoors];
-  doorSelect.innerHTML = `<option value="" disabled${ordered.some(d=>d.num===prevDoor)?'':' selected'}>Select door…</option>` + ordered.map(door =>
+  const availDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).sort(compareDoorsForMove);
+  doorSelect.innerHTML = `<option value="" disabled${availDoors.some(d=>d.num===prevDoor)?'':' selected'}>Select door…</option>` + availDoors.map(door =>
     `<option value="${door.num}"${door.num===prevDoor?' selected':''}>${door.num}${door.name ? ' — ' + door.name : ''}</option>`
   ).join('');
 }
@@ -4916,15 +4909,7 @@ function openQuickSlotModal(carrierName, trailerNum, notes) {
   placeholderOpt.selected = true;
   placeholderOpt.textContent = 'Select door…';
   dl.appendChild(placeholderOpt);
-  const sortedDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).slice().sort((a, b) => {
-    const ka = doorSortKey(a), kb = doorSortKey(b);
-    if (ka.isYard !== kb.isYard) return ka.isYard ? 1 : -1;
-    // Push single-digit standard doors to end of standard section
-    const aLow = !ka.isYard && ka.num < 10;
-    const bLow = !kb.isYard && kb.num < 10;
-    if (aLow !== bLow) return aLow ? 1 : -1;
-    return ka.num - kb.num;
-  });
+  const sortedDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).sort(compareDoorsForMove);
   sortedDoors.forEach(door => {
     const opt = document.createElement('option');
     opt.value = door.num;
@@ -5485,11 +5470,22 @@ function enhanceSelect(selectId) {
     return opt ? opt.textContent : '';
   }
 
+  function syncDisplay() {
+    const opt = select.options[select.selectedIndex];
+    if (opt && opt.value !== '') {
+      input.value = opt.textContent;
+    } else {
+      input.value = '';
+      input.placeholder = opt ? opt.textContent : '';
+    }
+  }
+
   function renderList(filter) {
     const f = (filter || '').trim().toLowerCase();
     list.innerHTML = '';
     let any = false;
     Array.from(select.options).forEach(opt => {
+      if (opt.disabled) return;
       if (!f || opt.textContent.toLowerCase().includes(f)) {
         any = true;
         const item = document.createElement('div');
@@ -5519,7 +5515,7 @@ function enhanceSelect(selectId) {
   input.addEventListener('focus', () => { input.select(); renderList(''); });
   input.addEventListener('input', () => renderList(input.value));
   input.addEventListener('blur', () => {
-    setTimeout(() => { hideList(); input.value = currentLabel(); }, 150);
+    setTimeout(() => { hideList(); syncDisplay(); }, 150);
   });
 
   // Intercept programmatic .value assignments elsewhere in the app so the
@@ -5527,16 +5523,16 @@ function enhanceSelect(selectId) {
   const desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
   Object.defineProperty(select, 'value', {
     get() { return desc.get.call(select); },
-    set(v) { desc.set.call(select, v); input.value = currentLabel(); },
+    set(v) { desc.set.call(select, v); syncDisplay(); },
     configurable: true
   });
 
   // Existing code repopulates some of these selects via innerHTML each time a
   // modal opens (carrier/door lists) — catch that and refresh the display text.
-  const mo = new MutationObserver(() => { input.value = currentLabel(); });
+  const mo = new MutationObserver(() => { syncDisplay(); });
   mo.observe(select, { childList: true });
 
-  input.value = currentLabel();
+  syncDisplay();
 }
 
 function enhanceAllModalSelects() {
