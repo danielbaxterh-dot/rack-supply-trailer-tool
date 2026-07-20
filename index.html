@@ -3271,7 +3271,7 @@ function renderSalesSideTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:${done ? '#888' : '#000'};font-weight:700;${done ? 'text-decoration:line-through;' : ''}">${slot.label}</td>
-      <td style="text-align:center;">
+      <td style="text-align:center;cursor:pointer;" onclick="toggleSalesSideSlot('${slot.id}')" title="Click to manually mark as filled/open">
         ${done
           ? '<span style="color:#27b589;font-size:16px;font-weight:700;">✓</span>'
           : '<span style="color:#ccc;font-size:14px;">○</span>'}
@@ -3280,6 +3280,14 @@ function renderSalesSideTable() {
     `;
     tbody.appendChild(tr);
   });
+}
+
+function toggleSalesSideSlot(slotId) {
+  const slot = salesSideState.find(s => s.id === slotId);
+  if (!slot) return;
+  slot.releasedAt = slot.releasedAt ? null : new Date().toISOString();
+  renderSalesSideTable();
+  saveSalesSideToFirebase();
 }
 
 function checkSalesSideRelease(carrier, releaseTime) {
