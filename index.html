@@ -227,7 +227,7 @@
     padding-top: 0;
   }
   .door-trailer-num {
-    font-size: calc(18px * var(--card-scale));
+    font-size: calc(19px * var(--card-scale));
     font-weight: 700;
     color: #000;
     white-space: normal;
@@ -247,7 +247,7 @@
   .door-type-shuttle { background: var(--purple); }
   .door-type-other { background: var(--text2); }
   .door-elapsed {
-    font-size: calc(13px * var(--card-scale));
+    font-size: calc(14px * var(--card-scale));
     font-weight: 700;
     color: #000;
     line-height: 1;
@@ -277,11 +277,11 @@
   }
   .door-priority-badge {
     display: inline-block;
-    padding: calc(1px * var(--card-scale)) calc(3px * var(--card-scale));
-    border-radius: 3px;
-    background: var(--red);
+    padding: calc(3px * var(--card-scale)) calc(6px * var(--card-scale));
+    border-radius: 4px;
+    background: #ff8a80;
     color: #000;
-    font-size: calc(11px * var(--card-scale));
+    font-size: calc(13px * var(--card-scale));
     font-weight: 700;
     letter-spacing: 0.3px;
   }
@@ -2730,7 +2730,7 @@ function renderDoors() {
       const rankNum = isOther ? null : (priorityMap[door.id] || null);
       const rank = rankNum && rankNum <= 5 ? rankNum : '';
       actions = `<div class="door-actions">
-        <span class="door-priority-badge${rankNum && rankNum <= 5 ? ' door-priority-badge-pulse' : ''}">${rank}</span>
+        ${rank ? `<span class="door-priority-badge${rankNum && rankNum <= 5 ? ' door-priority-badge-pulse' : ''}">${rank}</span>` : '<span></span>'}
         ${(() => {
           const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a4731;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#4fd1a5 0%,#27b589 50%,#1a9c72 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
           const wrap = inner => `<div style="display:flex;gap:calc(5px * var(--card-scale));align-items:center;">${inner}</div>`;
