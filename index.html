@@ -1362,6 +1362,7 @@
       <div class="panel" style="padding:0;overflow-x:auto;margin-bottom:12px;background:#fff;border:1px solid #c8ddd4;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.9);border-radius:10px;">
         <table id="fc-carrier-table" style="width:100%;font-size:10px;background:#fff;border-radius:8px;overflow:hidden;">
           <thead><tr>
+            <th style="min-width:20px;background:#bfbfbf;"></th>
             <th style="min-width:150px;font-size:10px;background:#bfbfbf;color:#000;">Carrier</th>
             <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;" title="Historical average rack lines per trailer">Rack Lines per Trailer</th>
             <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Expected trailers</th>
@@ -1376,6 +1377,7 @@
           <tbody id="fc-carrier-tbody"></tbody>
           <tfoot>
             <tr style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);font-weight:700;font-size:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);">
+              <td style="background:transparent;"></td>
               <td style="padding:5px 7px;color:#f5c842;background:transparent;">TOTALS</td>
               <td style="background:transparent;"></td>
               <td id="fc-tot-trailers" style="text-align:center;color:#fff;background:transparent;">0</td>
@@ -1389,7 +1391,7 @@
             </tr>
             <!-- New Lines -->
             <tr style="background:#c5d9f1;">
-              <td colspan="5" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">New Lines</td>
+              <td colspan="6" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">New Lines</td>
               <td id="fc-total-lines" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
               <td id="fc-bin-freight-lines-echo" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
@@ -1397,7 +1399,7 @@
             </tr>
             <!-- Carryover (+ Late Arriving Carryover embedded) -->
             <tr style="background:#da9694;">
-              <td colspan="5" style="text-align:right;font-weight:700;color:#3a1a17;background:transparent;padding:6px 10px;">Carryover</td>
+              <td colspan="6" style="text-align:right;font-weight:700;color:#3a1a17;background:transparent;padding:6px 10px;">Carryover</td>
               <td style="text-align:center;background:transparent;"><input type="number" id="fc-carried-in" value="0" style="width:60px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:15px;font-weight:800;text-align:center;outline:none;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()"></td>
               <td colspan="2" style="text-align:center;background:transparent;">
                 <span style="font-size:9px;font-weight:700;color:#3a1a17;text-transform:uppercase;letter-spacing:0.3px;margin-right:4px;">Late Arriving</span>
@@ -1408,7 +1410,7 @@
             </tr>
             <!-- Total Lines -->
             <tr style="background:#215973;">
-              <td colspan="5" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Total Lines</td>
+              <td colspan="6" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Total Lines</td>
               <td id="fc-total-all-lines" style="text-align:center;font-weight:800;color:#fff;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
               <td style="background:transparent;"></td>
@@ -1416,7 +1418,7 @@
             </tr>
             <!-- Capacity (+ Checkers embedded) -->
             <tr style="background:#00b050;">
-              <td colspan="5" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Capacity</td>
+              <td colspan="6" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Capacity</td>
               <td style="text-align:center;background:transparent;"><input type="text" autocomplete="off" inputmode="numeric" id="fc-capacity" value="0" style="width:60px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:15px;font-weight:800;text-align:center;outline:none;" onchange="calcForecastSummary();saveState()"></td>
               <td colspan="2" style="text-align:center;background:transparent;">
                 <span style="font-size:9px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.3px;margin-right:4px;">Checkers</span>
@@ -1427,7 +1429,7 @@
             </tr>
             <!-- Deficit -->
             <tr id="fc-carryover-tile" style="background:#f2dcdb;">
-              <td colspan="5" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">Deficit</td>
+              <td colspan="6" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">Deficit</td>
               <td id="fc-carryover" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
               <td style="background:transparent;"></td>
@@ -1435,7 +1437,7 @@
             </tr>
             <!-- Bin Freight lines -->
             <tr style="background:#ff66cc;">
-              <td colspan="5" style="text-align:right;font-weight:700;color:#3a0033;background:transparent;padding:6px 10px;">Bin Freight lines</td>
+              <td colspan="6" style="text-align:right;font-weight:700;color:#3a0033;background:transparent;padding:6px 10px;">Bin Freight lines</td>
               <td id="fc-bin-freight-lines" style="text-align:center;font-weight:800;color:#3a0033;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
               <td style="background:transparent;"></td>
@@ -1458,6 +1460,7 @@
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="width:100%;font-size:11px;min-width:300px;">
           <thead><tr>
+            <th style="width:16px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);"></th>
             <th style="min-width:90px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
             <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">M</th>
             <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">T</th>
@@ -4021,14 +4024,14 @@ function renderForecastTab() {
     if (c.name === 'ESTES' && !estesDividerAdded) {
       estesDividerAdded = true;
       const divider = document.createElement('tr');
-      divider.innerHTML = `<td colspan="10" style="background:#b8cce4;height:10px;padding:0;"></td>`;
+      divider.innerHTML = `<td colspan="11" style="background:#b8cce4;height:10px;padding:0;"></td>`;
       tbody.appendChild(divider);
     }
     // Section divider before the first bulk/misc-load carrier
     if (UTILITY_GROUP.has(c.name) && !utilityDividerAdded) {
       utilityDividerAdded = true;
       const divider = document.createElement('tr');
-      divider.innerHTML = `<td colspan="10" style="background:#bfbfbf;height:10px;padding:0;"></td>`;
+      divider.innerHTML = `<td colspan="11" style="background:#bfbfbf;height:10px;padding:0;"></td>`;
       tbody.appendChild(divider);
     }
     // Use 0 trailers if not scheduled for this day (but still show row)
@@ -4048,6 +4051,7 @@ function renderForecastTab() {
     const notScheduled = !ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name);
     const carrierBg = CARRIER_COLOR[c.name] || '';
     tr.innerHTML = `
+      <td style="text-align:center;cursor:grab;color:#999;font-size:13px;background:${carrierBg?carrierBg:'#f5f5f5'};user-select:none;">⋮⋮</td>
       <td class="carrier-name-cell" style="${carrierBg?`background:${carrierBg};`:''}"><select id="fc-carrier-select-${i}" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:15px;${carrierBg?`background:${carrierBg};`:''}${notScheduled?'color:var(--text2);':''}" onchange="updateFCCarrier(${i},'name',this.value)">${state.carriers.map(sc => `<option value="${sc.name}"${sc.name===c.name?' selected':''}>${sc.name}</option>`).join('')}${state.carriers.some(sc=>sc.name===c.name)?'':`<option value="${c.name}" selected>${c.name}</option>`}</select></td>
       <td style="text-align:center;"><span style="font-size:15px;font-weight:700;color:${noData?'#aaa':'#1a4731'};display:block;text-align:center;">${noData?'—':rawLpt}</span></td>
       <td><input type="number" class="fc-tbl-input" style="font-size:15px;${notScheduled?'color:var(--text2);':''}" value="${schedTrailers}" onchange="updateFCCarrier(${i},'expTrailers',+this.value)"></td>
@@ -4059,6 +4063,22 @@ function renderForecastTab() {
       <td><input type="text" autocomplete="off" class="fc-tbl-input fc-calc" style="font-size:15px;" value="${bf}" readonly></td>
       <td><button class="delete-btn" onclick="removeFCCarrier(${i})" title="Remove row">\u2715</button></td>
     `;
+    tr.draggable = true;
+    tr.dataset.carrierIdx = i;
+    tr.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; tr.style.opacity = '0.4'; });
+    tr.addEventListener('dragend', () => { tr.style.opacity = notScheduled ? '0.72' : ''; });
+    tr.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    tr.addEventListener('drop', e => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      if (isNaN(fromIdx) || fromIdx === i) return;
+      const dk = document.getElementById('forecast-date').value || todayStr();
+      const fdd = getForecastData(dk);
+      const [moved] = fdd.carriers.splice(fromIdx, 1);
+      fdd.carriers.splice(i, 0, moved);
+      saveState();
+      renderForecastTab();
+    });
     if (notScheduled) tr.style.opacity = '0.72';
     tbody.appendChild(tr);
   });
@@ -4070,6 +4090,7 @@ function updateFCCarrier(idx, field, val) {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
   if (fd.carriers[idx]) fd.carriers[idx][field] = val;
+  if (field === 'name') registerForecastCarrierForAssumptions(val);
   saveState();
   renderForecastTab();
 }
@@ -4082,10 +4103,24 @@ function removeFCCarrier(idx) {
   renderForecastTab();
 }
 
+// Registers a carrier name (not already in the default assumptions template)
+// so it durably shows up in the Assumptions tab too — persisted via settings
+// so it survives a reload and syncs to other devices.
+function registerForecastCarrierForAssumptions(name) {
+  if (!name || name === 'Carryover') return;
+  if (DEFAULT_FC_CARRIERS.some(c => c.name === name)) return;
+  if (!state.settings.extraForecastCarriers) state.settings.extraForecastCarriers = [];
+  if (state.settings.extraForecastCarriers.includes(name)) return;
+  state.settings.extraForecastCarriers.push(name);
+  saveState();
+  saveSettingsToFirebase();
+}
+
 function addForecastCarrierRow() {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
   fd.carriers.push({name:'New Carrier', linesPerTrailer:0, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0, arrived:false, remaining:0, midday:0});
+  registerForecastCarrierForAssumptions('New Carrier');
   saveState();
   renderForecastTab();
 }
@@ -4183,7 +4218,9 @@ function renderAssumptionsTab() {
   document.getElementById('assump-manual-badge').style.display = source === 'manual'  ? '' : 'none';
   document.getElementById('assump-avg-badge').style.display    = source === 'average' ? '' : 'none';
 
-  const carriers        = DEFAULT_FC_CARRIERS.filter(c => c.name !== 'Carryover');
+  const extraNames = state.settings.extraForecastCarriers || [];
+  const carriers = DEFAULT_FC_CARRIERS.filter(c => c.name !== 'Carryover')
+    .concat(extraNames.map(name => ({name, linesPerTrailer: 0, bfPerTrailer: 0})));
   const manualOverrides = state.settings.carrierAssumptions || {};
   const averages        = state.settings.carrierAverages    || {};
 
@@ -4388,12 +4425,27 @@ function renderFCSchedule(fd) {
   (fd.schedule || []).forEach((s, i) => {
     const tr = document.createElement('tr');
     const days = ['mon','tue','wed','thu','fri'];
-    let cells = `<td style="font-size:15px;font-weight:700;color:#000;background:#fff;padding:6px 8px;">${s.name}</td>`;
+    let cells = `<td style="text-align:center;cursor:grab;color:#999;font-size:13px;background:#fff;user-select:none;">⋮⋮</td><td style="font-size:15px;font-weight:700;color:#000;background:#fff;padding:6px 8px;">${s.name}</td>`;
     days.forEach(d => {
       cells += `<td style="text-align:center;background:#fff;padding:5px;"><input type="checkbox" class="fc-sched-chk" ${s[d]?'checked':''} onchange="updateFCSchedule(${i},'${d}',this.checked)"></td>`;
     });
     cells += `<td style="background:#fff;padding:3px 4px;"><button onclick="removeScheduleRow(${i})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>`;
     tr.innerHTML = cells;
+    tr.draggable = true;
+    tr.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; tr.style.opacity = '0.4'; });
+    tr.addEventListener('dragend', () => { tr.style.opacity = ''; });
+    tr.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    tr.addEventListener('drop', e => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      if (isNaN(fromIdx) || fromIdx === i) return;
+      const dk = document.getElementById('forecast-date').value || todayStr();
+      const fdd = getForecastData(dk);
+      const [moved] = fdd.schedule.splice(fromIdx, 1);
+      fdd.schedule.splice(i, 0, moved);
+      saveState();
+      renderForecastTab();
+    });
     tbody.appendChild(tr);
   });
 }
@@ -4423,6 +4475,7 @@ function addScheduleRow() {
   if (!fd.carriers.some(c => c.name === name)) {
     fd.carriers.push({name, linesPerTrailer:0, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0, arrived:false, remaining:0, midday:0});
   }
+  registerForecastCarrierForAssumptions(name);
   saveState();
   renderForecastTab();
 }
@@ -4437,16 +4490,20 @@ function syncForecastToLTL(fd, dateKey) {
   const scheduledForDay = new Set();
   if (fd.schedule && isWeekday) fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
 
-  const rows = [];
+  // Additive: never remove or overwrite existing rows (e.g. ones added by hand
+  // via the Morning Outlook form with real trailer numbers) — only top up
+  // with blank placeholder rows if the Forecast tab's count is higher than
+  // what's already listed for that carrier.
+  if (!fd.ltl) fd.ltl = [];
   fd.carriers.forEach(c => {
     if (EXCLUDE_FROM_EXPECTED.has(c.name)) return;
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
-    for (let i = 0; i < adjTrailers; i++) {
-      rows.push({ carrier: c.name, time: '', trailerNum: '', notes: '' });
+    const existingCount = fd.ltl.filter(r => r.carrier === c.name).length;
+    for (let i = existingCount; i < adjTrailers; i++) {
+      fd.ltl.push({ carrier: c.name, time: '', trailerNum: '', notes: '' });
     }
   });
-  fd.ltl = rows;
 }
 
 function toggleForecastSettings() {
