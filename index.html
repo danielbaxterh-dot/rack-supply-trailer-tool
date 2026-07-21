@@ -57,7 +57,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Roboto', 'Segoe UI', sans-serif;
-    background: #f0f0f0;
+    background: #b8b8b8;
     color: var(--text);
     min-height: 100vh;
     font-size: 13px;
@@ -85,8 +85,8 @@
     text-shadow: 0 1px 0 rgba(255,255,255,0.8);
   }
   #clock {
-    background: linear-gradient(180deg, #1e5438 0%, #1a4731 60%, #153d29 100%);
-    color: #f5c842;
+    background: linear-gradient(180deg, #2e6a4a 0%, #2a6045 60%, #1a4731 100%);
+    color: #c0c0c0;
     font-weight: 700;
     font-size: 15px;
     padding: 6px 14px;
@@ -100,7 +100,7 @@
   .tabs {
     display: flex;
     gap: 4px;
-    background: #1a3528;
+    background: #2a6045;
     padding: 10px 16px 0;
     border-bottom: 3px solid #27b589;
   }
@@ -151,7 +151,7 @@
     margin-bottom: 16px;
   }
   .door-card {
-    background: linear-gradient(180deg, #ffffff 0%, #f4f7f5 100%);
+    background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
     border: 1px solid #c8d2ce;
     border-bottom: 2px solid #b8c4bf;
     border-radius: 10px;
@@ -237,14 +237,14 @@
   .door-type-badge {
     font-size: calc(11px * var(--card-scale));
     font-weight: 700;
-    color: var(--bg);
+    color: #c0c0c0;
     border-radius: 4px;
     padding: calc(1px * var(--card-scale)) calc(6px * var(--card-scale));
     display: inline-block;
     width: fit-content;
   }
   .door-type-drop { background: var(--blue); }
-  .door-type-live { background: var(--orange); }
+  .door-type-live { background: #000000; }
   .door-type-shuttle { background: var(--purple); }
   .door-type-other { background: var(--text2); }
   .door-elapsed {
@@ -299,6 +299,13 @@
     -webkit-font-smoothing: antialiased;
     text-shadow: none !important;
   }
+  /* Uniform grey styling for every button in the app, matching the Release button (tab bar excluded so active/inactive tabs stay distinguishable) */
+  button:not(.tab-btn) {
+    background: linear-gradient(180deg,#c0c0c0 0%,#909090 100%) !important;
+    color: #000 !important;
+    border-color: #444 !important;
+  }
+
   .btn {
     padding: 5px 12px;
     border: none;
@@ -393,8 +400,8 @@
   th {
     text-align: left;
     padding: 6px 7px;
-    background: linear-gradient(180deg, #2a6045 0%, #1a4731 60%, #153d29 100%);
-    color: #f5c842;
+    background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);
+    color: #c0c0c0;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -458,7 +465,7 @@
     border: 1px solid rgba(255,255,255,0.15);
   }
   .sidebar-panel-header {
-    background: linear-gradient(180deg, #2a6045 0%, #1a4731 60%, #153d29 100%);
+    background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);
     padding: 9px 12px;
     display: flex;
     align-items: center;
@@ -469,7 +476,7 @@
   .sidebar-panel-title {
     font-size: 12px;
     font-weight: 700;
-    color: #f5c842;
+    color: #c0c0c0;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     margin: 0;
@@ -620,7 +627,7 @@
     color: #ffffff;
     margin-bottom: 0;
     padding: 28px 44px;
-    background: linear-gradient(180deg, #2a6045 0%, #1a4731 60%, #153d29 100%);
+    background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);
     border-radius: 14px 14px 0 0;
     border-bottom: 2px solid #27b589;
     box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -683,7 +690,7 @@
     gap: 8px;
   }
   .carrier-card {
-    background: #ffffff;
+    background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
     border: 1px solid #c8ddd4;
     border-radius: 10px;
     padding: 10px;
@@ -1006,15 +1013,15 @@
   <div class="home-layout">
     <div class="home-main">
       <div class="flex-row" style="margin-bottom:10px;">
-        <button id="edit-mode-btn" onclick="toggleEditMode()" style="font-size:10px;font-weight:700;padding:4px 8px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">Edit Layout</button>
+        <button id="edit-mode-btn" onclick="toggleEditMode()" style="font-size:10px;font-weight:700;padding:4px 8px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Edit Layout</button>
         <div id="zoom-controls" style="display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#ffffff 0%,#f0f0f0 100%);border:1px solid #d5d5d5;border-radius:26px;padding:5px 10px;font-size:14px;font-weight:700;color:#555;font-family:Roboto,sans-serif;box-shadow:0 4px 10px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.9);">
           <button onclick="adjustZoom(-10)" style="border:none;background:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 2px 4px rgba(0,0,0,0.25);">−</button>
           <span id="zoom-label" style="min-width:49px;text-align:center;">90%</span>
           <button onclick="adjustZoom(10)" style="border:none;background:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 2px 4px rgba(0,0,0,0.25);">+</button>
           <button onclick="resetZoom()" title="Reset zoom" style="border:none;background:#fff;border-radius:15px;padding:3px 10px;cursor:pointer;font-weight:700;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.25);">Reset</button>
         </div>
-        <button onclick="openAutoReadyModal()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ffe066 0%,#f5c842 50%,#e0a800 100%);color:#1a4731;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.5);border-bottom:2px solid #b88a00;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #b88a00'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.5)';this.style.borderBottom='2px solid #b88a00'">Auto Trailer Ready</button>
-        <span class="edit-mode-badge" id="edit-mode-badge">EDIT MODE</span>
+        <button onclick="openAutoReadyModal()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Auto Trailer Ready</button>
+        <span class="edit-mode-badge" id="edit-mode-badge" style="display:none;">EDIT MODE</span>
       </div>
 
       <!-- EDIT TOOLBAR -->
@@ -1064,7 +1071,7 @@
         <div class="sidebar-panel-header">
           <span class="sidebar-panel-title">Expected Trailers</span>
           <div style="display:flex;gap:4px;">
-            <button onclick="openOutlookModal()" style="font-size:11px;font-weight:700;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 3px 6px rgba(180,0,0,0.4),0 1px 2px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;text-shadow:0 1px 1px rgba(0,0,0,0.3);transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(180,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 6px rgba(180,0,0,0.4),0 1px 2px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">Edit</button>
+            <button onclick="openOutlookModal()" style="font-size:11px;font-weight:700;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Edit</button>
           </div>
         </div>
         <div class="sidebar-panel-body">
@@ -1197,8 +1204,8 @@
 <div class="modal-overlay" id="modal-outlook">
   <div class="modal" style="width:920px;max-width:98vw;padding:0;overflow:auto;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.5);zoom:2;">
     <!-- Full-width header -->
-    <div style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #27b589;box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08);">
-      <span style="font-size:15px;font-weight:700;color:#f5c842;text-transform:uppercase;letter-spacing:0.8px;">📝 Morning Outlook — <span id="outlook-modal-date"></span></span>
+    <div style="background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #27b589;box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08);">
+      <span style="font-size:15px;font-weight:700;color:#c0c0c0;text-transform:uppercase;letter-spacing:0.8px;">📝 Morning Outlook — <span id="outlook-modal-date"></span></span>
       <div style="display:flex;gap:8px;">
         <button onclick="closeModal('modal-outlook')" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#c8c8c8 0%,#a8a8a8 50%,#989898 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:3px solid #707070;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #707070'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='3px solid #707070'">Cancel</button>
         <button onclick="saveOutlook()" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">Save Outlook</button>
@@ -1239,11 +1246,11 @@
         <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
           <thead><tr>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
-            <th style="padding:6px 4px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);border-bottom:2px solid #27b589;"></th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
+            <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
           </tr></thead>
           <tbody id="outlook-today-tbody"></tbody>
         </table>
@@ -1255,10 +1262,10 @@
         <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
           <thead><tr>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
-            <th style="padding:6px 4px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);border-bottom:2px solid #27b589;"></th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+            <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
           </tr></thead>
           <tbody id="outlook-future-tbody"></tbody>
         </table>
@@ -1328,7 +1335,7 @@
                 <span style="color:var(--yellow);">MANUAL</span>
                 <span id="assump-manual-badge" style="display:none;font-size:9px;font-weight:700;background:#27b589;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;">ACTIVE</span>
               </th>
-              <th rowspan="2" style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 100%);border:none;padding:0;"></th>
+              <th rowspan="2" style="background:linear-gradient(180deg,#3a7a5a 0%,#2a6045 100%);border:none;padding:0;"></th>
               <th colspan="2" style="text-align:center;font-size:10px;border-bottom:1px solid #27b589;padding-bottom:3px;">
                 <span style="color:var(--yellow);">RUNNING AVG</span>
                 <span id="assump-avg-badge" style="display:none;font-size:9px;font-weight:700;background:#27b589;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;">ACTIVE</span>
@@ -1376,7 +1383,7 @@
           </tr></thead>
           <tbody id="fc-carrier-tbody"></tbody>
           <tfoot>
-            <tr style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);font-weight:700;font-size:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);">
+            <tr style="background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);font-weight:700;font-size:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);">
               <td style="background:transparent;"></td>
               <td style="padding:5px 7px;color:#f5c842;background:transparent;">TOTALS</td>
               <td style="background:transparent;"></td>
@@ -1460,13 +1467,13 @@
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="width:100%;font-size:11px;min-width:300px;">
           <thead><tr>
-            <th style="width:16px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);"></th>
-            <th style="min-width:90px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">M</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">T</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">W</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">Th</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg,#2a6045 0%,#1a4731 60%,#153d29 100%);color:#f5c842;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">F</th>
+            <th style="width:16px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);"></th>
+            <th style="min-width:90px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
+            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">M</th>
+            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">T</th>
+            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">W</th>
+            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">Th</th>
+            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">F</th>
           </tr></thead>
           <tbody id="fc-schedule-tbody"></tbody>
         </table>
@@ -1502,7 +1509,7 @@
     <input type="file" id="history-import-input" accept=".csv" style="display:none;" onchange="importHistoryCSV(this)">
     <button class="btn btn-red btn-sm" onclick="clearAllHistory()" style="color:#000;">Clear History</button>
   </div>
-  <div style="margin:-6px 0 10px;font-size:11px;color:#a8bfaf;font-style:italic;" id="history-range-label"></div>
+  <div style="margin:-6px 0 10px;font-size:11px;color:#000;font-style:italic;" id="history-range-label"></div>
   <div style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
     <table style="background:#fff;min-width:700px;">
       <thead><tr id="history-thead-row"></tr></thead>
@@ -1916,6 +1923,7 @@ function localDateTimeInputValue(date) {
 let _unsubTrailers = null;
 let _unsubForecast = null;
 let _unsubHistory = null;
+let _unsubSalesSide = null;
 // Nothing is allowed to write back to Firebase until a load has fully succeeded.
 // This prevents corrupted/partial/default data (from a failed load, a timeout fallback,
 // or any mid-load error) from ever being silently saved over the team's real shared data.
@@ -2124,6 +2132,20 @@ async function loadStateFromFirebase() {
     }
   );
 
+  // Real-time listener for today's sales-side slot tracking (PITT/XPO) — keeps
+  // the Trailers to Sales Side panel in sync across devices, including manual
+  // status toggles made from another device.
+  if (_unsubSalesSide) _unsubSalesSide();
+  _unsubSalesSide = fb().onSnapshot(fb().doc(db, 'salesside', todayStr()), snap => {
+    if (window._sandboxMode) return;
+    if (snap.exists() && snap.data().slots) {
+      salesSideState = snap.data().slots;
+    } else {
+      salesSideState = JSON.parse(JSON.stringify(SALES_SIDE_SLOTS));
+    }
+    renderSalesSideTable();
+  });
+
 }
 
 let _fullHistoryLoaded = false;
@@ -2319,6 +2341,7 @@ function initSandboxModeFromStorage() {
   if (banner) banner.style.display = on ? 'block' : 'none';
 }
 initSandboxModeFromStorage();
+
 async function saveForecastToFirebase(dateKey) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
   const fd = state.forecast[dateKey];
@@ -2690,11 +2713,13 @@ function renderDoors() {
     if (isYard) {
       const isCFF = door.type === 'cff_yard' || door.num.toUpperCase().includes('CFF') || (door.name && door.name.toUpperCase().includes('CFF'));
       if (isCFF) {
+        card.classList.add('door-card-cff');
         card.style.background = 'linear-gradient(180deg,#e2e2e2 0%,#c2c2c2 100%)';
         card.style.borderColor = '#c8c8c8';
         card.style.borderBottom = '2px solid #a8a8a8';
         card.style.boxShadow = '0 4px 10px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.18), 0 1px 0 rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)';
       } else {
+        card.classList.add('door-card-yard');
         card.style.background = 'linear-gradient(180deg,#aeaeae 0%,#888888 100%)';
         card.style.borderColor = '#909090';
         card.style.borderBottom = '2px solid #707070';
@@ -2748,12 +2773,12 @@ function renderDoors() {
       actions = `<div class="door-actions">
         ${rank ? `<span class="door-priority-badge${rankNum && rankNum <= 5 ? ' door-priority-badge-pulse' : ''}">${rank}</span>` : '<span></span>'}
         ${(() => {
-          const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a4731;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#4fd1a5 0%,#27b589 50%,#1a9c72 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
+          const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
           const wrap = inner => `<div style="display:flex;gap:calc(5px * var(--card-scale));align-items:center;">${inner}</div>`;
           if (t.carrier === 'Junk Skids') return moveBtn;
           if (t.carrier === 'Bin Freight') return moveBtn;
           if (carrierObj && carrierObj.type === 'OTHER') {
-            return wrap(moveBtn + `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #1a6b8a;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#5fb8e0 0%,#3a97c9 50%,#2a7aab 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.4);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Age</button>`);
+            return wrap(moveBtn + `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Age</button>`);
           }
           return wrap(moveBtn + `<button onclick="confirmRelease('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>`);
         })()}
@@ -3681,7 +3706,7 @@ function renderCarriers() {
           }
           <div style="flex:1;min-width:0;">
             <div class="carrier-name" style="font-size:14px;">${c.name}</div>
-            <span class="badge ${typeColor}" style="font-size:10px;">${typeLabel}</span>
+            <span class="badge ${typeColor}" style="font-size:10px;color:#000;">${typeLabel}</span>
           </div>
           <button class="delete-btn" onclick="removeCarrier('${c.id}')" style="align-self:flex-start;flex-shrink:0;color:#ccc;font-size:13px;">✕</button>
         </div>
@@ -4246,7 +4271,7 @@ function renderAssumptionsTab() {
           style="width:100%;padding:3px 4px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;font-weight:700;color:#1a4731;text-align:center;outline:none;"
           onchange="saveAssumptions()">
       </td>
-      <td style="background:linear-gradient(180deg,#2a6045 0%,#1a4731 100%);padding:0;"></td>
+      <td style="background:linear-gradient(180deg,#3a7a5a 0%,#2a6045 100%);padding:0;"></td>
       <td style="text-align:center;padding:4px 7px;font-size:12px;font-weight:700;color:${loads>0?'#1a4731':'#bbb'};">${avgLpt}</td>
       <td style="text-align:center;padding:3px 4px;">
         <input type="number" min="0" value="${bfptA}" data-carrier="${def.name}" data-field="bfPerTrailer" data-table="average"
@@ -5312,7 +5337,7 @@ function toggleEditMode() {
   editModeActive = !editModeActive;
   document.body.classList.toggle('edit-mode', editModeActive);
   document.getElementById('edit-toolbar').classList.toggle('visible', editModeActive);
-  document.getElementById('edit-mode-badge').classList.toggle('visible', editModeActive);
+  document.getElementById('edit-mode-badge').style.display = editModeActive ? 'inline-block' : 'none';
   const btn = document.getElementById('edit-mode-btn');
   btn.textContent = editModeActive ? 'Exit Edit' : 'Edit Layout';
   if (editModeActive) {
@@ -5778,7 +5803,7 @@ function submitLogin() {
 function showConnecting() {
   document.body.insertAdjacentHTML('beforeend', `
     <div id="fb-loading" style="position:fixed;inset:0;background:rgba(26,71,49,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;">
-      <div style="color:#f5c842;font-size:22px;font-weight:700;font-family:Roboto,sans-serif;">Rack Receiving Trailer Tool</div>
+      <div style="color:#c0c0c0;font-size:22px;font-weight:700;font-family:Roboto,sans-serif;">Rack Receiving Trailer Tool</div>
       <div style="color:#a8bfaf;font-size:14px;margin-top:10px;font-family:Roboto,sans-serif;">Connecting to server...</div>
       <div style="width:48px;height:48px;border:4px solid #2e4a38;border-top-color:#27b589;border-radius:50%;animation:spin 0.8s linear infinite;margin-top:20px;"></div>
     </div>
@@ -5821,6 +5846,13 @@ function autoLogin(tid) {
 
 // Start the app
 initZoom();
+// Safety: always start with Edit Layout mode fully off, regardless of any
+// stuck state from a previous session.
+editModeActive = false;
+document.body.classList.remove('edit-mode');
+document.getElementById('edit-toolbar')?.classList.remove('visible');
+document.getElementById('edit-mode-badge')?.classList.remove('visible');
+if (document.getElementById('edit-mode-badge')) document.getElementById('edit-mode-badge').style.display = 'none';
 enhanceAllModalSelects();
 const _savedTid = getSavedLogin();
 if (_savedTid) {
