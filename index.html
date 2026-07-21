@@ -86,7 +86,7 @@
   }
   #clock {
     background: linear-gradient(180deg, #2e6a4a 0%, #2a6045 60%, #1a4731 100%);
-    color: #c0c0c0;
+    color: #000;
     font-weight: 700;
     font-size: 15px;
     padding: 6px 14px;
@@ -95,6 +95,16 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
     border: 1px solid #0e2e1c;
     letter-spacing: 1px;
+    position: relative;
+  }
+  #clock::before {
+    content: '';
+    position: absolute;
+    inset: 4px 6px;
+    background: linear-gradient(180deg, #cacaca 0%, #b0b0b0 100%);
+    border-radius: 5px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);
+    z-index: -1;
   }
   /* TABS */
   .tabs {
@@ -401,14 +411,24 @@
     text-align: left;
     padding: 6px 7px;
     background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);
-    color: #c0c0c0;
+    color: #000;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     border-bottom: 2px solid #27b589;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    text-shadow: none;
+    position: relative;
+  }
+  th::before {
+    content: '';
+    position: absolute;
+    inset: 4px 3px;
+    background: linear-gradient(180deg, #cacaca 0%, #b0b0b0 100%);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);
+    z-index: -1;
   }
   td { padding: 5px 7px; border-bottom: 1px solid #e0eeea; vertical-align: middle; background: #fff; color: #1a4731; }
   tr:last-child td { border-bottom: none; }
@@ -476,10 +496,15 @@
   .sidebar-panel-title {
     font-size: 12px;
     font-weight: 700;
-    color: #c0c0c0;
+    color: #000;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     margin: 0;
+    display: inline-block;
+    background: linear-gradient(180deg, #cacaca 0%, #b0b0b0 100%);
+    padding: 4px 10px;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);
   }
   .sidebar-panel-body {
     padding: 0;
@@ -624,15 +649,25 @@
   .modal h2 {
     font-size: 32px;
     font-weight: 800;
-    color: #ffffff;
+    color: #000;
     margin-bottom: 0;
     padding: 28px 44px;
     background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);
     border-radius: 14px 14px 0 0;
     border-bottom: 2px solid #27b589;
     box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    text-shadow: none;
     letter-spacing: 0.3px;
+    position: relative;
+  }
+  .modal h2::before {
+    content: '';
+    position: absolute;
+    inset: 12px 20px;
+    background: linear-gradient(180deg, #cacaca 0%, #b0b0b0 100%);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);
+    z-index: -1;
   }
   .modal > div:not(.modal-actions):not([style*="grid"]) { padding-top: 16px; }
   .form-row { margin-bottom: 20px; padding-left: 0; padding-right: 0; }
@@ -1205,7 +1240,7 @@
   <div class="modal" style="width:920px;max-width:98vw;padding:0;overflow:auto;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.5);zoom:2;">
     <!-- Full-width header -->
     <div style="background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #27b589;box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08);">
-      <span style="font-size:15px;font-weight:700;color:#c0c0c0;text-transform:uppercase;letter-spacing:0.8px;">📝 Morning Outlook — <span id="outlook-modal-date"></span></span>
+      <span style="font-size:15px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:0.8px;background:linear-gradient(180deg, #cacaca 0%, #b0b0b0 100%);padding:5px 12px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.6);">📝 Morning Outlook — <span id="outlook-modal-date"></span></span>
       <div style="display:flex;gap:8px;">
         <button onclick="closeModal('modal-outlook')" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#c8c8c8 0%,#a8a8a8 50%,#989898 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:3px solid #707070;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #707070'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='3px solid #707070'">Cancel</button>
         <button onclick="saveOutlook()" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">Save Outlook</button>
@@ -1246,10 +1281,10 @@
         <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
           <thead><tr>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
             <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
           </tr></thead>
           <tbody id="outlook-today-tbody"></tbody>
@@ -1262,9 +1297,9 @@
         <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
           <thead><tr>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
             <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
           </tr></thead>
           <tbody id="outlook-future-tbody"></tbody>
@@ -1279,7 +1314,7 @@
 <div id="tab-forecast" class="tab-content">
   <div class="flex-row" style="margin-bottom:10px;align-items:center;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:10px;">
-      <span style="color:var(--yellow);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Forecasting Tool</span>
+      <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Forecasting Tool</span>
       <div style="background:#fff;border:1px solid #c8ddd4;border-radius:10px;padding:7px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 3px 8px rgba(0,0,0,0.12),0 1px 2px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
         <span style="font-size:11px;font-weight:700;color:#2d6b4a;text-transform:uppercase;letter-spacing:0.5px;">Date</span>
         <input type="date" id="forecast-date" onchange="changeForecastDate(this)" style="background:transparent;border:none;padding:0;color:#1a4731;font-size:14px;font-weight:700;outline:none;cursor:pointer;">
@@ -1383,21 +1418,21 @@
           </tr></thead>
           <tbody id="fc-carrier-tbody"></tbody>
           <tfoot>
-            <tr style="background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);font-weight:700;font-size:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);">
+            <tr style="background:#e0e0e0;font-weight:700;font-size:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
               <td style="background:transparent;"></td>
-              <td style="padding:5px 7px;color:#f5c842;background:transparent;">TOTALS</td>
+              <td style="padding:5px 7px;color:#000;background:transparent;">TOTALS</td>
               <td style="background:transparent;"></td>
-              <td id="fc-tot-trailers" style="text-align:center;color:#fff;background:transparent;">0</td>
-              <td id="fc-tot-explines" style="text-align:center;color:#fff;font-weight:800;background:transparent;">0</td>
+              <td id="fc-tot-trailers" style="text-align:center;color:#000;background:transparent;">0</td>
+              <td id="fc-tot-explines" style="text-align:center;color:#000;font-weight:800;background:transparent;">0</td>
               <td style="background:transparent;"></td>
-              <td id="fc-tot-total" style="text-align:center;color:#fff;font-weight:800;font-size:15px;background:transparent;">0</td>
+              <td id="fc-tot-total" style="text-align:center;color:#000;font-weight:800;font-size:15px;background:transparent;">0</td>
               <td style="background:transparent;"></td>
               <td style="background:transparent;"></td>
-              <td id="fc-tot-bf" style="text-align:center;color:#fff;background:transparent;">0</td>
+              <td id="fc-tot-bf" style="text-align:center;color:#000;background:transparent;">0</td>
               <td style="background:transparent;"></td>
             </tr>
             <!-- New Lines -->
-            <tr style="background:#c5d9f1;">
+            <tr style="background:#e0e0e0;">
               <td colspan="6" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">New Lines</td>
               <td id="fc-total-lines" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
@@ -1405,7 +1440,7 @@
               <td style="background:transparent;"></td>
             </tr>
             <!-- Carryover (+ Late Arriving Carryover embedded) -->
-            <tr style="background:#da9694;">
+            <tr style="background:#e0e0e0;">
               <td colspan="6" style="text-align:right;font-weight:700;color:#3a1a17;background:transparent;padding:6px 10px;">Carryover</td>
               <td style="text-align:center;background:transparent;"><input type="number" id="fc-carried-in" value="0" style="width:60px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:15px;font-weight:800;text-align:center;outline:none;" onchange="syncCarriedInToCarryover(this.value);calcForecastSummary()"></td>
               <td colspan="2" style="text-align:center;background:transparent;">
@@ -1416,26 +1451,26 @@
               <td style="background:transparent;"></td>
             </tr>
             <!-- Total Lines -->
-            <tr style="background:#215973;">
-              <td colspan="6" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Total Lines</td>
-              <td id="fc-total-all-lines" style="text-align:center;font-weight:800;color:#fff;background:transparent;">0</td>
+            <tr style="background:#e0e0e0;">
+              <td colspan="6" style="text-align:right;font-weight:700;color:#000;background:transparent;padding:6px 10px;">Total Lines</td>
+              <td id="fc-total-all-lines" style="text-align:center;font-weight:800;color:#000;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
               <td style="background:transparent;"></td>
               <td style="background:transparent;"></td>
             </tr>
             <!-- Capacity (+ Checkers embedded) -->
-            <tr style="background:#00b050;">
-              <td colspan="6" style="text-align:right;font-weight:700;color:#fff;background:transparent;padding:6px 10px;">Capacity</td>
+            <tr style="background:#e0e0e0;">
+              <td colspan="6" style="text-align:right;font-weight:700;color:#000;background:transparent;padding:6px 10px;">Capacity</td>
               <td style="text-align:center;background:transparent;"><input type="text" autocomplete="off" inputmode="numeric" id="fc-capacity" value="0" style="width:60px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:15px;font-weight:800;text-align:center;outline:none;" onchange="calcForecastSummary();saveState()"></td>
               <td colspan="2" style="text-align:center;background:transparent;">
-                <span style="font-size:9px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.3px;margin-right:4px;">Checkers</span>
+                <span style="font-size:9px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:0.3px;margin-right:4px;">Checkers</span>
                 <input type="text" autocomplete="off" inputmode="numeric" id="fc-checkers" value="0" style="width:40px;background:#fff;border:none;border-radius:4px;padding:3px 5px;color:#000;font-size:13px;font-weight:700;text-align:center;outline:none;" onchange="saveCheckers(this.value)">
               </td>
               <td style="background:transparent;"></td>
               <td style="background:transparent;"></td>
             </tr>
             <!-- Deficit -->
-            <tr id="fc-carryover-tile" style="background:#f2dcdb;">
+            <tr id="fc-carryover-tile" style="background:#e0e0e0;">
               <td colspan="6" style="text-align:right;font-weight:700;color:#1a4731;background:transparent;padding:6px 10px;">Deficit</td>
               <td id="fc-carryover" style="text-align:center;font-weight:800;color:#1a4731;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
@@ -1443,7 +1478,7 @@
               <td style="background:transparent;"></td>
             </tr>
             <!-- Bin Freight lines -->
-            <tr style="background:#ff66cc;">
+            <tr style="background:#e0e0e0;">
               <td colspan="6" style="text-align:right;font-weight:700;color:#3a0033;background:transparent;padding:6px 10px;">Bin Freight lines</td>
               <td id="fc-bin-freight-lines" style="text-align:center;font-weight:800;color:#3a0033;background:transparent;">0</td>
               <td colspan="2" style="background:transparent;"></td>
@@ -1468,7 +1503,7 @@
         <table style="width:100%;font-size:11px;min-width:300px;">
           <thead><tr>
             <th style="width:16px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);"></th>
-            <th style="min-width:90px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
+            <th style="min-width:90px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
             <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">M</th>
             <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">T</th>
             <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#c0c0c0;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">W</th>
@@ -2714,16 +2749,8 @@ function renderDoors() {
       const isCFF = door.type === 'cff_yard' || door.num.toUpperCase().includes('CFF') || (door.name && door.name.toUpperCase().includes('CFF'));
       if (isCFF) {
         card.classList.add('door-card-cff');
-        card.style.background = 'linear-gradient(180deg,#e2e2e2 0%,#c2c2c2 100%)';
-        card.style.borderColor = '#c8c8c8';
-        card.style.borderBottom = '2px solid #a8a8a8';
-        card.style.boxShadow = '0 4px 10px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.18), 0 1px 0 rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)';
       } else {
         card.classList.add('door-card-yard');
-        card.style.background = 'linear-gradient(180deg,#aeaeae 0%,#888888 100%)';
-        card.style.borderColor = '#909090';
-        card.style.borderBottom = '2px solid #707070';
-        card.style.boxShadow = '0 4px 10px rgba(0,0,0,0.28), 0 1px 3px rgba(0,0,0,0.22), 0 1px 0 rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.35)';
       }
     }
 
@@ -4076,8 +4103,8 @@ function renderForecastTab() {
     const notScheduled = !ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name);
     const carrierBg = CARRIER_COLOR[c.name] || '';
     tr.innerHTML = `
-      <td style="text-align:center;cursor:grab;color:#999;font-size:13px;background:${carrierBg?carrierBg:'#f5f5f5'};user-select:none;">⋮⋮</td>
-      <td class="carrier-name-cell" style="${carrierBg?`background:${carrierBg};`:''}"><select id="fc-carrier-select-${i}" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:15px;${carrierBg?`background:${carrierBg};`:''}${notScheduled?'color:var(--text2);':''}" onchange="updateFCCarrier(${i},'name',this.value)">${state.carriers.map(sc => `<option value="${sc.name}"${sc.name===c.name?' selected':''}>${sc.name}</option>`).join('')}${state.carriers.some(sc=>sc.name===c.name)?'':`<option value="${c.name}" selected>${c.name}</option>`}</select></td>
+      <td style="text-align:center;cursor:grab;color:#999;font-size:13px;background:#ffffff;user-select:none;">⋮⋮</td>
+      <td class="carrier-name-cell" style="background:#ffffff;"><select id="fc-carrier-select-${i}" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:15px;background:#ffffff;${notScheduled?'color:var(--text2);':''}" onchange="updateFCCarrier(${i},'name',this.value)">${state.carriers.map(sc => `<option value="${sc.name}"${sc.name===c.name?' selected':''}>${sc.name}</option>`).join('')}${state.carriers.some(sc=>sc.name===c.name)?'':`<option value="${c.name}" selected>${c.name}</option>`}</select></td>
       <td style="text-align:center;"><span style="font-size:15px;font-weight:700;color:${noData?'#aaa':'#1a4731'};display:block;text-align:center;">${noData?'—':rawLpt}</span></td>
       <td><input type="number" class="fc-tbl-input" style="font-size:15px;${notScheduled?'color:var(--text2);':''}" value="${schedTrailers}" onchange="updateFCCarrier(${i},'expTrailers',+this.value)"></td>
       <td><input type="text" autocomplete="off" class="fc-tbl-input fc-calc" style="font-size:15px;" value="${expLines}" readonly></td>
