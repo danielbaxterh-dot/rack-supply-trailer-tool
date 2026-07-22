@@ -4323,6 +4323,18 @@ function isExcludedFromOpUpdates(carrierName) {
   return false;
 }
 
+// Same as isExcludedFromOpUpdates, but LIVE carriers are allowed through — they
+// should still show up while they're waiting in the Expected Trailers list,
+// even though they drop off the table once actually slotted at a door.
+function isExcludedFromOpUpdatesPending(carrierName) {
+  if (!carrierName) return true;
+  const EXCLUDED_NAMES = new Set(['Junk Skids', 'Bin Freight']);
+  if (EXCLUDED_NAMES.has(carrierName)) return true;
+  const carrierObj = state.carriers.find(c => c.name === carrierName);
+  if (carrierObj && carrierObj.type === 'OTHER') return true;
+  return false;
+}
+
 // Carriers still sitting in today's Expected Trailers list (scheduled but not yet
 // slotted at a door). Returns the underlying fd.ltl entries (by index, for mutation)
 // so their % Remaining can be tracked before they ever get a door.
@@ -4333,7 +4345,7 @@ function getPendingExpectedOpRows() {
   const usedCounts = {};
   const pending = [];
   (fd.ltl || []).forEach((r, idx) => {
-    if (!r.carrier || isExcludedFromOpUpdates(r.carrier)) return;
+    if (!r.carrier || isExcludedFromOpUpdatesPending(r.carrier)) return;
     const used = usedCounts[r.carrier] || 0;
     usedCounts[r.carrier] = used + 1;
     if (used >= (arrivedCounts[r.carrier] || 0)) {
