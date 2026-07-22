@@ -4294,23 +4294,40 @@ function getCarrierAssumption(name, field) {
 function getOpUpdatesAssumption(name, field) {
   const raw = getCarrierAssumption(name, field);
   if (raw !== null && raw !== undefined) return raw;
-  const overrides = (state.settings.carrierAssumptions || {})[name] || {};
-  if (overrides[field] !== undefined) return overrides[field];
+  const overrides = state.settings.carrierAssumptions || {};
+  if (overrides[name] && overrides[name][field] !== undefined) return overrides[name][field];
   const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
-  return def ? (def[field] || 0) : 0;
+  if (def) return def[field] || 0;
+  // Fall back to a case-insensitive match — the master carrier list and the
+  // forecast/assumptions list occasionally differ in casing (e.g. "Ward" vs "WARD").
+  const lower = name.toLowerCase();
+  const overrideKey = Object.keys(overrides).find(k => k.toLowerCase() === lower);
+  if (overrideKey && overrides[overrideKey][field] !== undefined) return overrides[overrideKey][field];
+  const defCi = DEFAULT_FC_CARRIERS.find(c => c.name.toLowerCase() === lower);
+  return defCi ? (defCi[field] || 0) : 0;
+}
+
+// Older trailers/pending rows saved before % Remaining existed (or saved during
+// earlier iterations of this feature) may have pctFull stored as null/undefined.
+// That should always mean "untouched — full amount", never 0.
+function normalizePctFull(pctFull) {
+  if (pctFull === null || pctFull === undefined || pctFull === '') return 100;
+  const n = Number(pctFull);
+  if (isNaN(n)) return 100;
+  return Math.min(100, Math.max(0, n));
 }
 
 function linesRemainingForTrailer(t) {
   if (!t || !t.carrier) return 0;
   const linesPerTrailer = getOpUpdatesAssumption(t.carrier, 'linesPerTrailer');
-  const pct = Math.min(100, Math.max(0, Number(t.pctFull) || 0));
+  const pct = normalizePctFull(t.pctFull);
   return Math.round(linesPerTrailer * (pct / 100));
 }
 
 function bfSkidsRemainingForTrailer(t) {
   if (!t || !t.carrier) return 0;
   const bfPerTrailer = getOpUpdatesAssumption(t.carrier, 'bfPerTrailer');
-  const pct = Math.min(100, Math.max(0, Number(t.pctFull) || 0));
+  const pct = normalizePctFull(t.pctFull);
   return Math.round(bfPerTrailer * (pct / 100));
 }
 
