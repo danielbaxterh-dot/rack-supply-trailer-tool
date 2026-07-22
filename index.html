@@ -1607,19 +1607,26 @@
       <div style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
         <table style="background:#fff;width:auto;">
           <thead><tr>
+            <th style="min-width:20px;"></th>
             <th style="white-space:nowrap;">Location</th>
             <th style="text-align:center;white-space:nowrap;">Lines</th>
             <th style="text-align:center;white-space:nowrap;">BF Skids</th>
+            <th style="min-width:25px;"></th>
           </tr></thead>
           <tbody id="floor-est-tbody"></tbody>
           <tfoot>
             <tr style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
+              <td style="background:transparent;"></td>
               <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;">Floor Totals</td>
               <td id="floor-est-total-lines" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
               <td id="floor-est-total-bf" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
+              <td style="background:transparent;"></td>
             </tr>
           </tfoot>
         </table>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-blue btn-sm" onclick="addFloorLocation()">+ Add Location</button>
       </div>
     </div>
 
@@ -4556,8 +4563,11 @@ function updateOpUpdatesTotal() {
 }
 
 // ===================== FLOOR LINE ESTIMATIONS =====================
-const FLOOR_EST_LOCATIONS = [
+const DEFAULT_FLOOR_LOCATIONS = [
   { key: 'zone7073',    label: '70-73' },
+  { key: 'zone100103',  label: '100-103' },
+  { key: 'zone106109',  label: '106-109' },
+  { key: 'zone112115',  label: '112-115' },
   { key: 'hinges',      label: 'Hinges' },
   { key: 'otc',         label: 'OTC' },
   { key: 'zone1',       label: 'Zone 1' },
@@ -4568,6 +4578,13 @@ const FLOOR_EST_LOCATIONS = [
   { key: 'unsortedUps', label: 'Unsorted UPS' },
   { key: 'uu',          label: 'UU' },
 ];
+
+function getFloorLocations() {
+  if (!state.settings.floorLocations || !state.settings.floorLocations.length) {
+    state.settings.floorLocations = JSON.parse(JSON.stringify(DEFAULT_FLOOR_LOCATIONS));
+  }
+  return state.settings.floorLocations;
+}
 
 function getFloorEstimateEntry(key) {
   const raw = (state.settings.floorEstimates || {})[key];
@@ -4581,16 +4598,19 @@ function getFloorEstimateEntry(key) {
 function renderFloorEstimates() {
   const tbody = document.getElementById('floor-est-tbody');
   if (!tbody) return;
+  const locations = getFloorLocations();
   tbody.innerHTML = '';
   let totalLines = 0, totalBf = 0;
-  FLOOR_EST_LOCATIONS.forEach(loc => {
+  locations.forEach((loc, i) => {
     const entry = getFloorEstimateEntry(loc.key);
     totalLines += entry.lines;
     totalBf += entry.bf;
     const tr = document.createElement('tr');
+    tr.dataset.locIdx = i;
     tr.innerHTML = `
+      <td style="text-align:center;cursor:grab;color:#999;font-size:13px;user-select:none;">⋮⋮</td>
       <td>
-        <div style="font-weight:800;color:#1a4731;font-size:13px;">${loc.label}</div>
+        <input type="text" autocomplete="off" class="fc-tbl-input" style="text-align:left;font-weight:700;color:#1a4731;font-size:13px;width:130px;" value="${loc.label}" onchange="renameFloorLocation(${i}, this.value)">
       </td>
       <td style="text-align:center;">
         <input type="number" min="0" inputmode="numeric" class="fc-tbl-input" style="width:70px;display:inline-block;" value="${entry.lines}" onchange="updateFloorEstimate('${loc.key}', 'lines', this.value)">
@@ -4598,7 +4618,23 @@ function renderFloorEstimates() {
       <td style="text-align:center;">
         <input type="number" min="0" inputmode="numeric" class="fc-tbl-input" style="width:70px;display:inline-block;" value="${entry.bf}" onchange="updateFloorEstimate('${loc.key}', 'bf', this.value)">
       </td>
+      <td><button class="delete-btn" onclick="removeFloorLocation(${i})" title="Remove location">\u2715</button></td>
     `;
+    tr.draggable = true;
+    tr.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; tr.style.opacity = '0.4'; });
+    tr.addEventListener('dragend', () => { tr.style.opacity = ''; });
+    tr.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    tr.addEventListener('drop', e => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      if (isNaN(fromIdx) || fromIdx === i) return;
+      const locs = getFloorLocations();
+      const [moved] = locs.splice(fromIdx, 1);
+      locs.splice(i, 0, moved);
+      saveState();
+      saveSettingsToFirebase();
+      renderFloorEstimates();
+    });
     tbody.appendChild(tr);
   });
   const totalLinesCell = document.getElementById('floor-est-total-lines');
@@ -4606,6 +4642,38 @@ function renderFloorEstimates() {
   if (totalLinesCell) totalLinesCell.textContent = totalLines;
   if (totalBfCell) totalBfCell.textContent = totalBf;
   updateGrandTotal();
+}
+
+function addFloorLocation() {
+  const locs = getFloorLocations();
+  const key = `loc_${Date.now()}`;
+  locs.push({ key, label: 'New Location' });
+  if (!state.settings.floorEstimates) state.settings.floorEstimates = {};
+  state.settings.floorEstimates[key] = { lines: 0, bf: 0 };
+  saveState();
+  saveSettingsToFirebase();
+  renderFloorEstimates();
+}
+
+function removeFloorLocation(idx) {
+  const locs = getFloorLocations();
+  const loc = locs[idx];
+  if (!loc) return;
+  if (!confirm(`Remove "${loc.label}" from the Floor Line Estimations table?`)) return;
+  locs.splice(idx, 1);
+  if (state.settings.floorEstimates) delete state.settings.floorEstimates[loc.key];
+  saveState();
+  saveSettingsToFirebase();
+  renderFloorEstimates();
+}
+
+function renameFloorLocation(idx, value) {
+  const locs = getFloorLocations();
+  const loc = locs[idx];
+  if (!loc) return;
+  loc.label = (value || '').trim() || loc.label;
+  saveState();
+  saveSettingsToFirebase();
 }
 
 function updateFloorEstimate(key, field, value) {
@@ -4618,8 +4686,9 @@ function updateFloorEstimate(key, field, value) {
   state.settings.floorEstimates[key][field] = n;
   saveState();
   saveSettingsToFirebase();
-  const totalLines = FLOOR_EST_LOCATIONS.reduce((sum, l) => sum + getFloorEstimateEntry(l.key).lines, 0);
-  const totalBf = FLOOR_EST_LOCATIONS.reduce((sum, l) => sum + getFloorEstimateEntry(l.key).bf, 0);
+  const locations = getFloorLocations();
+  const totalLines = locations.reduce((sum, l) => sum + getFloorEstimateEntry(l.key).lines, 0);
+  const totalBf = locations.reduce((sum, l) => sum + getFloorEstimateEntry(l.key).bf, 0);
   const totalLinesCell = document.getElementById('floor-est-total-lines');
   const totalBfCell = document.getElementById('floor-est-total-bf');
   if (totalLinesCell) totalLinesCell.textContent = totalLines;
