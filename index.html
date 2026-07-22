@@ -1594,7 +1594,7 @@
         </tr>
       </tfoot>
     </table>
-    <div class="empty-state" id="opupdates-empty" style="color:#4a7a5a;display:none;">No trailers currently slotted at active doors.</div>
+    <div class="empty-state" id="opupdates-empty" style="color:#4a7a5a;display:none;">No trailers currently slotted at active doors, and no carriers pending arrival today.</div>
   </div>
 </div>
 
@@ -4287,18 +4287,29 @@ function getCarrierAssumption(name, field) {
 }
 
 // ===================== OPERATIONAL UPDATES =====================
+// Wraps getCarrierAssumption() so Operational Updates always shows a real
+// forecast number. If the "Running Average" source is active but there's no
+// recorded average yet for this carrier, fall back to the Manual assumption
+// (or the built-in default) instead of silently showing 0.
+function getOpUpdatesAssumption(name, field) {
+  const raw = getCarrierAssumption(name, field);
+  if (raw !== null && raw !== undefined) return raw;
+  const overrides = (state.settings.carrierAssumptions || {})[name] || {};
+  if (overrides[field] !== undefined) return overrides[field];
+  const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
+  return def ? (def[field] || 0) : 0;
+}
+
 function linesRemainingForTrailer(t) {
   if (!t || !t.carrier) return 0;
-  const rawLpt = getCarrierAssumption(t.carrier, 'linesPerTrailer');
-  const linesPerTrailer = rawLpt === null ? 0 : (rawLpt || 0);
+  const linesPerTrailer = getOpUpdatesAssumption(t.carrier, 'linesPerTrailer');
   const pct = Math.min(100, Math.max(0, Number(t.pctFull) || 0));
   return Math.round(linesPerTrailer * (pct / 100));
 }
 
 function bfSkidsRemainingForTrailer(t) {
   if (!t || !t.carrier) return 0;
-  const rawBfpt = getCarrierAssumption(t.carrier, 'bfPerTrailer');
-  const bfPerTrailer = rawBfpt === null || rawBfpt === undefined ? 0 : (rawBfpt || 0);
+  const bfPerTrailer = getOpUpdatesAssumption(t.carrier, 'bfPerTrailer');
   const pct = Math.min(100, Math.max(0, Number(t.pctFull) || 0));
   return Math.round(bfPerTrailer * (pct / 100));
 }
@@ -4312,16 +4323,39 @@ function isExcludedFromOpUpdates(carrierName) {
   return false;
 }
 
+// Carriers still sitting in today's Expected Trailers list (scheduled but not yet
+// slotted at a door). Returns the underlying fd.ltl entries (by index, for mutation)
+// so their % Remaining can be tracked before they ever get a door.
+function getPendingExpectedOpRows() {
+  const today = todayStr();
+  const fd = state.forecast[today] || { ltl: [] };
+  const arrivedCounts = getTodayArrivedCounts();
+  const usedCounts = {};
+  const pending = [];
+  (fd.ltl || []).forEach((r, idx) => {
+    if (!r.carrier || isExcludedFromOpUpdates(r.carrier)) return;
+    const used = usedCounts[r.carrier] || 0;
+    usedCounts[r.carrier] = used + 1;
+    if (used >= (arrivedCounts[r.carrier] || 0)) {
+      if (r.pctFull === null || r.pctFull === undefined) r.pctFull = 100;
+      if (r.trailerEmpty === undefined) r.trailerEmpty = false;
+      pending.push({ row: r, idx });
+    }
+  });
+  return pending;
+}
+
 function renderOpUpdates() {
   const tbody = document.getElementById('opupdates-tbody');
   const empty = document.getElementById('opupdates-empty');
   if (!tbody) return;
   tbody.innerHTML = '';
-  const rows = state.doors
+  const doorRows = state.doors
     .filter(d => d.active && state.trailers[d.id] && state.trailers[d.id].carrier && !isExcludedFromOpUpdates(state.trailers[d.id].carrier))
     .sort(compareDoorsForMove);
+  const pendingRows = getPendingExpectedOpRows();
   const totalRow = document.getElementById('opu-total-row');
-  if (!rows.length) {
+  if (!doorRows.length && !pendingRows.length) {
     empty.style.display = 'block';
     tbody.closest('table').style.display = 'none';
     if (totalRow) totalRow.style.display = 'none';
@@ -4330,7 +4364,7 @@ function renderOpUpdates() {
   empty.style.display = 'none';
   tbody.closest('table').style.display = '';
   if (totalRow) totalRow.style.display = '';
-  rows.forEach(door => {
+  doorRows.forEach(door => {
     const t = state.trailers[door.id];
     const remaining = linesRemainingForTrailer(t);
     const bfRemaining = bfSkidsRemainingForTrailer(t);
@@ -4352,6 +4386,28 @@ function renderOpUpdates() {
     `;
     tbody.appendChild(tr);
   });
+  pendingRows.forEach(({ row: r, idx }) => {
+    const remaining = linesRemainingForTrailer(r);
+    const bfRemaining = bfSkidsRemainingForTrailer(r);
+    const tr = document.createElement('tr');
+    tr.id = `opu-exp-row-${idx}`;
+    tr.style.opacity = '0.85';
+    tr.innerHTML = `
+      <td>
+        <div style="font-weight:800;color:#1a4731;font-size:13px;">${r.carrier}</div>
+        <div style="font-size:10px;color:#b06a2a;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Not Yet Arrived${r.time ? ' &middot; ' + r.time : ''}${r.trailerNum ? ' &middot; #' + r.trailerNum : ''}</div>
+      </td>
+      <td style="text-align:center;">
+        <input type="checkbox" class="fc-arrived-chk" ${r.trailerEmpty ? 'checked' : ''} onchange="toggleExpectedEmpty(${idx}, this.checked)">
+      </td>
+      <td style="text-align:center;">
+        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${r.pctFull === null || r.pctFull === undefined ? 100 : r.pctFull}" placeholder="100" onchange="updateExpectedPct(${idx}, this.value)"> %
+      </td>
+      <td id="opu-exp-remaining-${idx}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${remaining}</td>
+      <td id="opu-exp-bf-remaining-${idx}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${bfRemaining}</td>
+    `;
+    tbody.appendChild(tr);
+  });
   updateOpUpdatesTotal();
 }
 
@@ -4359,12 +4415,60 @@ function updateOpUpdatesTotal() {
   const totalCell = document.getElementById('opu-total-remaining');
   const bfTotalCell = document.getElementById('opu-total-bf-remaining');
   if (!totalCell) return;
-  const rows = state.doors
+  const doorRows = state.doors
     .filter(d => d.active && state.trailers[d.id] && state.trailers[d.id].carrier && !isExcludedFromOpUpdates(state.trailers[d.id].carrier));
-  const total = rows.reduce((sum, door) => sum + linesRemainingForTrailer(state.trailers[door.id]), 0);
-  const bfTotal = rows.reduce((sum, door) => sum + bfSkidsRemainingForTrailer(state.trailers[door.id]), 0);
+  const pendingRows = getPendingExpectedOpRows();
+  let total = doorRows.reduce((sum, door) => sum + linesRemainingForTrailer(state.trailers[door.id]), 0);
+  let bfTotal = doorRows.reduce((sum, door) => sum + bfSkidsRemainingForTrailer(state.trailers[door.id]), 0);
+  total += pendingRows.reduce((sum, p) => sum + linesRemainingForTrailer(p.row), 0);
+  bfTotal += pendingRows.reduce((sum, p) => sum + bfSkidsRemainingForTrailer(p.row), 0);
   totalCell.textContent = total;
   if (bfTotalCell) bfTotalCell.textContent = bfTotal;
+}
+
+function toggleExpectedEmpty(idx, checked) {
+  const fd = state.forecast[todayStr()];
+  const r = fd && fd.ltl && fd.ltl[idx];
+  if (!r) return;
+  r.trailerEmpty = checked;
+  r.pctFull = checked ? 0 : 100;
+  saveForecastToFirebase(todayStr());
+  saveState();
+  const row = document.getElementById(`opu-exp-row-${idx}`);
+  if (row) {
+    const pctInput = row.querySelector('input[type="number"]');
+    if (pctInput) pctInput.value = r.pctFull;
+    const remCell = document.getElementById(`opu-exp-remaining-${idx}`);
+    if (remCell) remCell.textContent = linesRemainingForTrailer(r);
+    const bfRemCell = document.getElementById(`opu-exp-bf-remaining-${idx}`);
+    if (bfRemCell) bfRemCell.textContent = bfSkidsRemainingForTrailer(r);
+  }
+  updateOpUpdatesTotal();
+}
+
+function updateExpectedPct(idx, value) {
+  const fd = state.forecast[todayStr()];
+  const r = fd && fd.ltl && fd.ltl[idx];
+  if (!r) return;
+  let pct = Math.round(Number(value));
+  if (isNaN(pct)) pct = 100;
+  pct = Math.min(100, Math.max(0, pct));
+  r.pctFull = pct;
+  r.trailerEmpty = pct <= 0;
+  saveForecastToFirebase(todayStr());
+  saveState();
+  const row = document.getElementById(`opu-exp-row-${idx}`);
+  if (row) {
+    const chk = row.querySelector('input[type="checkbox"]');
+    if (chk) chk.checked = r.trailerEmpty;
+    const pctInput = row.querySelector('input[type="number"]');
+    if (pctInput) pctInput.value = pct;
+    const remCell = document.getElementById(`opu-exp-remaining-${idx}`);
+    if (remCell) remCell.textContent = linesRemainingForTrailer(r);
+    const bfRemCell = document.getElementById(`opu-exp-bf-remaining-${idx}`);
+    if (bfRemCell) bfRemCell.textContent = bfSkidsRemainingForTrailer(r);
+  }
+  updateOpUpdatesTotal();
 }
 
 function toggleTrailerEmpty(doorId, checked) {
