@@ -1056,6 +1056,7 @@
   <button class="tab-btn" onclick="switchTab('forecast')">Forecast</button>
   <button class="tab-btn" onclick="switchTab('carriers')">Carriers</button>
   <button class="tab-btn" onclick="switchTab('history')">History</button>
+  <button class="tab-btn" onclick="switchTab('opupdates')">🚧 Operational Updates</button>
 </div>
 
 <!-- HOME TAB -->
@@ -1566,6 +1567,26 @@
       <tbody id="history-tbody"></tbody>
     </table>
     <div class="empty-state" id="history-empty" style="color:#4a7a5a;">No history records found.</div>
+  </div>
+</div>
+
+<!-- OPERATIONAL UPDATES TAB -->
+<div id="tab-opupdates" class="tab-content">
+  <div class="flex-row" style="margin-bottom:10px;align-items:center;justify-content:space-between;">
+    <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">🚧 Operational Updates</span>
+    <span style="font-size:11px;color:#4a7a5a;font-style:italic;">Lines remaining is calculated from the % Full entered and each carrier's Rack Lines per Trailer assumption (set on the Forecast tab).</span>
+  </div>
+  <div style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+    <table style="background:#fff;min-width:520px;">
+      <thead><tr>
+        <th>Carrier / Door</th>
+        <th style="text-align:center;width:80px;">Full ✓</th>
+        <th style="text-align:center;width:110px;">% Full</th>
+        <th style="text-align:center;width:110px;">Lines Remaining</th>
+      </tr></thead>
+      <tbody id="opupdates-tbody"></tbody>
+    </table>
+    <div class="empty-state" id="opupdates-empty" style="color:#4a7a5a;display:none;">No trailers currently slotted at active doors.</div>
   </div>
 </div>
 
@@ -2603,6 +2624,7 @@ function switchTab(name) {
     if (inp && !inp._prevDate) inp._prevDate = inp.value || todayStr();
     renderForecastTab();
   }
+  if (name === 'opupdates') renderOpUpdates();
 }
 function setConnectionStatus(state) {
   const dot = document.querySelector('#connection-status div');
@@ -3004,7 +3026,7 @@ function slotTrailer() {
   if (fd && fd.ltl) expected = fd.ltl.some(r => r.carrier === carrier);
   // datetime-local value is already local time — parse as local, store as ISO
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 0, trailerFull: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); toast(`Trailer slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -3353,7 +3375,7 @@ function slotLTLTrailer() {
   if (!doorId || !carrier) { toast('Please enter a valid door and carrier', 'error'); return; }
   const expected = !unexpected;
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 0, trailerFull: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers(); toast(`${carrier} slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -4254,6 +4276,89 @@ function getCarrierAssumption(name, field) {
   if (overrides[field] !== undefined) return overrides[field];
   const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
   return def ? def[field] : 0;
+}
+
+// ===================== OPERATIONAL UPDATES =====================
+function linesRemainingForTrailer(t) {
+  if (!t || !t.carrier) return 0;
+  const rawLpt = getCarrierAssumption(t.carrier, 'linesPerTrailer');
+  const linesPerTrailer = rawLpt === null ? 0 : (rawLpt || 0);
+  const pct = Math.min(100, Math.max(0, Number(t.pctFull) || 0));
+  return Math.round(linesPerTrailer * (1 - pct / 100));
+}
+
+function renderOpUpdates() {
+  const tbody = document.getElementById('opupdates-tbody');
+  const empty = document.getElementById('opupdates-empty');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  const rows = state.doors
+    .filter(d => d.active && state.trailers[d.id] && state.trailers[d.id].carrier)
+    .sort(compareDoorsForMove);
+  if (!rows.length) {
+    empty.style.display = 'block';
+    tbody.closest('table').style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.closest('table').style.display = '';
+  rows.forEach(door => {
+    const t = state.trailers[door.id];
+    const remaining = linesRemainingForTrailer(t);
+    const tr = document.createElement('tr');
+    tr.id = `opu-row-${door.id}`;
+    tr.innerHTML = `
+      <td>
+        <div style="font-weight:800;color:#1a4731;font-size:13px;">${t.carrier}</div>
+        <div style="font-size:10px;color:#4a7a5a;font-weight:600;">Door ${door.num}${t.trailerNum ? ' &middot; #' + t.trailerNum : ''}</div>
+      </td>
+      <td style="text-align:center;">
+        <input type="checkbox" class="fc-arrived-chk" ${t.trailerFull ? 'checked' : ''} onchange="toggleTrailerFull('${door.id}', this.checked)">
+      </td>
+      <td style="text-align:center;">
+        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${t.pctFull || 0}" onchange="updateTrailerPct('${door.id}', this.value)"> %
+      </td>
+      <td id="opu-remaining-${door.id}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${remaining}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleTrailerFull(doorId, checked) {
+  const t = state.trailers[doorId];
+  if (!t) return;
+  t.trailerFull = checked;
+  if (checked) t.pctFull = 100;
+  saveTrailerToFirebase(doorId);
+  saveState();
+  const row = document.getElementById(`opu-row-${doorId}`);
+  if (row) {
+    const pctInput = row.querySelector('input[type="number"]');
+    if (pctInput) pctInput.value = t.pctFull || 0;
+    const remCell = document.getElementById(`opu-remaining-${doorId}`);
+    if (remCell) remCell.textContent = linesRemainingForTrailer(t);
+  }
+}
+
+function updateTrailerPct(doorId, value) {
+  const t = state.trailers[doorId];
+  if (!t) return;
+  let pct = Math.round(Number(value));
+  if (isNaN(pct)) pct = 0;
+  pct = Math.min(100, Math.max(0, pct));
+  t.pctFull = pct;
+  t.trailerFull = pct >= 100;
+  saveTrailerToFirebase(doorId);
+  saveState();
+  const row = document.getElementById(`opu-row-${doorId}`);
+  if (row) {
+    const chk = row.querySelector('input[type="checkbox"]');
+    if (chk) chk.checked = t.trailerFull;
+    const pctInput = row.querySelector('input[type="number"]');
+    if (pctInput) pctInput.value = pct;
+    const remCell = document.getElementById(`opu-remaining-${doorId}`);
+    if (remCell) remCell.textContent = linesRemainingForTrailer(t);
+  }
 }
 
 function toggleAssumptionsPanel() {
