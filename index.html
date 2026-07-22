@@ -2994,7 +2994,7 @@ function openDoorEditModal(doorId) {
   }
   const securedByRow = document.getElementById('de-secured-by-row');
   if (t && t.slottedBy) {
-    securedByRow.textContent = `Secured by ${t.slottedBy}`;
+    securedByRow.textContent = `Secured by ${t.slottedBy}${t.arrival ? ' on ' + fmtDateTime(t.arrival) : ''}`;
     securedByRow.style.display = '';
   } else {
     securedByRow.style.display = 'none';
