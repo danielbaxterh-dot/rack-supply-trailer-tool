@@ -4291,20 +4291,27 @@ function getCarrierAssumption(name, field) {
 // forecast number. If the "Running Average" source is active but there's no
 // recorded average yet for this carrier, fall back to the Manual assumption
 // (or the built-in default) instead of silently showing 0.
-function getOpUpdatesAssumption(name, field) {
-  const raw = getCarrierAssumption(name, field);
-  if (raw !== null && raw !== undefined) return raw;
+// The master carrier list and the forecast/assumptions list occasionally differ
+// in casing (e.g. "Ward" vs "WARD"). getCarrierAssumption() matches by exact
+// name and silently returns 0 on a miss — so resolve to the assumptions list's
+// canonical casing FIRST, then delegate, rather than trying to patch a 0 after
+// the fact (0 is also a legitimate real value we can't second-guess).
+function resolveAssumptionCarrierName(name) {
+  if (DEFAULT_FC_CARRIERS.some(c => c.name === name)) return name;
   const overrides = state.settings.carrierAssumptions || {};
-  if (overrides[name] && overrides[name][field] !== undefined) return overrides[name][field];
-  const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
-  if (def) return def[field] || 0;
-  // Fall back to a case-insensitive match — the master carrier list and the
-  // forecast/assumptions list occasionally differ in casing (e.g. "Ward" vs "WARD").
+  if (overrides[name]) return name;
   const lower = name.toLowerCase();
+  const match = DEFAULT_FC_CARRIERS.find(c => c.name.toLowerCase() === lower);
+  if (match) return match.name;
   const overrideKey = Object.keys(overrides).find(k => k.toLowerCase() === lower);
-  if (overrideKey && overrides[overrideKey][field] !== undefined) return overrides[overrideKey][field];
-  const defCi = DEFAULT_FC_CARRIERS.find(c => c.name.toLowerCase() === lower);
-  return defCi ? (defCi[field] || 0) : 0;
+  if (overrideKey) return overrideKey;
+  return name;
+}
+
+function getOpUpdatesAssumption(name, field) {
+  const canonicalName = resolveAssumptionCarrierName(name);
+  const raw = getCarrierAssumption(canonicalName, field);
+  return raw === null || raw === undefined ? 0 : raw;
 }
 
 // Older trailers/pending rows saved before % Remaining existed (or saved during
