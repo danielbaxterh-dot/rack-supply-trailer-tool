@@ -1574,14 +1574,14 @@
 <div id="tab-opupdates" class="tab-content">
   <div class="flex-row" style="margin-bottom:10px;align-items:center;justify-content:space-between;">
     <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">🚧 Operational Updates</span>
-    <span style="font-size:11px;color:#4a7a5a;font-style:italic;">Remaining totals are calculated from the % Full entered and each carrier's Rack Lines per Trailer / BF Skids per Trailer assumptions (set on the Forecast tab).</span>
+    <span style="font-size:11px;color:#4a7a5a;font-style:italic;">Totals default to each carrier's full Rack Lines per Trailer / BF Skids per Trailer assumption (set on the Forecast tab), scaled down by the % Remaining entered. Check "Empty" once a trailer is fully checked in to zero it out.</span>
   </div>
   <div style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
     <table style="background:#fff;width:auto;">
       <thead><tr>
         <th style="white-space:nowrap;">Carrier / Door</th>
-        <th style="text-align:center;white-space:nowrap;">Full ✓</th>
-        <th style="text-align:center;white-space:nowrap;">% Full</th>
+        <th style="text-align:center;white-space:nowrap;">Empty ✓</th>
+        <th style="text-align:center;white-space:nowrap;">% Remaining</th>
         <th style="text-align:center;white-space:nowrap;">Lines Remaining</th>
         <th style="text-align:center;white-space:nowrap;">BF Skids Remaining</th>
       </tr></thead>
@@ -3034,7 +3034,7 @@ function slotTrailer() {
   if (fd && fd.ltl) expected = fd.ltl.some(r => r.carrier === carrier);
   // datetime-local value is already local time — parse as local, store as ISO
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: null, trailerFull: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); toast(`Trailer slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -3383,7 +3383,7 @@ function slotLTLTrailer() {
   if (!doorId || !carrier) { toast('Please enter a valid door and carrier', 'error'); return; }
   const expected = !unexpected;
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: null, trailerFull: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers(); toast(`${carrier} slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -4289,20 +4289,18 @@ function getCarrierAssumption(name, field) {
 // ===================== OPERATIONAL UPDATES =====================
 function linesRemainingForTrailer(t) {
   if (!t || !t.carrier) return 0;
-  if (!t.trailerFull && (t.pctFull === null || t.pctFull === undefined || t.pctFull === '')) return 0;
   const rawLpt = getCarrierAssumption(t.carrier, 'linesPerTrailer');
   const linesPerTrailer = rawLpt === null ? 0 : (rawLpt || 0);
   const pct = Math.min(100, Math.max(0, Number(t.pctFull) || 0));
-  return Math.round(linesPerTrailer * (1 - pct / 100));
+  return Math.round(linesPerTrailer * (pct / 100));
 }
 
 function bfSkidsRemainingForTrailer(t) {
   if (!t || !t.carrier) return 0;
-  if (!t.trailerFull && (t.pctFull === null || t.pctFull === undefined || t.pctFull === '')) return 0;
   const rawBfpt = getCarrierAssumption(t.carrier, 'bfPerTrailer');
   const bfPerTrailer = rawBfpt === null || rawBfpt === undefined ? 0 : (rawBfpt || 0);
   const pct = Math.min(100, Math.max(0, Number(t.pctFull) || 0));
-  return Math.round(bfPerTrailer * (1 - pct / 100));
+  return Math.round(bfPerTrailer * (pct / 100));
 }
 
 function isExcludedFromOpUpdates(carrierName) {
@@ -4344,10 +4342,10 @@ function renderOpUpdates() {
         <div style="font-size:10px;color:#4a7a5a;font-weight:600;">Door ${door.num}${t.trailerNum ? ' &middot; #' + t.trailerNum : ''}</div>
       </td>
       <td style="text-align:center;">
-        <input type="checkbox" class="fc-arrived-chk" ${t.trailerFull ? 'checked' : ''} onchange="toggleTrailerFull('${door.id}', this.checked)">
+        <input type="checkbox" class="fc-arrived-chk" ${t.trailerEmpty ? 'checked' : ''} onchange="toggleTrailerEmpty('${door.id}', this.checked)">
       </td>
       <td style="text-align:center;">
-        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${t.pctFull === null || t.pctFull === undefined ? '' : t.pctFull}" placeholder="0" onchange="updateTrailerPct('${door.id}', this.value)"> %
+        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${t.pctFull === null || t.pctFull === undefined ? 100 : t.pctFull}" placeholder="100" onchange="updateTrailerPct('${door.id}', this.value)"> %
       </td>
       <td id="opu-remaining-${door.id}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${remaining}</td>
       <td id="opu-bf-remaining-${door.id}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${bfRemaining}</td>
@@ -4369,17 +4367,17 @@ function updateOpUpdatesTotal() {
   if (bfTotalCell) bfTotalCell.textContent = bfTotal;
 }
 
-function toggleTrailerFull(doorId, checked) {
+function toggleTrailerEmpty(doorId, checked) {
   const t = state.trailers[doorId];
   if (!t) return;
-  t.trailerFull = checked;
-  if (checked) t.pctFull = 100;
+  t.trailerEmpty = checked;
+  t.pctFull = checked ? 0 : 100;
   saveTrailerToFirebase(doorId);
   saveState();
   const row = document.getElementById(`opu-row-${doorId}`);
   if (row) {
     const pctInput = row.querySelector('input[type="number"]');
-    if (pctInput) pctInput.value = t.pctFull === null || t.pctFull === undefined ? '' : t.pctFull;
+    if (pctInput) pctInput.value = t.pctFull;
     const remCell = document.getElementById(`opu-remaining-${doorId}`);
     if (remCell) remCell.textContent = linesRemainingForTrailer(t);
     const bfRemCell = document.getElementById(`opu-bf-remaining-${doorId}`);
@@ -4391,24 +4389,19 @@ function toggleTrailerFull(doorId, checked) {
 function updateTrailerPct(doorId, value) {
   const t = state.trailers[doorId];
   if (!t) return;
-  if (value === '' || value === null || value === undefined) {
-    t.pctFull = null;
-    t.trailerFull = false;
-  } else {
-    let pct = Math.round(Number(value));
-    if (isNaN(pct)) pct = 0;
-    pct = Math.min(100, Math.max(0, pct));
-    t.pctFull = pct;
-    t.trailerFull = pct >= 100;
-  }
+  let pct = Math.round(Number(value));
+  if (isNaN(pct)) pct = 100;
+  pct = Math.min(100, Math.max(0, pct));
+  t.pctFull = pct;
+  t.trailerEmpty = pct <= 0;
   saveTrailerToFirebase(doorId);
   saveState();
   const row = document.getElementById(`opu-row-${doorId}`);
   if (row) {
     const chk = row.querySelector('input[type="checkbox"]');
-    if (chk) chk.checked = t.trailerFull;
+    if (chk) chk.checked = t.trailerEmpty;
     const pctInput = row.querySelector('input[type="number"]');
-    if (pctInput) pctInput.value = t.pctFull === null ? '' : t.pctFull;
+    if (pctInput) pctInput.value = pct;
     const remCell = document.getElementById(`opu-remaining-${doorId}`);
     if (remCell) remCell.textContent = linesRemainingForTrailer(t);
     const bfRemCell = document.getElementById(`opu-bf-remaining-${doorId}`);
