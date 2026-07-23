@@ -5005,6 +5005,16 @@ function normalizePctFull(pctFull) {
   return Math.min(100, Math.max(0, n));
 }
 
+// For the % Remaining input specifically: 100 is the default/full/untouched
+// state, so show it as a grey "100" placeholder instead of a literal value —
+// lets someone start typing a real number immediately instead of having to
+// select-and-delete "100" first. Anything actually below 100 still shows as
+// a real value like normal.
+function pctInputValue(pctFull) {
+  const n = normalizePctFull(pctFull);
+  return n === 100 ? '' : n;
+}
+
 function linesRemainingForTrailer(t) {
   if (!t || !t.carrier) return 0;
   const linesPerTrailer = getOpUpdatesAssumption(t.carrier, 'linesPerTrailer');
@@ -5126,7 +5136,7 @@ function renderOpUpdates() {
         <input type="checkbox" class="fc-arrived-chk" ${t.trailerEmpty ? 'checked' : ''} onchange="toggleTrailerEmpty('${door.id}', this.checked)">
       </td>
       <td style="text-align:center;">
-        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${t.pctFull === null || t.pctFull === undefined ? 100 : t.pctFull}" placeholder="100" onchange="updateTrailerPct('${door.id}', this.value)"> %
+        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${pctInputValue(t.pctFull)}" placeholder="100" onchange="updateTrailerPct('${door.id}', this.value)"> %
       </td>
       <td id="opu-remaining-${door.id}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${remaining}</td>
       <td id="opu-bf-remaining-${door.id}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${bfRemaining}</td>
@@ -5148,7 +5158,7 @@ function renderOpUpdates() {
         <input type="checkbox" class="fc-arrived-chk" ${r.trailerEmpty ? 'checked' : ''} onchange="toggleExpectedEmpty(${idx}, this.checked)">
       </td>
       <td style="text-align:center;">
-        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${r.pctFull === null || r.pctFull === undefined ? 100 : r.pctFull}" placeholder="100" onchange="updateExpectedPct(${idx}, this.value)"> %
+        <input type="number" min="0" max="100" inputmode="numeric" class="fc-tbl-input" style="width:60px;display:inline-block;" value="${pctInputValue(r.pctFull)}" placeholder="100" onchange="updateExpectedPct(${idx}, this.value)"> %
       </td>
       <td id="opu-exp-remaining-${idx}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${remaining}</td>
       <td id="opu-exp-bf-remaining-${idx}" style="text-align:center;font-weight:800;color:#1a4731;font-size:14px;">${bfRemaining}</td>
@@ -5216,28 +5226,39 @@ function printOpUpdatesWalkSheet() {
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Operational Updates — Floor Walk Sheet</title>
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #000; margin: 24px; }
-  h1 { font-size: 18px; margin: 0 0 2px; }
-  .stamp { font-size: 12px; color: #333; margin-bottom: 18px; }
-  h2 { font-size: 14px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-  th, td { border: 1px solid #999; padding: 6px 8px; font-size: 12px; }
+  @page { size: letter portrait; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; margin: 0; width: 100%; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  .stamp { font-size: 11px; color: #333; margin-bottom: 14px; }
+  h2 { font-size: 12px; margin: 14px 0 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 6px; }
+  th, td { border: 1px solid #999; padding: 4px 6px; font-size: 10.5px; overflow-wrap: break-word; }
   th { background: #eee; text-align: left; }
-  td:first-child { text-align: left; }
-  @media print { body { margin: 10mm; } }
+  td:first-child, th:first-child { text-align: left; }
+  td:not(:first-child), th:not(:first-child) { text-align: center; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  #trailers-table col.col-label { width: 40%; }
+  #trailers-table col.col-narrow { width: 15%; }
+  #floor-table col.col-label { width: 50%; }
+  #floor-table col.col-narrow { width: 25%; }
+  @media print { body { margin: 0; } }
 </style></head>
 <body>
   <h1>Operational Updates — Floor Walk Sheet</h1>
   <div class="stamp">${stamp}</div>
 
   <h2>Trailers</h2>
-  <table>
+  <table id="trailers-table">
+    <colgroup><col class="col-label"><col class="col-narrow"><col class="col-narrow"><col class="col-narrow"><col class="col-narrow"></colgroup>
     <thead><tr><th>Carrier / Door</th><th>Empty</th><th>% Remaining</th><th>Lines Remaining</th><th>BF Skids Remaining</th></tr></thead>
     <tbody>${trailerRowsHtml}</tbody>
   </table>
 
   <h2>Floor Line Estimations</h2>
-  <table>
+  <table id="floor-table">
+    <colgroup><col class="col-label"><col class="col-narrow"><col class="col-narrow"></colgroup>
     <thead><tr><th>Location</th><th>Lines</th><th>BF Skids</th></tr></thead>
     <tbody>${floorRowsHtml}</tbody>
   </table>
@@ -5463,7 +5484,7 @@ function toggleExpectedEmpty(idx, checked) {
   const row = document.getElementById(`opu-exp-row-${idx}`);
   if (row) {
     const pctInput = row.querySelector('input[type="number"]');
-    if (pctInput) pctInput.value = r.pctFull;
+    if (pctInput) pctInput.value = pctInputValue(r.pctFull);
     const remCell = document.getElementById(`opu-exp-remaining-${idx}`);
     if (remCell) remCell.textContent = linesRemainingForTrailer(r);
     const bfRemCell = document.getElementById(`opu-exp-bf-remaining-${idx}`);
@@ -5487,7 +5508,7 @@ function updateExpectedPct(idx, value) {
     const chk = row.querySelector('input[type="checkbox"]');
     if (chk) chk.checked = r.trailerEmpty;
     const pctInput = row.querySelector('input[type="number"]');
-    if (pctInput) pctInput.value = pct;
+    if (pctInput) pctInput.value = pctInputValue(pct);
     const remCell = document.getElementById(`opu-exp-remaining-${idx}`);
     if (remCell) remCell.textContent = linesRemainingForTrailer(r);
     const bfRemCell = document.getElementById(`opu-exp-bf-remaining-${idx}`);
@@ -5506,7 +5527,7 @@ function toggleTrailerEmpty(doorId, checked) {
   const row = document.getElementById(`opu-row-${doorId}`);
   if (row) {
     const pctInput = row.querySelector('input[type="number"]');
-    if (pctInput) pctInput.value = t.pctFull;
+    if (pctInput) pctInput.value = pctInputValue(t.pctFull);
     const remCell = document.getElementById(`opu-remaining-${doorId}`);
     if (remCell) remCell.textContent = linesRemainingForTrailer(t);
     const bfRemCell = document.getElementById(`opu-bf-remaining-${doorId}`);
@@ -5530,7 +5551,7 @@ function updateTrailerPct(doorId, value) {
     const chk = row.querySelector('input[type="checkbox"]');
     if (chk) chk.checked = t.trailerEmpty;
     const pctInput = row.querySelector('input[type="number"]');
-    if (pctInput) pctInput.value = pct;
+    if (pctInput) pctInput.value = pctInputValue(pct);
     const remCell = document.getElementById(`opu-remaining-${doorId}`);
     if (remCell) remCell.textContent = linesRemainingForTrailer(t);
     const bfRemCell = document.getElementById(`opu-bf-remaining-${doorId}`);
