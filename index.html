@@ -5187,35 +5187,42 @@ function printOpUpdatesWalkSheet() {
     .filter(d => d.active && state.trailers[d.id] && state.trailers[d.id].carrier && !isExcludedFromOpUpdates(state.trailers[d.id].carrier))
     .map(door => {
       const t = state.trailers[door.id];
+      const pct = (t.pctFull === null || t.pctFull === undefined) ? 100 : t.pctFull;
       return {
         label: `${t.carrier} — Door ${door.num}`,
         empty: !!t.trailerEmpty,
-        pct: (t.pctFull === null || t.pctFull === undefined) ? 100 : t.pctFull,
+        pct,
         remaining: linesRemainingForTrailer(t),
-        bfRemaining: bfSkidsRemainingForTrailer(t)
+        bfRemaining: bfSkidsRemainingForTrailer(t),
+        unchecked: pct === 100
       };
     });
   const pendingRows = getPendingExpectedOpRows().map(p => {
     const r = p.row;
+    const pct = (r.pctFull === null || r.pctFull === undefined) ? 100 : r.pctFull;
     return {
       label: `${r.carrier} — Expected (not yet on a door)`,
       empty: !!r.trailerEmpty,
-      pct: (r.pctFull === null || r.pctFull === undefined) ? 100 : r.pctFull,
+      pct,
       remaining: linesRemainingForTrailer(r),
-      bfRemaining: bfSkidsRemainingForTrailer(r)
+      bfRemaining: bfSkidsRemainingForTrailer(r),
+      unchecked: pct === 100
     };
   });
   const trailerRows = doorRows.concat(pendingRows);
   const floorLocations = getFloorLocations();
 
-  const trailerRowsHtml = trailerRows.length ? trailerRows.map(r => `
+  const trailerRowsHtml = trailerRows.length ? trailerRows.map(r => {
+    const grayStyle = r.unchecked ? 'color:#bbb;' : '';
+    return `
       <tr>
         <td>${escHtml(r.label)}</td>
         <td style="text-align:center;">${r.empty ? '☑' : '☐'}</td>
-        <td style="text-align:center;">${r.pct}%</td>
-        <td style="text-align:center;">${r.remaining}</td>
-        <td style="text-align:center;">${r.bfRemaining}</td>
-      </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:#888;">No trailers currently slotted or expected</td></tr>`;
+        <td style="text-align:center;${grayStyle}">${r.pct}%</td>
+        <td style="text-align:center;${grayStyle}">${r.remaining}</td>
+        <td style="text-align:center;${grayStyle}">${r.bfRemaining}</td>
+      </tr>`;
+  }).join('') : `<tr><td colspan="5" style="text-align:center;color:#888;">No trailers currently slotted or expected</td></tr>`;
 
   const floorRowsHtml = floorLocations.length ? floorLocations.map(loc => `
       <tr>
