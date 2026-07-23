@@ -5230,24 +5230,33 @@ function printOpUpdatesWalkSheet() {
 <style>
   @page { size: letter portrait; margin: 12mm; }
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #000; margin: 0; width: 100%; }
-  h1 { font-size: 16px; margin: 0 0 2px; }
-  .stamp { font-size: 11px; color: #333; margin-bottom: 14px; }
-  h2 { font-size: 12px; margin: 14px 0 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  html, body { margin: 0; padding: 0; background: #ddd; }
+  /* This wrapper is sized to match the actual printable area of a letter page
+     (8.5in minus the @page margins), so what you see on screen before printing
+     is an accurate preview of what will come out of the printer — not just
+     whatever width the browser tab happens to be. */
+  .sheet { max-width: 190mm; margin: 16px auto; background: #fff; padding: 12mm; box-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+  h1 { font-family: Arial, Helvetica, sans-serif; font-size: 15px; margin: 0 0 2px; color: #000; }
+  .stamp { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #333; margin-bottom: 12px; }
+  h2 { font-family: Arial, Helvetica, sans-serif; font-size: 11px; margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; color: #000; }
   table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 6px; }
-  th, td { border: 1px solid #999; padding: 4px 6px; font-size: 10.5px; overflow-wrap: break-word; }
+  th, td { font-family: Arial, Helvetica, sans-serif; border: 1px solid #999; padding: 3px 5px; font-size: 9.5px; color: #000; overflow-wrap: break-word; }
   th { background: #eee; text-align: left; }
   td:first-child, th:first-child { text-align: left; }
   td:not(:first-child), th:not(:first-child) { text-align: center; }
   thead { display: table-header-group; }
   tr { page-break-inside: avoid; }
-  #trailers-table col.col-label { width: 40%; }
-  #trailers-table col.col-narrow { width: 15%; }
-  #floor-table col.col-label { width: 50%; }
-  #floor-table col.col-narrow { width: 25%; }
-  @media print { body { margin: 0; } }
+  #trailers-table col.col-label { width: 34%; }
+  #trailers-table col.col-narrow { width: 16.5%; }
+  #floor-table col.col-label { width: 46%; }
+  #floor-table col.col-narrow { width: 27%; }
+  @media print {
+    html, body { background: #fff; }
+    .sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; }
+  }
 </style></head>
 <body>
+  <div class="sheet">
   <h1>Operational Updates — Floor Walk Sheet</h1>
   <div class="stamp">${stamp}</div>
 
@@ -5264,6 +5273,7 @@ function printOpUpdatesWalkSheet() {
     <thead><tr><th>Location</th><th>Lines</th><th>BF Skids</th></tr></thead>
     <tbody>${floorRowsHtml}</tbody>
   </table>
+  </div>
 </body></html>`;
 
   const printWin = window.open('', '_blank');
