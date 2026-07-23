@@ -867,6 +867,10 @@
     margin-bottom: 10px;
   }
   .dash-chart-panel .empty-state { padding: 10px 0; color: #444; }
+  .dash-detail-table { font-size: 9px; }
+  .dash-detail-table th { font-size: 8px; padding: 4.5px 5px; }
+  .dash-detail-table td { padding: 4px 5px; }
+  #dash-detail-wrap .empty-state { font-size: 9px; padding: 15px; }
   .dash-stat-card {
     background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
     border: 1px solid #c8d2ce;
@@ -1404,6 +1408,12 @@
     <button id="assump-toggle-btn" onclick="toggleAssumptionsPanel()" style="font-size:10px;font-weight:700;padding:3px 8px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #8b0000;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #8b0000'">⚙ Assumptions</button>
   </div>
 
+  <!-- Carrier list mismatch banner — shown when the carrier table and schedule drift apart -->
+  <div id="fc-sync-banner" style="display:none;margin-bottom:12px;background:#fff3cd;border:1px solid #e0b400;border-radius:8px;padding:8px 12px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:12px;color:#7a5c00;font-weight:600;flex:1;min-width:200px;" id="fc-sync-banner-text"></span>
+    <button class="btn btn-teal btn-sm" onclick="syncForecastCarrierLists()">↻ Sync Now</button>
+  </div>
+
   <!-- Inline Assumptions Panel -->
   <div id="fc-assumptions-panel" style="display:none;margin-bottom:14px;">
     <div style="background:#1f2f24;border:1px solid #2e4a38;border-radius:10px;padding:14px 16px;">
@@ -1692,8 +1702,8 @@
   <div class="section-header-row" style="margin-top:18px;">
     <h3 style="font-size:14px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Released Trailers — by Day Secured</h3>
   </div>
-  <div style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
-    <table style="background:#fff;min-width:640px;">
+  <div id="dash-detail-wrap" style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+    <table class="dash-detail-table" style="background:#fff;min-width:480px;">
       <thead><tr>
         <th>Secured Day</th><th>Carrier</th><th>Door</th><th>Trailer #</th><th>Secured</th><th>Released</th><th>Dwell</th>
       </tr></thead>
@@ -2864,6 +2874,19 @@ async function saveForecastToFirebase(dateKey) {
   const fd = state.forecast[dateKey];
   if (!fd) return;
   try { await fb().setDoc(fb().doc(getDb(), 'forecast', dateKey), fd); } catch(e) { console.error(e); }
+}
+// Partial-field forecast save — writes only the given field(s) (e.g. just
+// { ltl: [...] }) instead of overwriting the whole day's forecast document.
+// This matters because saveForecastToFirebase() above replaces the ENTIRE
+// document with whatever's in local memory — if two people are both active on
+// the same day's forecast (e.g. one quick-slotting an Expected Trailer while
+// the other edits something else), whichever device's full-document save lands
+// last wins and silently reverts the other's change, even to a field neither
+// of them touched. merge:true here means only the listed field(s) are touched
+// on the server; everything else stays exactly as some other device last left it.
+async function saveForecastFieldsToFirebase(dateKey, fields) {
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
+  try { await fb().setDoc(fb().doc(getDb(), 'forecast', dateKey), fields, { merge: true }); } catch(e) { console.error(e); }
 }
 async function deleteForecastFromFirebase(dateKey) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
@@ -4615,10 +4638,75 @@ function changeForecastDate(inp) {
   renderForecastTab();
 }
 
+// Detects when the main carrier table and the Carrier Schedule panel have
+// drifted apart (a carrier exists in one but not the other) — this happens if
+// a row was ever removed from just one side, e.g. by an older version of the
+// delete button, or a Firestore edit made outside the app.
+function getForecastCarrierMismatches(fd) {
+  const carrierNames = new Set(fd.carriers.filter(c => c.name !== 'Carryover').map(c => c.name));
+  const scheduleNames = new Set((fd.schedule || []).map(s => s.name));
+  const onlyInCarriers = [...carrierNames].filter(n => !scheduleNames.has(n));
+  const onlyInSchedule = [...scheduleNames].filter(n => !carrierNames.has(n));
+  return { onlyInCarriers, onlyInSchedule };
+}
+
+function renderForecastSyncBanner(fd) {
+  const banner = document.getElementById('fc-sync-banner');
+  const text = document.getElementById('fc-sync-banner-text');
+  if (!banner || !text) return;
+  const { onlyInCarriers, onlyInSchedule } = getForecastCarrierMismatches(fd);
+  if (!onlyInCarriers.length && !onlyInSchedule.length) {
+    banner.style.display = 'none';
+    return;
+  }
+  const parts = [];
+  if (onlyInSchedule.length) parts.push(`missing from the carrier table: ${onlyInSchedule.join(', ')}`);
+  if (onlyInCarriers.length) parts.push(`missing from the schedule: ${onlyInCarriers.join(', ')}`);
+  text.textContent = `⚠ Carrier table and schedule are out of sync — ${parts.join('; ')}.`;
+  banner.style.display = 'flex';
+}
+
+// Adds a default row to whichever side (carrier table / schedule) is missing a
+// carrier that exists on the other side. Never removes anything — this only
+// heals drift, it doesn't second-guess an intentional single-side edit made
+// moments ago (removeFCCarrier/removeScheduleRow already keep both sides in
+// step for new deletions going forward).
+function syncForecastCarrierLists() {
+  const dateKey = document.getElementById('forecast-date').value || todayStr();
+  const fd = getForecastData(dateKey);
+  if (!fd.schedule) fd.schedule = [];
+  const { onlyInCarriers, onlyInSchedule } = getForecastCarrierMismatches(fd);
+  let added = 0;
+
+  onlyInCarriers.forEach(name => {
+    const def = DEFAULT_FC_SCHEDULE.find(s => s.name === name);
+    fd.schedule.push(def ? { ...def } : { name, mon: true, tue: true, wed: true, thu: true, fri: true });
+    added++;
+  });
+
+  onlyInSchedule.forEach(name => {
+    const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
+    fd.carriers.push(def ? { ...def } : {
+      name,
+      linesPerTrailer: getCarrierAssumption(name, 'linesPerTrailer') || 0,
+      expTrailers: 1, trailerAdj: 0, linesAdj: 0,
+      bfPerTrailer: getCarrierAssumption(name, 'bfPerTrailer') || 0,
+      arrived: false, remaining: 0, midday: 0
+    });
+    registerForecastCarrierForAssumptions(name);
+    added++;
+  });
+
+  saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers, schedule: fd.schedule });
+  renderForecastTab();
+  toast(added ? `Synced — added ${added} missing row${added > 1 ? 's' : ''} ✓` : 'Already in sync ✓');
+}
+
 function renderForecastTab() {
   const dateInp = document.getElementById('forecast-date');
   if (!dateInp.value) dateInp.value = todayStr();
   const fd = getForecastData(dateInp.value);
+  renderForecastSyncBanner(fd);
 
   // Summary inputs
   document.getElementById('fc-carried-in').value = fd.carriedIn || 0;
@@ -4727,16 +4815,25 @@ function updateFCCarrier(idx, field, val) {
   const fd = getForecastData(dateKey);
   if (fd.carriers[idx]) fd.carriers[idx][field] = val;
   if (field === 'name') registerForecastCarrierForAssumptions(val);
-  saveState();
+  saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers });
   renderForecastTab();
 }
 
 function removeFCCarrier(idx) {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
+  const removed = fd.carriers[idx];
+  if (!removed) return;
   fd.carriers.splice(idx, 1);
-  saveState();
+  // Keep the Carrier Schedule panel in sync — a carrier removed from the main
+  // table shouldn't linger there with stale day checkboxes.
+  if (fd.schedule) {
+    const schedIdx = fd.schedule.findIndex(s => s.name === removed.name);
+    if (schedIdx !== -1) fd.schedule.splice(schedIdx, 1);
+  }
+  saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers, schedule: fd.schedule });
   renderForecastTab();
+  toast(`${removed.name} removed from the carrier table and schedule`);
 }
 
 // Registers a carrier name (not already in the default assumptions template)
@@ -4757,7 +4854,7 @@ function addForecastCarrierRow() {
   const fd = getForecastData(dateKey);
   fd.carriers.push({name:'New Carrier', linesPerTrailer:0, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0, arrived:false, remaining:0, midday:0});
   registerForecastCarrierForAssumptions('New Carrier');
-  saveState();
+  saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers });
   renderForecastTab();
 }
 
@@ -4771,7 +4868,7 @@ function syncCarriedInToCarryover(val) {
     carryRow.expTrailers = +val > 0 ? 1 : 0;
     carryRow.linesAdj = 0;
   }
-  saveState();
+  saveForecastFieldsToFirebase(dateKey, { carriedIn: fd.carriedIn, carriers: fd.carriers });
   renderForecastTab();
 }
 
@@ -4781,7 +4878,7 @@ function syncCarryoverToCarriedIn(val) {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
   fd.carriedIn = +val;
-  saveState();
+  saveForecastFieldsToFirebase(dateKey, { carriedIn: fd.carriedIn });
   calcForecastSummary();
 }
 
@@ -4937,7 +5034,7 @@ function resetOpUpdatesFields() {
       r.pctFull = 100;
       r.trailerEmpty = false;
     });
-    saveForecastToFirebase(today);
+    saveForecastFieldsToFirebase(today, { ltl: fd.ltl });
   }
 
   // Reset Floor Line Estimations and Remaining Capacity
@@ -5017,6 +5114,7 @@ function renderOpUpdates() {
   renderFloorEstimates();
   const capInput = document.getElementById('opu-remaining-capacity-input');
   if (capInput) capInput.value = Number(state.settings.opRemainingCapacity) || 0;
+  syncOpuTableWidths();
 }
 
 function updateOpUpdatesTotal() {
@@ -5181,13 +5279,15 @@ function updateGrandTotal() {
   grandLinesCell.textContent = grandLines;
   grandBfCell.textContent = opuBf + floorBf;
   updateEstCarryover(grandLines);
-  syncOpuTableWidths();
 }
 
 // Makes the Floor Line Estimations and Combined Totals tables match the trailer
 // table's actual rendered width, so all three line up even though their column
 // counts differ. scrollWidth is used (not offsetWidth) because the trailer wrap
 // has overflow-x:auto and can be visually clipped narrower than its content.
+// Only called from renderOpUpdates() — i.e. only when a carrier/trailer row is
+// actually added or removed from the trailer table — never on every keystroke
+// or on window resize, so the tables don't visibly shrink or grow on their own.
 function syncOpuTableWidths() {
   const trailerWrap = document.getElementById('opu-trailer-wrap');
   const floorWrap = document.getElementById('opu-floor-wrap');
@@ -5199,10 +5299,6 @@ function syncOpuTableWidths() {
     grandWrap.style.width = w + 'px';
   }
 }
-window.addEventListener('resize', () => {
-  const tab = document.getElementById('tab-opupdates');
-  if (tab && tab.classList.contains('active')) syncOpuTableWidths();
-});
 
 function updateEstCarryover(grandLines) {
   const carryoverCell = document.getElementById('opu-est-carryover');
@@ -5228,8 +5324,7 @@ function toggleExpectedEmpty(idx, checked) {
   if (!r) return;
   r.trailerEmpty = checked;
   r.pctFull = checked ? 0 : 100;
-  saveForecastToFirebase(todayStr());
-  saveState();
+  saveForecastFieldsToFirebase(todayStr(), { ltl: fd.ltl });
   const row = document.getElementById(`opu-exp-row-${idx}`);
   if (row) {
     const pctInput = row.querySelector('input[type="number"]');
@@ -5251,8 +5346,7 @@ function updateExpectedPct(idx, value) {
   pct = Math.min(100, Math.max(0, pct));
   r.pctFull = pct;
   r.trailerEmpty = pct <= 0;
-  saveForecastToFirebase(todayStr());
-  saveState();
+  saveForecastFieldsToFirebase(todayStr(), { ltl: fd.ltl });
   const row = document.getElementById(`opu-exp-row-${idx}`);
   if (row) {
     const chk = row.querySelector('input[type="checkbox"]');
@@ -5575,16 +5669,23 @@ function updateFCSchedule(idx, day, val) {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
   if (fd.schedule[idx]) fd.schedule[idx][day] = val;
-  saveState();
+  saveForecastFieldsToFirebase(dateKey, { schedule: fd.schedule });
   renderForecastTab();
 }
 
 function removeScheduleRow(idx) {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
+  const removed = fd.schedule[idx];
+  if (!removed) return;
   fd.schedule.splice(idx, 1);
-  saveState();
+  // Keep the main carrier table in sync — a carrier removed from the schedule
+  // shouldn't linger there with a row that no longer has day settings behind it.
+  const carrierIdx = fd.carriers.findIndex(c => c.name === removed.name);
+  if (carrierIdx !== -1) fd.carriers.splice(carrierIdx, 1);
+  saveForecastFieldsToFirebase(dateKey, { schedule: fd.schedule, carriers: fd.carriers });
   renderForecastTab();
+  toast(`${removed.name} removed from the schedule and carrier table`);
 }
 
 function addScheduleRow() {
@@ -5597,7 +5698,7 @@ function addScheduleRow() {
     fd.carriers.push({name, linesPerTrailer:0, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0, arrived:false, remaining:0, midday:0});
   }
   registerForecastCarrierForAssumptions(name);
-  saveState();
+  saveForecastFieldsToFirebase(dateKey, { schedule: fd.schedule, carriers: fd.carriers });
   renderForecastTab();
 }
 
@@ -5666,7 +5767,7 @@ function saveForecast() {
   const fd = getForecastData(dateKey);
   fd.carriedIn = +(document.getElementById('fc-carried-in').value || 0);
   fd.capacity = +(document.getElementById('fc-capacity').value || 0);
-  saveState();
+  saveForecastFieldsToFirebase(dateKey, { carriedIn: fd.carriedIn, capacity: fd.capacity });
   toast('Forecast saved \u2713');
 }
 
@@ -6089,7 +6190,7 @@ function consumeExpectedRow(carrierName) {
   const idx = fd.ltl.findIndex(r => r.carrier === carrierName);
   if (idx === -1) return;
   fd.ltl.splice(idx, 1);
-  saveForecastToFirebase(todayStr());
+  saveForecastFieldsToFirebase(todayStr(), { ltl: fd.ltl });
 }
 
 function getTodayArrivedCounts() {
