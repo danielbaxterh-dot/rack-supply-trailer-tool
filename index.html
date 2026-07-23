@@ -2597,17 +2597,32 @@ function svgBarChart(dataMap, opts = {}) {
 }
 
 // Simple pie chart with a legend, drawn as inline SVG
+// Generates exactly `n` visually distinct colors, evenly spaced around the hue
+// wheel — so a pie chart with 20 carriers gets 20 different colors instead of
+// cycling through a fixed palette and repeating. Lightness alternates slightly
+// between adjacent slices so neighboring wedges (which are next to each other
+// in hue too) stay easy to tell apart even with a lot of slices.
+function generateDistinctColors(n) {
+  const colors = [];
+  for (let i = 0; i < n; i++) {
+    const hue = Math.round((360 / n) * i);
+    const lightness = i % 2 === 0 ? 46 : 58;
+    colors.push(`hsl(${hue}, 65%, ${lightness}%)`);
+  }
+  return colors;
+}
+
 function svgPieChart(dataMap) {
-  const palette = ['var(--teal)', 'var(--blue)', 'var(--yellow)', 'var(--orange)', 'var(--purple)', 'var(--red)', 'var(--green)', 'var(--teal2)'];
   const entries = Object.entries(dataMap).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((s, [, v]) => s + v, 0);
   if (!total) return `<div class="empty-state">No data for this day</div>`;
+  const colors = generateDistinctColors(entries.length);
   const cx = 68, cy = 68, r = 64;
   let angle = -Math.PI / 2, paths = '', legend = '';
   entries.forEach(([label, val], i) => {
     const frac = val / total;
     const next = angle + frac * Math.PI * 2;
-    const color = palette[i % palette.length];
+    const color = colors[i];
     if (entries.length === 1) {
       paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"></circle>`;
     } else {
