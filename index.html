@@ -6536,8 +6536,8 @@ function saveOutlook() {
     futureDatesTouched.add(rowDate);
   });
 
-  saveState();
-  futureDatesTouched.forEach(d => saveForecastToFirebase(d));
+  saveForecastFieldsToFirebase(today, { ltl: state.forecast[today].ltl, carriers: fd2.carriers });
+  futureDatesTouched.forEach(d => saveForecastFieldsToFirebase(d, { ltl: state.forecast[d].ltl }));
   closeModal('modal-outlook');
   renderExpectedTrailers();
   renderFutureDeliveries();
@@ -6587,8 +6587,7 @@ function removeFutureDelivery(dateKey, idx) {
   const fd = state.forecast[dateKey];
   if (!fd || !fd.ltl) return;
   fd.ltl.splice(idx, 1);
-  saveState();
-  saveForecastToFirebase(dateKey);
+  saveForecastFieldsToFirebase(dateKey, { ltl: fd.ltl });
   renderFutureDeliveries();
 }
 
