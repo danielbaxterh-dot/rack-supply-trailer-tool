@@ -3967,33 +3967,42 @@ function toggleTabReorderMode() {
 // Pointer Events (not HTML5 dragstart/drop) so the same code drags smoothly with
 // a mouse or a finger — this is a phone-first app, and touch doesn't fire native
 // drag events the way desktop browsers do.
+//
+// Deliberately avoids setPointerCapture + elementFromPoint together — some
+// browsers don't hit-test correctly through a captured pointer, so the drag
+// would "start" (dragEl goes semi-transparent) but never find a drop target and
+// silently do nothing. Listening on document and finding the target by geometry
+// sidesteps that entirely.
 function initTabDragReorder() {
   document.querySelectorAll('.tabs .tab-btn').forEach(dragEl => {
     dragEl.onpointerdown = e => {
       if (!_tabReorderMode) return;
       e.preventDefault();
-      dragEl.setPointerCapture(e.pointerId);
       dragEl.classList.add('tab-dragging');
+      const container = dragEl.parentElement;
 
       const onMove = ev => {
-        const el = document.elementFromPoint(ev.clientX, ev.clientY);
-        const target = el && el.closest ? el.closest('.tab-btn') : null;
-        if (target && target !== dragEl && target.parentElement === dragEl.parentElement) {
+        const siblings = Array.from(container.querySelectorAll('.tab-btn')).filter(b => b !== dragEl);
+        let target = null;
+        for (const sib of siblings) {
+          const rect = sib.getBoundingClientRect();
+          if (ev.clientX >= rect.left && ev.clientX <= rect.right) { target = sib; break; }
+        }
+        if (target) {
           const rect = target.getBoundingClientRect();
           const before = ev.clientX < rect.left + rect.width / 2;
-          target.parentElement.insertBefore(dragEl, before ? target : target.nextSibling);
+          container.insertBefore(dragEl, before ? target : target.nextSibling);
         }
       };
       const onUp = () => {
         dragEl.classList.remove('tab-dragging');
-        dragEl.removeEventListener('pointermove', onMove);
-        dragEl.removeEventListener('pointerup', onUp);
-        dragEl.removeEventListener('pointercancel', onUp);
-        try { dragEl.releasePointerCapture(e.pointerId); } catch (err) {}
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
       };
-      dragEl.addEventListener('pointermove', onMove);
-      dragEl.addEventListener('pointerup', onUp);
-      dragEl.addEventListener('pointercancel', onUp);
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
     };
   });
 }
