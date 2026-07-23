@@ -115,6 +115,33 @@
     padding: 10px 16px 0;
     border-bottom: 3px solid #27b589;
   }
+  .tabs-toolbar {
+    background: #2a6045;
+    padding: 5px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .tabs-toolbar-hint {
+    font-size: 11px;
+    color: var(--text2);
+    font-style: italic;
+    display: none;
+  }
+  .tabs-toolbar.reorder-active .tabs-toolbar-hint { display: inline; }
+  .tab-btn.tab-reorder-mode {
+    cursor: grab;
+    outline: 2px dashed rgba(255,255,255,0.55);
+    outline-offset: 2px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .tab-btn.tab-dragging {
+    opacity: 0.55;
+    cursor: grabbing;
+  }
   .tab-btn {
     background: linear-gradient(180deg, #c8c8c8 0%, #a8a8a8 50%, #989898 100%);
     color: #2a2a2a;
@@ -1084,12 +1111,16 @@
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('home')">Doors</button>
-  <button class="tab-btn" onclick="switchTab('forecast')">Forecast</button>
-  <button class="tab-btn" onclick="switchTab('carriers')">Carriers</button>
-  <button class="tab-btn" onclick="switchTab('history')">History</button>
-  <button class="tab-btn" onclick="switchTab('dashboard')">Dashboard</button>
-  <button class="tab-btn" onclick="switchTab('opupdates')">🚧 Operational Updates</button>
+  <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">Doors</button>
+  <button class="tab-btn" data-tab="forecast" onclick="switchTab('forecast')">Forecast</button>
+  <button class="tab-btn" data-tab="carriers" onclick="switchTab('carriers')">Carriers</button>
+  <button class="tab-btn" data-tab="history" onclick="switchTab('history')">History</button>
+  <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="tab-btn" data-tab="opupdates" onclick="switchTab('opupdates')">🚧 Operational Updates</button>
+</div>
+<div class="tabs-toolbar">
+  <span class="tabs-toolbar-hint" id="tab-reorder-hint">Drag tabs to reorder — saves for everyone</span>
+  <button id="tab-reorder-toggle" class="btn btn-gray btn-sm" onclick="toggleTabReorderMode()">⠿ Reorder Tabs</button>
 </div>
 
 <!-- HOME TAB -->
@@ -2160,6 +2191,7 @@ function localDateTimeInputValue(date) {
 //   config/doors       - door layout
 //   config/carriers    - carriers with logos
 //   config/settings    - ui settings
+//   config/tabOrder    - shared tab bar order
 //   forecast/{date}    - daily forecast
 //   trailers/{doorId}  - active slotted trailers (real-time)
 //   history/{id}       - completed trailer records
@@ -2168,6 +2200,10 @@ let _unsubTrailers = null;
 let _unsubForecast = null;
 let _unsubHistory = null;
 let _unsubSalesSide = null;
+let _unsubTabOrder = null;
+let _tabReorderMode = false;
+// Default tab button order, used until Firebase's config/tabOrder doc says otherwise
+let tabOrder = ['home', 'forecast', 'carriers', 'history', 'dashboard', 'opupdates'];
 // Nothing is allowed to write back to Firebase until a load has fully succeeded.
 // This prevents corrupted/partial/default data (from a failed load, a timeout fallback,
 // or any mid-load error) from ever being silently saved over the team's real shared data.
@@ -3006,6 +3042,7 @@ updateClock();
 
 // ===================== TABS =====================
 function switchTab(name) {
+  if (_tabReorderMode) return; // don't navigate while dragging tabs to reorder
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -3873,6 +3910,94 @@ function resetSalesSideForNewDay() {
   salesSideState = JSON.parse(JSON.stringify(SALES_SIDE_SLOTS));
   renderSalesSideTable();
   saveSalesSideToFirebase();
+}
+
+// ===================== TAB ORDER (shared, drag to reorder) =====================
+// Moves the tab-btn elements inside .tabs to match `order` (an array of data-tab
+// names). Anything in `order` that no longer exists is skipped; anything that
+// exists but isn't listed (e.g. a brand-new tab added later) stays at the end.
+function applyTabOrder(order) {
+  const tabsEl = document.querySelector('.tabs');
+  if (!tabsEl || !Array.isArray(order) || !order.length) return;
+  const buttons = Array.from(tabsEl.querySelectorAll('.tab-btn'));
+  const byName = {};
+  buttons.forEach(b => { byName[b.dataset.tab] = b; });
+  order.forEach(name => { if (byName[name]) tabsEl.appendChild(byName[name]); });
+  buttons.forEach(b => { if (!order.includes(b.dataset.tab)) tabsEl.appendChild(b); });
+}
+
+async function saveTabOrderToFirebase(order) {
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
+  try {
+    await fb().setDoc(fb().doc(getDb(), 'config', 'tabOrder'), { order, updatedAt: new Date().toISOString() });
+  } catch (e) { console.error('Failed to save tab order', e); toast('Failed to save tab order', 'error'); }
+}
+
+// Real-time listener — keeps every device's tab order in sync, same pattern as
+// the sales-side panel. Fires immediately with the current doc, then again on
+// any change (including changes made by someone else's device).
+function subscribeTabOrder() {
+  if (!window._fbReady || !getDb()) return;
+  if (_unsubTabOrder) _unsubTabOrder();
+  _unsubTabOrder = fb().onSnapshot(fb().doc(getDb(), 'config', 'tabOrder'), snap => {
+    if (snap.exists() && Array.isArray(snap.data().order) && snap.data().order.length) {
+      tabOrder = snap.data().order;
+    }
+    if (!_tabReorderMode) applyTabOrder(tabOrder); // don't yank tabs out from under an active drag
+  }, err => console.error('[TabOrder] listener error', err));
+}
+
+function toggleTabReorderMode() {
+  _tabReorderMode = !_tabReorderMode;
+  const tabsEl = document.querySelector('.tabs');
+  const toolbarEl = document.querySelector('.tabs-toolbar');
+  const btn = document.getElementById('tab-reorder-toggle');
+  document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.toggle('tab-reorder-mode', _tabReorderMode));
+  if (toolbarEl) toolbarEl.classList.toggle('reorder-active', _tabReorderMode);
+  if (_tabReorderMode) {
+    if (btn) { btn.textContent = '✓ Done'; btn.classList.remove('btn-gray'); btn.classList.add('btn-teal'); }
+    initTabDragReorder();
+  } else {
+    if (btn) { btn.textContent = '⠿ Reorder Tabs'; btn.classList.remove('btn-teal'); btn.classList.add('btn-gray'); }
+    const newOrder = Array.from(document.querySelectorAll('.tabs .tab-btn')).map(b => b.dataset.tab);
+    tabOrder = newOrder;
+    saveTabOrderToFirebase(newOrder);
+    toast('Tab order saved ✓');
+  }
+}
+
+// Pointer Events (not HTML5 dragstart/drop) so the same code drags smoothly with
+// a mouse or a finger — this is a phone-first app, and touch doesn't fire native
+// drag events the way desktop browsers do.
+function initTabDragReorder() {
+  document.querySelectorAll('.tabs .tab-btn').forEach(dragEl => {
+    dragEl.onpointerdown = e => {
+      if (!_tabReorderMode) return;
+      e.preventDefault();
+      dragEl.setPointerCapture(e.pointerId);
+      dragEl.classList.add('tab-dragging');
+
+      const onMove = ev => {
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const target = el && el.closest ? el.closest('.tab-btn') : null;
+        if (target && target !== dragEl && target.parentElement === dragEl.parentElement) {
+          const rect = target.getBoundingClientRect();
+          const before = ev.clientX < rect.left + rect.width / 2;
+          target.parentElement.insertBefore(dragEl, before ? target : target.nextSibling);
+        }
+      };
+      const onUp = () => {
+        dragEl.classList.remove('tab-dragging');
+        dragEl.removeEventListener('pointermove', onMove);
+        dragEl.removeEventListener('pointerup', onUp);
+        dragEl.removeEventListener('pointercancel', onUp);
+        try { dragEl.releasePointerCapture(e.pointerId); } catch (err) {}
+      };
+      dragEl.addEventListener('pointermove', onMove);
+      dragEl.addEventListener('pointerup', onUp);
+      dragEl.addEventListener('pointercancel', onUp);
+    };
+  });
 }
 
 function isSlackEligible(t) {
@@ -6650,6 +6775,7 @@ window._onFirebaseReady = async () => {
   console.log('[App] Firebase load complete');
   setConnectionStatus('live');
   await loadSalesSideFromFirebase();
+  subscribeTabOrder();
   // If user is already logged in, show the app
   if (window._currentUser) {
     document.getElementById('fb-loading')?.remove();
