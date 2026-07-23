@@ -1678,6 +1678,10 @@
 
   <div class="dash-chart-grid">
     <div class="dash-chart-panel">
+      <div class="dash-chart-title">Trailers Released — by Day Secured</div>
+      <div id="dash-chart-released-trend"></div>
+    </div>
+    <div class="dash-chart-panel">
       <div class="dash-chart-title">Trailers Secured by Carrier</div>
       <div id="dash-chart-secured"></div>
     </div>
@@ -2616,6 +2620,46 @@ function svgPieChart(dataMap) {
   return `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><svg viewBox="0 0 136 136" width="136" height="136" style="flex:none;">${paths}</svg><div style="flex:1;min-width:150px;">${legend}</div></div>`;
 }
 
+// Vertical bar chart for date-based breakdowns (as opposed to svgBarChart,
+// which is horizontal and used for per-carrier breakdowns).
+function svgVerticalBarChart(entries, opts = {}) {
+  if (!entries.length) return `<div class="empty-state">No data</div>`;
+  const max = Math.max(1, ...entries.map(d => d.value));
+  const barW = 30, gap = 12, chartH = 130, valueH = 16, labelH = 16;
+  const totalW = entries.length * (barW + gap) + gap;
+  const totalH = valueH + chartH + labelH + 4;
+  const color = opts.color || 'var(--teal)';
+  let bars = '';
+  entries.forEach((d, i) => {
+    const x = gap + i * (barW + gap);
+    const h = d.value > 0 ? Math.max(3, (d.value / max) * chartH) : 0;
+    const y = valueH + (chartH - h);
+    const highlight = opts.highlightKey && d.key === opts.highlightKey;
+    bars += `<text x="${x + barW/2}" y="${valueH - 4}" text-anchor="middle" font-size="11" fill="#000" font-weight="700" font-family="Roboto Mono, monospace">${d.value}</text>
+    <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="4" fill="${highlight ? 'var(--orange)' : color}"></rect>
+    <text x="${x + barW/2}" y="${valueH + chartH + 13}" text-anchor="middle" font-size="10" fill="#000" font-family="Roboto Condensed, Roboto, sans-serif">${escHtml(d.label)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${totalW} ${totalH}" width="100%" height="${totalH}" style="max-width:420px;display:block;">${bars}</svg>`;
+}
+
+// Builds a { label, value, key }[] breakdown of trailers released on dateKey,
+// grouped by the day each one was originally secured (arrival date) — so a
+// trailer released today that sat since yesterday shows up under yesterday's
+// bar, not today's. Bars are ordered oldest secured day to newest. The bar for
+// dateKey itself (secured same-day as released) is highlighted.
+function getReleasedBySecuredDay(dateKey, releasedList) {
+  const counts = {};
+  releasedList.forEach(r => {
+    const key = dashDateKey(r.arrival);
+    if (!key) return;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.keys(counts).sort().map(key => {
+    const d = new Date(key + 'T12:00:00');
+    return { key, value: counts[key], label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) };
+  });
+}
+
 // Sales Side (PITT x2 / XPO x1) release times for a given day. Today uses the
 // live in-memory state kept in sync by the realtime listener; any other day
 // is fetched directly from the salesside/{date} Firestore doc.
@@ -2672,6 +2716,7 @@ async function renderDashboard() {
   document.getElementById('dash-chart-released').innerHTML = svgBarChart(releasedByCarrier, { color: 'var(--blue)' });
   document.getElementById('dash-chart-pie').innerHTML = svgPieChart(releasedByCarrier);
   document.getElementById('dash-chart-dwell').innerHTML = svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) });
+  document.getElementById('dash-chart-released-trend').innerHTML = svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey });
 
   const salesSideSlots = await getSalesSideForDate(dateKey);
   if (document.getElementById('dash-date').value === dateKey) renderDashSalesSide(salesSideSlots);
