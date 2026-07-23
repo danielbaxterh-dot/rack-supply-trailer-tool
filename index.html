@@ -1720,6 +1720,7 @@
 <div id="tab-opupdates" class="tab-content">
   <div style="margin-bottom:4px;display:flex;align-items:center;gap:12px;">
     <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">🚧 Operational Updates</span>
+    <button class="btn btn-teal btn-sm" onclick="printOpUpdatesWalkSheet()">🖨 Print Walk Sheet</button>
     <button class="btn btn-red btn-sm" onclick="resetOpUpdatesFields()">↻ Reset Fields</button>
   </div>
   <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;">Totals default to each carrier's full Rack Lines per Trailer / BF Skids per Trailer assumption (set on the Forecast tab), scaled down by the % Remaining entered. Check "Empty" once a trailer is fully checked in to zero it out.</div>
@@ -5159,6 +5160,96 @@ function renderOpUpdates() {
   const capInput = document.getElementById('opu-remaining-capacity-input');
   if (capInput) capInput.value = Number(state.settings.opRemainingCapacity) || 0;
   syncOpuTableWidths();
+}
+
+// Opens a print-ready walk sheet in a new tab, using the browser's own print
+// dialog (so it can be printed or saved as a PDF — no PDF library needed).
+// Trailer rows are a live snapshot of what's currently on screen (carrier,
+// door, % Remaining, Empty, computed Lines/BF Skids Remaining) — matching
+// exactly what the digital table shows right now, not a fixed template.
+// Floor locations are pulled from the live Floor Line Estimations list, but
+// the Lines/BF Skids columns are left blank since those require an actual
+// physical walk-and-count.
+function printOpUpdatesWalkSheet() {
+  const doorRows = state.doors
+    .filter(d => d.active && state.trailers[d.id] && state.trailers[d.id].carrier && !isExcludedFromOpUpdates(state.trailers[d.id].carrier))
+    .map(door => {
+      const t = state.trailers[door.id];
+      return {
+        label: `${t.carrier} — Door ${door.num}`,
+        empty: !!t.trailerEmpty,
+        pct: (t.pctFull === null || t.pctFull === undefined) ? 100 : t.pctFull,
+        remaining: linesRemainingForTrailer(t),
+        bfRemaining: bfSkidsRemainingForTrailer(t)
+      };
+    });
+  const pendingRows = getPendingExpectedOpRows().map(p => {
+    const r = p.row;
+    return {
+      label: `${r.carrier} — Expected (not yet on a door)`,
+      empty: !!r.trailerEmpty,
+      pct: (r.pctFull === null || r.pctFull === undefined) ? 100 : r.pctFull,
+      remaining: linesRemainingForTrailer(r),
+      bfRemaining: bfSkidsRemainingForTrailer(r)
+    };
+  });
+  const trailerRows = doorRows.concat(pendingRows);
+  const floorLocations = getFloorLocations();
+
+  const trailerRowsHtml = trailerRows.length ? trailerRows.map(r => `
+      <tr>
+        <td>${escHtml(r.label)}</td>
+        <td style="text-align:center;">${r.empty ? '☑' : '☐'}</td>
+        <td style="text-align:center;">${r.pct}%</td>
+        <td style="text-align:center;">${r.remaining}</td>
+        <td style="text-align:center;">${r.bfRemaining}</td>
+      </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:#888;">No trailers currently slotted or expected</td></tr>`;
+
+  const floorRowsHtml = floorLocations.length ? floorLocations.map(loc => `
+      <tr>
+        <td>${escHtml(loc.label)}</td>
+        <td style="height:30px;"></td>
+        <td style="height:30px;"></td>
+      </tr>`).join('') : `<tr><td colspan="3" style="text-align:center;color:#888;">No floor locations configured</td></tr>`;
+
+  const stamp = new Date().toLocaleString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Operational Updates — Floor Walk Sheet</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; margin: 24px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .stamp { font-size: 12px; color: #333; margin-bottom: 18px; }
+  h2 { font-size: 14px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  th, td { border: 1px solid #999; padding: 6px 8px; font-size: 12px; }
+  th { background: #eee; text-align: left; }
+  td:first-child { text-align: left; }
+  @media print { body { margin: 10mm; } }
+</style></head>
+<body>
+  <h1>Operational Updates — Floor Walk Sheet</h1>
+  <div class="stamp">${stamp}</div>
+
+  <h2>Trailers</h2>
+  <table>
+    <thead><tr><th>Carrier / Door</th><th>Empty</th><th>% Remaining</th><th>Lines Remaining</th><th>BF Skids Remaining</th></tr></thead>
+    <tbody>${trailerRowsHtml}</tbody>
+  </table>
+
+  <h2>Floor Line Estimations</h2>
+  <table>
+    <thead><tr><th>Location</th><th>Lines</th><th>BF Skids</th></tr></thead>
+    <tbody>${floorRowsHtml}</tbody>
+  </table>
+</body></html>`;
+
+  const printWin = window.open('', '_blank');
+  if (!printWin) { toast('Please allow pop-ups to print the walk sheet', 'error'); return; }
+  printWin.document.open();
+  printWin.document.write(html);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 300);
 }
 
 function updateOpUpdatesTotal() {
