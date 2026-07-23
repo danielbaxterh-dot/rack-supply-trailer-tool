@@ -1710,7 +1710,7 @@
     <button class="btn btn-red btn-sm" onclick="resetOpUpdatesFields()">↻ Reset Fields</button>
   </div>
   <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;">Totals default to each carrier's full Rack Lines per Trailer / BF Skids per Trailer assumption (set on the Forecast tab), scaled down by the % Remaining entered. Check "Empty" once a trailer is fully checked in to zero it out.</div>
-  <div style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+  <div id="opu-trailer-wrap" style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
     <table style="background:#fff;width:auto;">
       <thead><tr>
         <th style="white-space:nowrap;">Carrier / Door</th>
@@ -1731,65 +1731,63 @@
     <div class="empty-state" id="opupdates-empty" style="color:#4a7a5a;display:none;">No trailers currently slotted at active doors, and no carriers pending arrival today.</div>
   </div>
 
-  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
-    <div>
-      <div style="margin:20px 0 4px;">
-        <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Floor Line Estimations</span>
-      </div>
-      <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Manually enter estimated Lines and BF Skids for each floor location.</div>
-      <div style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
-        <table style="background:#fff;width:auto;">
-          <thead><tr>
-            <th style="min-width:20px;"></th>
-            <th style="white-space:nowrap;">Location</th>
-            <th style="text-align:center;white-space:nowrap;">Lines</th>
-            <th style="text-align:center;white-space:nowrap;">BF Skids</th>
-            <th style="min-width:25px;"></th>
-          </tr></thead>
-          <tbody id="floor-est-tbody"></tbody>
-          <tfoot>
-            <tr style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
-              <td style="background:transparent;"></td>
-              <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;">Floor Totals</td>
-              <td id="floor-est-total-lines" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
-              <td id="floor-est-total-bf" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
-              <td style="background:transparent;"></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <div style="margin-top:8px;">
-        <button class="btn btn-blue btn-sm" onclick="addFloorLocation()">+ Add Location</button>
-      </div>
+  <div>
+    <div style="margin:20px 0 4px;">
+      <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Floor Line Estimations</span>
     </div>
+    <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Manually enter estimated Lines and BF Skids for each floor location.</div>
+    <div id="opu-floor-wrap" style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+      <table style="background:#fff;width:100%;">
+        <thead><tr>
+          <th style="min-width:20px;"></th>
+          <th style="white-space:nowrap;">Location</th>
+          <th style="text-align:center;white-space:nowrap;">Lines</th>
+          <th style="text-align:center;white-space:nowrap;">BF Skids</th>
+          <th style="min-width:25px;"></th>
+        </tr></thead>
+        <tbody id="floor-est-tbody"></tbody>
+        <tfoot>
+          <tr style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
+            <td style="background:transparent;"></td>
+            <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;">Floor Totals</td>
+            <td id="floor-est-total-lines" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
+            <td id="floor-est-total-bf" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
+            <td style="background:transparent;"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div style="margin-top:8px;">
+      <button class="btn btn-blue btn-sm" onclick="addFloorLocation()">+ Add Location</button>
+    </div>
+  </div>
 
-    <div>
-      <div style="margin:20px 0 4px;">
-        <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Combined Totals</span>
-      </div>
-      <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Adds the trailer table's Estimated Totals to the Floor Totals. Enter Remaining Capacity to see estimated Carryover (Lines − Capacity).</div>
-      <div style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
-        <table style="background:#fff;width:auto;">
-          <thead><tr>
-            <th style="white-space:nowrap;">Source</th>
-            <th style="text-align:center;white-space:nowrap;">Lines</th>
-            <th style="text-align:center;white-space:nowrap;">BF Skids</th>
-            <th style="text-align:center;white-space:nowrap;">Remaining Capacity</th>
-            <th style="text-align:center;white-space:nowrap;">Est. Carryover</th>
-          </tr></thead>
-          <tbody>
-            <tr style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
-              <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;">Grand Total</td>
-              <td id="opu-grand-total-lines" style="text-align:center;color:#1a4731;font-weight:800;font-size:18px;background:transparent;">0</td>
-              <td id="opu-grand-total-bf" style="text-align:center;color:#1a4731;font-weight:800;font-size:18px;background:transparent;">0</td>
-              <td style="text-align:center;background:transparent;">
-                <input type="number" min="0" inputmode="numeric" class="fc-tbl-input" style="width:80px;display:inline-block;" id="opu-remaining-capacity-input" value="0" onchange="updateOpRemainingCapacity(this.value)">
-              </td>
-              <td id="opu-est-carryover" style="text-align:center;color:#1a4731;font-weight:800;font-size:18px;background:transparent;">0</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <div>
+    <div style="margin:20px 0 4px;">
+      <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Combined Totals</span>
+    </div>
+    <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Adds the trailer table's Estimated Totals to the Floor Totals. Enter Remaining Capacity to see estimated Carryover (Lines − Capacity).</div>
+    <div id="opu-grandtotal-wrap" style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+      <table style="background:#fff;width:100%;">
+        <thead><tr>
+          <th style="white-space:nowrap;">Source</th>
+          <th style="text-align:center;white-space:nowrap;">Lines</th>
+          <th style="text-align:center;white-space:nowrap;">BF Skids</th>
+          <th style="text-align:center;white-space:nowrap;">Remaining Capacity</th>
+          <th style="text-align:center;white-space:nowrap;">Est. Carryover</th>
+        </tr></thead>
+        <tbody>
+          <tr style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
+            <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;">Grand Total</td>
+            <td id="opu-grand-total-lines" style="text-align:center;color:#1a4731;font-weight:800;font-size:18px;background:transparent;">0</td>
+            <td id="opu-grand-total-bf" style="text-align:center;color:#1a4731;font-weight:800;font-size:18px;background:transparent;">0</td>
+            <td style="text-align:center;background:transparent;">
+              <input type="number" min="0" inputmode="numeric" class="fc-tbl-input" style="width:80px;display:inline-block;" id="opu-remaining-capacity-input" value="0" onchange="updateOpRemainingCapacity(this.value)">
+            </td>
+            <td id="opu-est-carryover" style="text-align:center;color:#1a4731;font-weight:800;font-size:18px;background:transparent;">0</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -5174,7 +5172,28 @@ function updateGrandTotal() {
   grandLinesCell.textContent = grandLines;
   grandBfCell.textContent = opuBf + floorBf;
   updateEstCarryover(grandLines);
+  syncOpuTableWidths();
 }
+
+// Makes the Floor Line Estimations and Combined Totals tables match the trailer
+// table's actual rendered width, so all three line up even though their column
+// counts differ. scrollWidth is used (not offsetWidth) because the trailer wrap
+// has overflow-x:auto and can be visually clipped narrower than its content.
+function syncOpuTableWidths() {
+  const trailerWrap = document.getElementById('opu-trailer-wrap');
+  const floorWrap = document.getElementById('opu-floor-wrap');
+  const grandWrap = document.getElementById('opu-grandtotal-wrap');
+  if (!trailerWrap || !floorWrap || !grandWrap) return;
+  const w = trailerWrap.scrollWidth;
+  if (w > 0) {
+    floorWrap.style.width = w + 'px';
+    grandWrap.style.width = w + 'px';
+  }
+}
+window.addEventListener('resize', () => {
+  const tab = document.getElementById('tab-opupdates');
+  if (tab && tab.classList.contains('active')) syncOpuTableWidths();
+});
 
 function updateEstCarryover(grandLines) {
   const carryoverCell = document.getElementById('opu-est-carryover');
