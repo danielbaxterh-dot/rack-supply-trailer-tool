@@ -820,6 +820,38 @@
   .stat-val { font-size: 28px; font-weight: 700; color: var(--teal); line-height: 1; }
   .stat-label { font-size: 11px; color: var(--text2); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
 
+  /* DASHBOARD */
+  #tab-dashboard { background: #b8b8b8; margin: -14px -16px; padding: 14px 16px; }
+  .dash-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .dash-chart-panel {
+    background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
+    border: 1px solid #c8d2ce;
+    border-bottom: 2px solid #b8c4bf;
+    border-radius: 10px;
+    padding: 12px 14px 14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.14), 0 1px 0 rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95);
+  }
+  .dash-chart-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 10px;
+  }
+  .dash-chart-panel .empty-state { padding: 10px 0; color: #444; }
+  .dash-stat-card {
+    background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
+    border: 1px solid #c8d2ce;
+    border-bottom: 2px solid #b8c4bf;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.14), 0 1px 0 rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95);
+  }
+  .dash-stat-val { font-size: 28px; font-weight: 700; color: #000; line-height: 1; }
+  .dash-stat-label { font-size: 11px; color: #333; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+
   /* SETTINGS */
   .settings-section { margin-bottom: 18px; }
   .settings-section h3 { font-size: 14px; color: var(--teal); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
@@ -1056,6 +1088,7 @@
   <button class="tab-btn" onclick="switchTab('forecast')">Forecast</button>
   <button class="tab-btn" onclick="switchTab('carriers')">Carriers</button>
   <button class="tab-btn" onclick="switchTab('history')">History</button>
+  <button class="tab-btn" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab-btn" onclick="switchTab('opupdates')">🚧 Operational Updates</button>
 </div>
 
@@ -1567,6 +1600,75 @@
       <tbody id="history-tbody"></tbody>
     </table>
     <div class="empty-state" id="history-empty" style="color:#4a7a5a;">No history records found.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD TAB -->
+<div id="tab-dashboard" class="tab-content">
+  <div class="flex-row" style="margin-bottom:6px;justify-content:space-between;">
+    <div class="flex-row">
+      <button class="btn btn-gray btn-sm" onclick="shiftDashDate(-1)">◀ Prev</button>
+      <input type="date" autocomplete="off" id="dash-date" onchange="renderDashboard()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
+      <button class="btn btn-gray btn-sm" onclick="shiftDashDate(1)">Next ▶</button>
+      <button class="btn btn-teal btn-sm" onclick="dashJumpToday()">Today</button>
+    </div>
+    <button class="btn btn-gray btn-sm" onclick="exportDashboardCSV()">Export CSV</button>
+  </div>
+  <div style="font-size:13px;font-weight:700;color:#000;margin:0 0 12px;" id="dash-date-label"></div>
+
+  <div class="stat-row">
+    <div class="dash-stat-card">
+      <div class="dash-stat-val" id="dash-stat-secured">0</div>
+      <div class="dash-stat-label">Trailers Secured</div>
+    </div>
+    <div class="dash-stat-card">
+      <div class="dash-stat-val" id="dash-stat-released">0</div>
+      <div class="dash-stat-label">Trailers Released</div>
+    </div>
+    <div class="dash-stat-card">
+      <div class="dash-stat-val" id="dash-stat-moves">0</div>
+      <div class="dash-stat-label">Trailer Moves Today</div>
+    </div>
+    <div class="dash-stat-card">
+      <div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div>
+      <div class="dash-stat-label">Avg Secure → Release</div>
+    </div>
+  </div>
+
+  <div class="dash-chart-grid">
+    <div class="dash-chart-panel">
+      <div class="dash-chart-title">Trailers Secured by Carrier</div>
+      <div id="dash-chart-secured"></div>
+    </div>
+    <div class="dash-chart-panel">
+      <div class="dash-chart-title">Trailers Released by Carrier</div>
+      <div id="dash-chart-released"></div>
+    </div>
+    <div class="dash-chart-panel">
+      <div class="dash-chart-title">Released Share by Carrier</div>
+      <div id="dash-chart-pie"></div>
+    </div>
+    <div class="dash-chart-panel">
+      <div class="dash-chart-title">Avg Secure → Release by Carrier</div>
+      <div id="dash-chart-dwell"></div>
+    </div>
+    <div class="dash-chart-panel">
+      <div class="dash-chart-title">Sales Side Releases — PITT ×2 / XPO ×1</div>
+      <div id="dash-salesside-body"></div>
+    </div>
+  </div>
+
+  <div class="section-header-row" style="margin-top:18px;">
+    <h3 style="font-size:14px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Released Trailers — by Day Secured</h3>
+  </div>
+  <div style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+    <table style="background:#fff;min-width:640px;">
+      <thead><tr>
+        <th>Secured Day</th><th>Carrier</th><th>Door</th><th>Trailer #</th><th>Secured</th><th>Released</th><th>Dwell</th>
+      </tr></thead>
+      <tbody id="dash-detail-tbody"></tbody>
+    </table>
+    <div class="empty-state" id="dash-detail-empty">No trailers released on this day.</div>
   </div>
 </div>
 
@@ -2348,6 +2450,245 @@ function updateHistoryRangeLabel(text) {
   if (el) el.textContent = text;
 }
 
+// ===================== DASHBOARD =====================
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Local YYYY-MM-DD for any date/timestamp, for grouping records by calendar day
+function dashDateKey(dt) {
+  const d = parseFlexDate(dt);
+  if (!d) return null;
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+// Makes sure enough history is loaded to cover trailers that were secured up to
+// 3 weeks before the selected day but not released until later (multi-day dwell).
+let _dashLoadedRangeKey = null;
+async function ensureDashboardHistory(dateKey) {
+  const startD = new Date(dateKey + 'T00:00:00');
+  startD.setDate(startD.getDate() - 21);
+  const pad = n => String(n).padStart(2, '0');
+  const start = `${startD.getFullYear()}-${pad(startD.getMonth()+1)}-${pad(startD.getDate())}`;
+  const today = todayStr();
+  const end = dateKey > today ? dateKey : today;
+  const rangeKey = start + '_' + end;
+  if (_dashLoadedRangeKey === rangeKey) return;
+  await loadHistoryRange(start, end);
+  _dashLoadedRangeKey = rangeKey;
+}
+
+function getDashboardData(dateKey) {
+  // Secured on dateKey = completed cycles that arrived that day + trailers still on
+  // a door right now that also arrived that day.
+  const securedList = [];
+  state.history.forEach(r => { if (dashDateKey(r.arrival) === dateKey) securedList.push({ ...r, _active: false }); });
+  Object.entries(state.trailers).forEach(([doorId, t]) => {
+    if (dashDateKey(t.arrival) === dateKey) {
+      const door = state.doors.find(d => d.id === doorId);
+      securedList.push({ ...t, doorId, door: door?.num || doorId, _active: true });
+    }
+  });
+
+  // Released on dateKey = completed cycles released that day (regardless of when secured)
+  const releasedList = state.history.filter(r => dashDateKey(r.released || r.completed) === dateKey);
+  releasedList.sort((a, b) =>
+    (dashDateKey(a.arrival) || '').localeCompare(dashDateKey(b.arrival) || '') ||
+    (new Date(a.arrival) - new Date(b.arrival))
+  );
+
+  const dwellMinsList = releasedList.map(r => {
+    const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
+    return (a && rel) ? Math.max(0, Math.round((rel - a) / 60000)) : null;
+  }).filter(m => m !== null);
+  const avgDwellMin = dwellMinsList.length ? Math.round(dwellMinsList.reduce((s, m) => s + m, 0) / dwellMinsList.length) : null;
+
+  const securedByCarrier = {};
+  securedList.forEach(r => { const c = r.carrier || 'Unknown'; securedByCarrier[c] = (securedByCarrier[c] || 0) + 1; });
+
+  const releasedByCarrier = {};
+  releasedList.forEach(r => { const c = r.carrier || 'Unknown'; releasedByCarrier[c] = (releasedByCarrier[c] || 0) + 1; });
+
+  const dwellSumByCarrier = {}, dwellCountByCarrier = {};
+  releasedList.forEach(r => {
+    const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
+    if (!a || !rel) return;
+    const c = r.carrier || 'Unknown';
+    const mins = Math.max(0, Math.round((rel - a) / 60000));
+    dwellSumByCarrier[c] = (dwellSumByCarrier[c] || 0) + mins;
+    dwellCountByCarrier[c] = (dwellCountByCarrier[c] || 0) + 1;
+  });
+  const avgDwellByCarrier = {};
+  Object.keys(dwellSumByCarrier).forEach(c => { avgDwellByCarrier[c] = Math.round(dwellSumByCarrier[c] / dwellCountByCarrier[c]); });
+
+  return { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier };
+}
+
+// Simple horizontal bar chart, drawn as inline SVG so it matches the app theme with no chart library
+function svgBarChart(dataMap, opts = {}) {
+  const entries = Object.entries(dataMap).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return `<div class="empty-state">No data for this day</div>`;
+  const max = Math.max(...entries.map(([, v]) => v));
+  const barH = 20, gap = 10, labelW = 96, chartW = 190, rowH = barH + gap;
+  const height = entries.length * rowH + 6;
+  const totalW = labelW + chartW + 44;
+  const color = opts.color || 'var(--teal)';
+  const fmt = opts.valueFmt || (v => String(v));
+  let bars = '';
+  entries.forEach(([label, val], i) => {
+    const y = i * rowH + 3;
+    const w = Math.max(3, (val / max) * chartW);
+    bars += `<text x="${labelW-8}" y="${y+barH/2+4}" text-anchor="end" font-size="11" fill="#000" font-family="Roboto Condensed, Roboto, sans-serif">${escHtml(label)}</text>
+    <rect x="${labelW}" y="${y}" width="${w.toFixed(1)}" height="${barH}" rx="4" fill="${color}"></rect>
+    <text x="${(labelW+w+6).toFixed(1)}" y="${y+barH/2+4}" font-size="11" fill="#000" font-weight="700" font-family="Roboto Mono, monospace">${escHtml(fmt(val))}</text>`;
+  });
+  return `<svg viewBox="0 0 ${totalW} ${height}" width="100%" height="${height}" style="max-width:380px;display:block;">${bars}</svg>`;
+}
+
+// Simple pie chart with a legend, drawn as inline SVG
+function svgPieChart(dataMap) {
+  const palette = ['var(--teal)', 'var(--blue)', 'var(--yellow)', 'var(--orange)', 'var(--purple)', 'var(--red)', 'var(--green)', 'var(--teal2)'];
+  const entries = Object.entries(dataMap).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  if (!total) return `<div class="empty-state">No data for this day</div>`;
+  const cx = 68, cy = 68, r = 64;
+  let angle = -Math.PI / 2, paths = '', legend = '';
+  entries.forEach(([label, val], i) => {
+    const frac = val / total;
+    const next = angle + frac * Math.PI * 2;
+    const color = palette[i % palette.length];
+    if (entries.length === 1) {
+      paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"></circle>`;
+    } else {
+      const x1 = (cx + r * Math.cos(angle)).toFixed(2), y1 = (cy + r * Math.sin(angle)).toFixed(2);
+      const x2 = (cx + r * Math.cos(next)).toFixed(2), y2 = (cy + r * Math.sin(next)).toFixed(2);
+      const large = frac > 0.5 ? 1 : 0;
+      paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${color}" stroke="#dcdcdc" stroke-width="1.5"></path>`;
+    }
+    legend += `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#000;margin-bottom:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${color};display:inline-block;flex:none;"></span><span style="flex:1;">${escHtml(label)}</span><span style="color:#000;font-weight:700;">${val} (${Math.round(frac*100)}%)</span></div>`;
+    angle = next;
+  });
+  return `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><svg viewBox="0 0 136 136" width="136" height="136" style="flex:none;">${paths}</svg><div style="flex:1;min-width:150px;">${legend}</div></div>`;
+}
+
+// Sales Side (PITT x2 / XPO x1) release times for a given day. Today uses the
+// live in-memory state kept in sync by the realtime listener; any other day
+// is fetched directly from the salesside/{date} Firestore doc.
+async function getSalesSideForDate(dateKey) {
+  if (dateKey === todayStr()) return salesSideState;
+  if (!window._fbReady || !getDb()) return null;
+  try {
+    const snap = await fb().getDoc(fb().doc(getDb(), 'salesside', dateKey));
+    if (snap.exists() && snap.data().slots) return snap.data().slots;
+  } catch (e) { console.error('Failed to load sales side for date', dateKey, e); }
+  return null;
+}
+
+function renderDashSalesSide(slots) {
+  const el = document.getElementById('dash-salesside-body');
+  if (!el) return;
+  if (!slots || !slots.length) {
+    el.innerHTML = `<div class="empty-state">No sales side data for this day</div>`;
+    return;
+  }
+  el.innerHTML = slots.map((s, i) => {
+    const done = !!s.releasedAt;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;${i < slots.length - 1 ? 'border-bottom:1px solid #c8d2ce;' : ''}">
+      <span style="font-weight:700;color:#000;font-size:12px;">${escHtml(s.label)}${s.destDoor ? ` <span style="color:#555;font-weight:600;">(Door ${escHtml(s.destDoor)})</span>` : ''}</span>
+      <span style="font-weight:700;font-size:12px;color:${done ? '#1a4731' : '#999'};">${done ? fmtTime(s.releasedAt) : 'Not released'}</span>
+    </div>`;
+  }).join('');
+}
+
+async function renderDashboard() {
+  const dateInp = document.getElementById('dash-date');
+  if (!dateInp) return;
+  if (!dateInp.value) dateInp.value = todayStr();
+  const dateKey = dateInp.value;
+
+  const label = document.getElementById('dash-date-label');
+  if (label) {
+    const d = parseFlexDate(dateKey + 'T12:00:00');
+    label.textContent = d ? d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  }
+
+  await ensureDashboardHistory(dateKey);
+  // Bail if the user changed the date again while this was loading
+  if (document.getElementById('dash-date').value !== dateKey) return;
+
+  const { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier } = getDashboardData(dateKey);
+
+  document.getElementById('dash-stat-secured').textContent = securedList.length;
+  document.getElementById('dash-stat-released').textContent = releasedList.length;
+  document.getElementById('dash-stat-moves').textContent = releasedList.length;
+  document.getElementById('dash-stat-avgdwell').textContent = avgDwellMin !== null ? minsToHM(avgDwellMin) : '—';
+
+  document.getElementById('dash-chart-secured').innerHTML = svgBarChart(securedByCarrier, { color: 'var(--teal)' });
+  document.getElementById('dash-chart-released').innerHTML = svgBarChart(releasedByCarrier, { color: 'var(--blue)' });
+  document.getElementById('dash-chart-pie').innerHTML = svgPieChart(releasedByCarrier);
+  document.getElementById('dash-chart-dwell').innerHTML = svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) });
+
+  const salesSideSlots = await getSalesSideForDate(dateKey);
+  if (document.getElementById('dash-date').value === dateKey) renderDashSalesSide(salesSideSlots);
+
+  const tbody = document.getElementById('dash-detail-tbody');
+  const empty = document.getElementById('dash-detail-empty');
+  if (!releasedList.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+  } else {
+    if (empty) empty.style.display = 'none';
+    tbody.innerHTML = releasedList.map(r => {
+      const securedDay = dashDateKey(r.arrival);
+      const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
+      const dwellLabel = (a && rel) ? minsToHM(Math.max(0, Math.round((rel - a) / 60000))) : '—';
+      const priorDayTag = securedDay && securedDay !== dateKey ? ` <span style="color:var(--orange);font-weight:700;">(prior day)</span>` : '';
+      return `<tr>
+        <td>${securedDay ? fmtDate(securedDay + 'T12:00:00') : '—'}${priorDayTag}</td>
+        <td>${escHtml(r.carrier || '—')}</td>
+        <td>${escHtml(r.door || r.doorId || '—')}</td>
+        <td>${escHtml(r.trailerNum || '—')}</td>
+        <td>${fmtTime(r.arrival)}</td>
+        <td>${fmtTime(r.released || r.completed)}</td>
+        <td>${dwellLabel}</td>
+      </tr>`;
+    }).join('');
+  }
+  window._dashLastData = { dateKey, releasedList };
+}
+
+function shiftDashDate(days) {
+  const inp = document.getElementById('dash-date');
+  const d = parseFlexDate((inp.value || todayStr()) + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  const pad = n => String(n).padStart(2, '0');
+  inp.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  renderDashboard();
+}
+
+function dashJumpToday() {
+  document.getElementById('dash-date').value = todayStr();
+  renderDashboard();
+}
+
+function exportDashboardCSV() {
+  const data = window._dashLastData;
+  if (!data || !data.releasedList.length) { toast('Nothing to export', 'error'); return; }
+  const rows = [['Secured Day', 'Carrier', 'Door', 'Trailer #', 'Secured Time', 'Released Time', 'Dwell (min)']];
+  data.releasedList.forEach(r => {
+    const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
+    const dwellMin = (a && rel) ? Math.max(0, Math.round((rel - a) / 60000)) : '';
+    rows.push([dashDateKey(r.arrival) || '', r.carrier || '', r.door || r.doorId || '', r.trailerNum || '', r.arrival || '', r.released || r.completed || '', dwellMin]);
+  });
+  const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `dashboard-${data.dateKey}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function applyHistoryRange() {
   const startInp = document.getElementById('history-range-start');
   const endInp = document.getElementById('history-range-end');
@@ -2690,6 +3031,7 @@ function switchTab(name) {
       renderHistory();
     }
   }
+  if (name === 'dashboard') renderDashboard();
   if (name === 'forecast') {
     const inp = document.getElementById('forecast-date');
     if (inp && !inp._prevDate) inp._prevDate = inp.value || todayStr();
@@ -3098,6 +3440,7 @@ function slotTrailer() {
   // datetime-local value is already local time — parse as local, store as ISO
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
   state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  consumeExpectedRow(carrier);
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); toast(`Trailer slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -3447,6 +3790,7 @@ function slotLTLTrailer() {
   const expected = !unexpected;
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
   state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  if (!unexpected) consumeExpectedRow(carrier);
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers(); toast(`${carrier} slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -4428,18 +4772,15 @@ function isExcludedFromOpUpdatesPending(carrierName) {
 function getPendingExpectedOpRows() {
   const today = todayStr();
   const fd = state.forecast[today] || { ltl: [] };
-  const arrivedCounts = getTodayArrivedCounts();
-  const usedCounts = {};
+  // fd.ltl only ever contains genuinely-unfulfilled rows now — consumeExpectedRow()
+  // removes a row the instant any slotting method fulfills it, for that carrier —
+  // so no further "already arrived" filtering is needed here.
   const pending = [];
   (fd.ltl || []).forEach((r, idx) => {
     if (!r.carrier || isExcludedFromOpUpdatesPending(r.carrier)) return;
-    const used = usedCounts[r.carrier] || 0;
-    usedCounts[r.carrier] = used + 1;
-    if (used >= (arrivedCounts[r.carrier] || 0)) {
-      if (r.pctFull === null || r.pctFull === undefined) r.pctFull = 100;
-      if (r.trailerEmpty === undefined) r.trailerEmpty = false;
-      pending.push({ row: r, idx });
-    }
+    if (r.pctFull === null || r.pctFull === undefined) r.pctFull = 100;
+    if (r.trailerEmpty === undefined) r.trailerEmpty = false;
+    pending.push({ row: r, idx });
   });
   return pending;
 }
@@ -5121,13 +5462,24 @@ function syncForecastToLTL(fd, dateKey) {
   // via the Morning Outlook form with real trailer numbers) — only top up
   // with blank placeholder rows if the Forecast tab's count is higher than
   // what's already listed for that carrier.
+  //
+  // Before adding new rows, also subtract any trailers for that carrier already
+  // slotted to a door today — by ANY method (Slot Trailer modal, double-click
+  // empty door, Expected Trailers quick-slot, etc.) — so we don't manufacture a
+  // duplicate "Not Yet Arrived" placeholder for a carrier that's already parked.
+  // Safe to simply ADD existingCount + arrivedCounts here (rather than take the
+  // max) because consumeExpectedRow() removes a matching placeholder row the
+  // moment any slot action fulfills it — so a still-pending row and an
+  // already-arrived trailer can never represent the same physical trailer.
+  const arrivedCounts = getTodayArrivedCounts();
   if (!fd.ltl) fd.ltl = [];
   fd.carriers.forEach(c => {
     if (EXCLUDE_FROM_EXPECTED.has(c.name)) return;
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
     const existingCount = fd.ltl.filter(r => r.carrier === c.name).length;
-    for (let i = existingCount; i < adjTrailers; i++) {
+    const alreadyAccountedFor = existingCount + (arrivedCounts[c.name] || 0);
+    for (let i = alreadyAccountedFor; i < adjTrailers; i++) {
       fd.ltl.push({ carrier: c.name, time: '', trailerNum: '', notes: '' });
     }
   });
@@ -5562,14 +5914,39 @@ function resetTodayForecast() {
 // list for today. Only trailers/history slotted via the expected-list flow
 // (double-click → Quick Slot / Did Not Receive) count — manually slotting a
 // carrier through "Slot LTL Trailer" does NOT consume an expected slot.
+// Counts, per carrier, how many trailers were slotted TODAY — regardless of which
+// method was used to slot them (Expected Trailers quick-slot, the regular Slot
+// Trailer modal, the double-click empty-door modal, etc.). This is deliberately
+// method-agnostic: it used to only count trailers slotted via the Expected
+// Trailers flow (t.slottedFromExpected), which let a trailer slotted any other
+// way "hide" from this count — so if that carrier was also expected that day,
+// Load to Expected would still generate a placeholder row for it, producing a
+// duplicate entry even though the real trailer was already on a door.
+// Removes ONE still-pending Expected Trailers placeholder row for this carrier
+// from today's forecast, if one exists — called right after a trailer for that
+// carrier gets slotted, by ANY method. This keeps fd.ltl an accurate list of
+// only genuinely-unfulfilled expected trailers, so it never overlaps with the
+// "trailers already on a door today" count used elsewhere — which is what
+// makes it safe to simply ADD those two counts together without risk of
+// double-counting the same physical trailer in both places.
+function consumeExpectedRow(carrierName) {
+  if (!carrierName) return;
+  const fd = state.forecast[todayStr()];
+  if (!fd || !fd.ltl) return;
+  const idx = fd.ltl.findIndex(r => r.carrier === carrierName);
+  if (idx === -1) return;
+  fd.ltl.splice(idx, 1);
+  saveForecastToFirebase(todayStr());
+}
+
 function getTodayArrivedCounts() {
   const today = todayStr();
   const arrivedCounts = {};
-  state.history.filter(h => h.date === today && h.slottedFromExpected).forEach(h => {
+  state.history.filter(h => h.date === today).forEach(h => {
     arrivedCounts[h.carrier] = (arrivedCounts[h.carrier] || 0) + 1;
   });
   Object.values(state.trailers).forEach(t => {
-    if (!t.slottedFromExpected) return;
+    if (!t.carrier) return;
     if (!t.arrival) { arrivedCounts[t.carrier] = (arrivedCounts[t.carrier] || 0) + 1; return; }
     const d = parseFlexDate(t.arrival);
     if (d) {
@@ -5586,30 +5963,19 @@ function renderExpectedTrailers() {
   renderFutureDeliveries();
   const today = todayStr();
   const fd = state.forecast[today] || { ltl: [], carriers: [] };
-  const arrivedCounts = getTodayArrivedCounts();
 
   // Name normalization map for display
   const nameNorm = {'T-Force Freight':'TForce','ADP-Craig':'ADP Craig'};
 
-  let rows = (fd.ltl || []).filter(r => r.carrier).map((r, i) => ({ ...r, trailerIndex: i }));
+  // fd.ltl only ever contains genuinely-unfulfilled rows now — consumeExpectedRow()
+  // removes a row the instant any slotting method fulfills it, for that carrier —
+  // so no further "already arrived" filtering is needed here.
+  const pendingRows = (fd.ltl || []).filter(r => r.carrier).map((r, i) => ({ ...r, trailerIndex: i }));
 
   const tbody = document.getElementById('expected-tbody');
   const empty = document.getElementById('expected-empty');
   if (!tbody) return;
   tbody.innerHTML = '';
-  if (!rows.length) {
-    empty.style.display = 'block';
-    tbody.closest('table').style.display = 'none';
-    return;
-  }
-  // Only show rows that haven't arrived yet
-  const usedCounts = {};
-  const pendingRows = rows.filter(r => {
-    const used = usedCounts[r.carrier] || 0;
-    usedCounts[r.carrier] = used + 1;
-    return used >= (arrivedCounts[r.carrier] || 0);
-  });
-
   if (!pendingRows.length) {
     empty.style.display = 'block';
     tbody.closest('table').style.display = 'none';
@@ -5682,6 +6048,7 @@ function markDidNotReceive() {
   state.history.push(rec);
   state.completedToday.push(rec);
   saveHistoryRecordToFirebase(rec);
+  consumeExpectedRow(carrierName);
   closeModal('modal-quick-slot');
   saveState();
   renderDoors();
@@ -5710,6 +6077,7 @@ function slotFromExpected() {
     slottedBy: (window._currentUser || 'unknown').toUpperCase()
   };
   closeModal('modal-quick-slot');
+  consumeExpectedRow(carrierName);
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers();
   toast(`${carrierName} slotted at Door ${state.doors.find(d => d.id === doorId)?.num}`);
@@ -5756,17 +6124,12 @@ function renderOutlookTables() {
   const today = todayStr();
   const tdCss = 'padding:6px 8px;font-size:12px;color:#000;border-bottom:1px solid #d4ead8;';
 
-  // Today's table — hide rows for carriers already slotted from the expected
-  // list, same logic as the Expected Trailers table, so the two stay in sync.
+  // Today's table — _outlookRows is a snapshot of fd.ltl, which now only ever
+  // contains genuinely-unfulfilled rows (consumeExpectedRow() removes a row the
+  // instant any slotting method fulfills it), so no further filtering is needed.
   const todayTbody = document.getElementById('outlook-today-tbody');
   todayTbody.innerHTML = '';
-  const arrivedCounts = getTodayArrivedCounts();
-  const usedCounts = {};
-  const todayRows = window._outlookRows.filter(r => !r.date || r.date <= today).filter(r => {
-    const used = usedCounts[r.carrier] || 0;
-    usedCounts[r.carrier] = used + 1;
-    return used >= (arrivedCounts[r.carrier] || 0);
-  });
+  const todayRows = window._outlookRows.filter(r => !r.date || r.date <= today);
   if (todayRows.length === 0) {
     todayTbody.innerHTML = `<tr><td colspan="5" style="${tdCss}color:#4a7a5a;font-style:italic;">No trailers added yet</td></tr>`;
   } else {
