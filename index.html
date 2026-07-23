@@ -1369,6 +1369,7 @@
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Added By</th>
             <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
           </tr></thead>
           <tbody id="outlook-today-tbody"></tbody>
@@ -1384,6 +1385,7 @@
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
             <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Added By</th>
             <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
           </tr></thead>
           <tbody id="outlook-future-tbody"></tbody>
@@ -5890,7 +5892,7 @@ function syncForecastToLTL(fd, dateKey) {
     const existingCount = fd.ltl.filter(r => r.carrier === c.name).length;
     const alreadyAccountedFor = existingCount + (arrivedCounts[c.name] || 0);
     for (let i = alreadyAccountedFor; i < adjTrailers; i++) {
-      fd.ltl.push({ carrier: c.name, time: '', trailerNum: '', notes: '' });
+      fd.ltl.push({ carrier: c.name, time: '', trailerNum: '', notes: '', addedBy: `Load to Expected (${(window._currentUser || 'unknown').toUpperCase()})` });
     }
   });
 }
@@ -6541,7 +6543,7 @@ function renderOutlookTables() {
   todayTbody.innerHTML = '';
   const todayRows = window._outlookRows.filter(r => !r.date || r.date <= today);
   if (todayRows.length === 0) {
-    todayTbody.innerHTML = `<tr><td colspan="5" style="${tdCss}color:#4a7a5a;font-style:italic;">No trailers added yet</td></tr>`;
+    todayTbody.innerHTML = `<tr><td colspan="6" style="${tdCss}color:#4a7a5a;font-style:italic;">No trailers added yet</td></tr>`;
   } else {
     todayRows.forEach((row, i) => {
       const globalIdx = window._outlookRows.indexOf(row);
@@ -6551,6 +6553,7 @@ function renderOutlookTables() {
         <td style="${tdCss}">${row.trailerNum||'—'}</td>
         <td style="${tdCss}">${row.time||'—'}</td>
         <td style="${tdCss}font-style:italic;">${row.notes||'—'}</td>
+        <td style="${tdCss}color:#4a7a5a;font-weight:600;">${row.addedBy||'—'}</td>
         <td style="padding:4px;"><button class="btn btn-red btn-sm" onclick="removeOutlookRow(${globalIdx})" style="font-size:11px;padding:2px 7px;">✕</button></td>
       `;
       todayTbody.appendChild(tr);
@@ -6570,6 +6573,7 @@ function renderOutlookTables() {
         <td style="${tdCss}">${dispDate}</td>
         <td style="${tdCss}font-weight:600;">${row.carrier||'—'}</td>
         <td style="${tdCss}">${row.trailerNum||'—'}</td>
+        <td style="${tdCss}color:#4a7a5a;font-weight:600;">${row.addedBy||'—'}</td>
         <td style="padding:4px;"><button class="btn btn-red btn-sm" onclick="removeOutlookFutureRow(${i})" style="font-size:11px;padding:2px 7px;">✕</button></td>
       `;
       futureTbody.appendChild(tr);
@@ -6585,7 +6589,7 @@ function addOutlookRowFromForm() {
   const notes = document.getElementById('outlook-form-notes').value;
   if (!carrier) { toast('Please select a carrier'); return; }
   const today = todayStr();
-  const row = { carrier, date, time, trailerNum, notes };
+  const row = { carrier, date, time, trailerNum, notes, addedBy: (window._currentUser || 'unknown').toUpperCase() };
   if (date > today) {
     window._outlookFutureRows.push(row);
   } else {
@@ -6599,7 +6603,7 @@ function addOutlookRowFromForm() {
 }
 
 function addOutlookRow() {
-  window._outlookRows.push({ carrier: '', time: '', trailerNum: '', type: 'DROP', notes: '', date: todayStr() });
+  window._outlookRows.push({ carrier: '', time: '', trailerNum: '', type: 'DROP', notes: '', date: todayStr(), addedBy: (window._currentUser || 'unknown').toUpperCase() });
   renderOutlookTables();
 }
 function removeOutlookRow(i) {
