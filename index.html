@@ -2916,6 +2916,15 @@ function initDashboardPanelDragReorder() {
 
       const onMove = ev => {
         const panels = Array.from(grid.querySelectorAll('.dash-chart-panel')).filter(p => p !== dragEl);
+        if (!panels.length) return;
+        // Dropping into blank grid space (below the last row, or above the
+        // first) has nothing nearby to snap to by distance alone — handle it
+        // explicitly as "move to the end" / "move to the start."
+        const minTop = Math.min(...panels.map(p => p.getBoundingClientRect().top));
+        const maxBottom = Math.max(...panels.map(p => p.getBoundingClientRect().bottom));
+        if (ev.clientY < minTop) { grid.insertBefore(dragEl, grid.firstChild); return; }
+        if (ev.clientY > maxBottom) { grid.appendChild(dragEl); return; }
+
         let closest = null, closestDist = Infinity;
         panels.forEach(p => {
           const r = p.getBoundingClientRect();
