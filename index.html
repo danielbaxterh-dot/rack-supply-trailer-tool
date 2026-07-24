@@ -1700,6 +1700,10 @@
       <div id="dash-chart-pie"></div>
     </div>
     <div class="dash-chart-panel">
+      <div class="dash-chart-title">Releases by Type — Drop vs Live</div>
+      <div id="dash-chart-type-pie"></div>
+    </div>
+    <div class="dash-chart-panel">
       <div class="dash-chart-title">Avg Secure → Release by Carrier</div>
       <div id="dash-chart-dwell"></div>
     </div>
@@ -1707,6 +1711,13 @@
       <div class="dash-chart-title">Sales Side Releases — PITT ×2 / XPO ×1</div>
       <div id="dash-salesside-body"></div>
     </div>
+  </div>
+
+  <div class="section-header-row" style="margin-top:18px;">
+    <h3 style="font-size:14px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Trailers Secured — Time of Day (6a–5p)</h3>
+  </div>
+  <div id="dash-hourly-wrap" style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;padding:14px 10px 6px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+    <div id="dash-chart-secured-hourly"></div>
   </div>
 
   <div class="section-header-row" style="margin-top:18px;">
@@ -2682,6 +2693,63 @@ function getReleasedBySecuredDay(dateKey, releasedList) {
   });
 }
 
+// Groups released trailers by their type field (DROP / LIVE) for the pie chart.
+function getReleasesByType(releasedList) {
+  const counts = {};
+  releasedList.forEach(r => {
+    const t = r.type || 'Unknown';
+    const label = t === 'DROP' ? 'Drop' : t === 'LIVE' ? 'Live' : t.charAt(0) + t.slice(1).toLowerCase();
+    counts[label] = (counts[label] || 0) + 1;
+  });
+  return counts;
+}
+
+// Buckets securedList (trailers secured/arrived that day) into hourly buckets
+// from 6a to 5p — the normal working window. Anything secured outside that
+// window isn't shown, matching the requested 6a–5p scope.
+function getSecuredByHourWindow(securedList) {
+  const startHour = 6, endHour = 17; // 6:00 AM through 5:00 PM inclusive
+  const buckets = [];
+  for (let h = startHour; h <= endHour; h++) {
+    const label = h === 12 ? '12p' : h < 12 ? `${h}a` : `${h - 12}p`;
+    buckets.push({ hour: h, label, value: 0 });
+  }
+  securedList.forEach(r => {
+    const d = parseFlexDate(r.arrival);
+    if (!d) return;
+    const bucket = buckets.find(b => b.hour === d.getHours());
+    if (bucket) bucket.value++;
+  });
+  return buckets.map(b => ({ label: b.label, value: b.value }));
+}
+
+// Line chart for a time-of-day distribution. Uses preserveAspectRatio="none"
+// with width:100% so it stretches to exactly match whatever container it's
+// placed in (here, the same width as the detail table below it) while keeping
+// a fixed pixel height, rather than letterboxing to preserve the viewBox ratio.
+function svgLineChart(entries, opts = {}) {
+  if (!entries.length) return `<div class="empty-state">No data</div>`;
+  const max = Math.max(1, ...entries.map(d => d.value));
+  const w = 900, h = 150, padL = 14, padR = 14, padT = 20, padB = 22;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const stepX = entries.length > 1 ? plotW / (entries.length - 1) : 0;
+  const color = opts.color || 'var(--blue)';
+  const points = entries.map((d, i) => ({
+    x: padL + i * stepX,
+    y: padT + plotH - (d.value / max) * plotH,
+    d
+  }));
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  let dots = '', labels = '', valueLabels = '';
+  points.forEach(p => {
+    dots += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="${color}"></circle>`;
+    if (p.d.value > 0) valueLabels += `<text x="${p.x.toFixed(1)}" y="${(p.y - 8).toFixed(1)}" text-anchor="middle" font-size="10" fill="#000" font-weight="700" font-family="Roboto Mono, monospace">${p.d.value}</text>`;
+    labels += `<text x="${p.x.toFixed(1)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="#000" font-family="Roboto Condensed, Roboto, sans-serif">${escHtml(p.d.label)}</text>`;
+  });
+  const baseline = `<line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="#ddd" stroke-width="1"></line>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" style="display:block;">${baseline}<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5"></path>${dots}${valueLabels}${labels}</svg>`;
+}
+
 // Sales Side (PITT x2 / XPO x1) release times for a given day. Today uses the
 // live in-memory state kept in sync by the realtime listener; any other day
 // is fetched directly from the salesside/{date} Firestore doc.
@@ -2738,6 +2806,8 @@ async function renderDashboard() {
   document.getElementById('dash-chart-pie').innerHTML = svgPieChart(releasedByCarrier);
   document.getElementById('dash-chart-dwell').innerHTML = svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) });
   document.getElementById('dash-chart-released-trend').innerHTML = svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey });
+  document.getElementById('dash-chart-type-pie').innerHTML = svgPieChart(getReleasesByType(releasedList));
+  document.getElementById('dash-chart-secured-hourly').innerHTML = svgLineChart(getSecuredByHourWindow(securedList), { color: 'var(--teal)' });
 
   const salesSideSlots = await getSalesSideForDate(dateKey);
   if (document.getElementById('dash-date').value === dateKey) renderDashSalesSide(salesSideSlots);
