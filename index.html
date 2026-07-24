@@ -867,6 +867,38 @@
     margin-bottom: 10px;
   }
   .dash-chart-panel .empty-state { padding: 10px 0; color: #444; }
+  .dash-chart-panel { position: relative; }
+  .dash-size-sm { grid-column: span 1; }
+  .dash-size-md { grid-column: span 2; }
+  .dash-size-lg { grid-column: 1 / -1; }
+  .dash-panel-resize-btn {
+    display: none;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #999;
+    border-radius: 6px;
+    background: #fff;
+    color: #000;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 2;
+  }
+  #dash-chart-grid.dash-layout-edit-active .dash-chart-panel {
+    cursor: grab;
+    outline: 2px dashed rgba(0,0,0,0.35);
+    outline-offset: 2px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #dash-chart-grid.dash-layout-edit-active .dash-panel-resize-btn { display: flex; touch-action: auto; }
+  .dash-panel-dragging { opacity: 0.5; cursor: grabbing; }
   .dash-detail-table { font-size: 9px; }
   .dash-detail-table th { font-size: 8px; padding: 4.5px 5px; }
   .dash-detail-table td { padding: 4px 5px; }
@@ -1663,9 +1695,13 @@
       <button class="btn btn-gray btn-sm" onclick="shiftDashDate(1)">Next ▶</button>
       <button class="btn btn-teal btn-sm" onclick="dashJumpToday()">Today</button>
     </div>
-    <button class="btn btn-gray btn-sm" onclick="exportDashboardCSV()">Export CSV</button>
+    <div class="flex-row">
+      <button id="dash-layout-toggle" class="btn btn-gray btn-sm" onclick="toggleDashboardLayoutEdit()">⠿ Edit Layout</button>
+      <button class="btn btn-gray btn-sm" onclick="exportDashboardCSV()">Export CSV</button>
+    </div>
   </div>
-  <div style="font-size:13px;font-weight:700;color:#000;margin:0 0 12px;" id="dash-date-label"></div>
+  <div style="font-size:13px;font-weight:700;color:#000;margin:0 0 4px;" id="dash-date-label"></div>
+  <div id="dash-layout-hint" style="display:none;font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:8px;">Drag a tile to reorder. Tap ⤢ on a tile to cycle its size (Small / Medium / Large).</div>
 
   <div class="stat-row">
     <div class="dash-stat-card">
@@ -1686,38 +1722,42 @@
     </div>
   </div>
 
-  <div class="dash-chart-grid">
-    <div class="dash-chart-panel">
+  <div class="dash-chart-grid" id="dash-chart-grid">
+    <div class="dash-chart-panel dash-size-sm" data-panel="secured-carrier">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('secured-carrier')" title="Resize">⤢</button>
       <div class="dash-chart-title">Trailers Secured by Carrier</div>
       <div id="dash-chart-secured"></div>
     </div>
-    <div class="dash-chart-panel">
+    <div class="dash-chart-panel dash-size-sm" data-panel="released-carrier">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('released-carrier')" title="Resize">⤢</button>
       <div class="dash-chart-title">Trailers Released by Carrier</div>
       <div id="dash-chart-released"></div>
     </div>
-    <div class="dash-chart-panel">
+    <div class="dash-chart-panel dash-size-sm" data-panel="released-pie">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('released-pie')" title="Resize">⤢</button>
       <div class="dash-chart-title">Released Share by Carrier</div>
       <div id="dash-chart-pie"></div>
     </div>
-    <div class="dash-chart-panel">
+    <div class="dash-chart-panel dash-size-sm" data-panel="type-pie">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('type-pie')" title="Resize">⤢</button>
       <div class="dash-chart-title">Releases by Type — Drop vs Live</div>
       <div id="dash-chart-type-pie"></div>
     </div>
-    <div style="grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
-      <div class="dash-chart-panel">
-        <div class="dash-chart-title">Avg Secure → Release by Carrier</div>
-        <div id="dash-chart-dwell"></div>
-      </div>
-      <div class="dash-chart-panel">
-        <div class="dash-chart-title">Sales Side Releases — PITT ×2 / XPO ×1</div>
-        <div id="dash-salesside-body"></div>
-      </div>
+    <div class="dash-chart-panel dash-size-sm" data-panel="dwell-carrier">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('dwell-carrier')" title="Resize">⤢</button>
+      <div class="dash-chart-title">Avg Secure → Release by Carrier</div>
+      <div id="dash-chart-dwell"></div>
     </div>
-  </div>
-
-  <div id="dash-hourly-wrap" style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;padding:12px 10px 6px;margin-top:18px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
-    <div style="font-size:14px;color:#000;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:0 4px 8px;">Trailers Secured — Time of Day (6a–5p)</div>
-    <div id="dash-chart-secured-hourly"></div>
+    <div class="dash-chart-panel dash-size-sm" data-panel="sales-side">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('sales-side')" title="Resize">⤢</button>
+      <div class="dash-chart-title">Sales Side Releases — PITT ×2 / XPO ×1</div>
+      <div id="dash-salesside-body"></div>
+    </div>
+    <div class="dash-chart-panel dash-size-lg" data-panel="secured-hourly">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('secured-hourly')" title="Resize">⤢</button>
+      <div class="dash-chart-title">Trailers Secured — Time of Day (6a–5p)</div>
+      <div id="dash-chart-secured-hourly"></div>
+    </div>
   </div>
 
   <div class="section-header-row" style="margin-top:18px;">
@@ -2760,6 +2800,148 @@ function svgLineChart(entries, opts = {}) {
   return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="display:block;max-width:100%;">${baseline}<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2"></path>${dots}${valueLabels}${labels}</svg>`;
 }
 
+// Draws (or redraws) the hourly line chart at its container's *current*
+// pixel width. Needs to be callable on its own — not just from renderDashboard
+// — because resizing that tile's panel in Edit Layout mode changes its
+// container width without changing any underlying data.
+function renderSecuredHourlyChart(securedList) {
+  const hourlyContainer = document.getElementById('dash-chart-secured-hourly');
+  if (!hourlyContainer) return;
+  const containerWidth = hourlyContainer.clientWidth || 900;
+  hourlyContainer.innerHTML = svgLineChart(getSecuredByHalfHourWindow(securedList), { color: '#000', containerWidth });
+}
+
+// ===================== DASHBOARD LAYOUT (drag to reorder, tap to resize) =====================
+let dashboardLayoutEditMode = false;
+let _unsubDashboardLayout = null;
+// Default order + size for each Dashboard chart tile
+let dashboardLayout = [
+  { id: 'secured-carrier', size: 'sm' },
+  { id: 'released-carrier', size: 'sm' },
+  { id: 'released-pie', size: 'sm' },
+  { id: 'type-pie', size: 'sm' },
+  { id: 'dwell-carrier', size: 'sm' },
+  { id: 'sales-side', size: 'sm' },
+  { id: 'secured-hourly', size: 'lg' }
+];
+
+function applyDashboardLayout(layout) {
+  const grid = document.getElementById('dash-chart-grid');
+  if (!grid || !Array.isArray(layout) || !layout.length) return;
+  const panels = Array.from(grid.querySelectorAll('.dash-chart-panel'));
+  const byId = {};
+  panels.forEach(p => { byId[p.dataset.panel] = p; });
+  layout.forEach(entry => {
+    const el = byId[entry.id];
+    if (!el) return;
+    grid.appendChild(el);
+    ['dash-size-sm', 'dash-size-md', 'dash-size-lg'].forEach(s => el.classList.remove(s));
+    el.classList.add(`dash-size-${entry.size || 'sm'}`);
+  });
+  // Anything not listed (e.g. a chart tile added in a future update) keeps
+  // its default position/size at the end, so it doesn't just disappear.
+  panels.forEach(p => { if (!layout.some(e => e.id === p.dataset.panel)) grid.appendChild(p); });
+  // A resize (especially to/from "lg") can change the hourly chart's
+  // container width even without a data change, so redraw it to match.
+  if (window._dashSecuredListCache) renderSecuredHourlyChart(window._dashSecuredListCache);
+}
+
+async function saveDashboardLayoutToFirebase(layout) {
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
+  try {
+    await fb().setDoc(fb().doc(getDb(), 'config', 'dashboardLayout'), { layout, updatedAt: new Date().toISOString() });
+  } catch (e) { console.error('[DashboardLayout] save failed', e); }
+}
+
+function subscribeDashboardLayout() {
+  if (!window._fbReady || !getDb()) return;
+  if (_unsubDashboardLayout) _unsubDashboardLayout();
+  _unsubDashboardLayout = fb().onSnapshot(fb().doc(getDb(), 'config', 'dashboardLayout'), snap => {
+    if (snap.exists() && Array.isArray(snap.data().layout) && snap.data().layout.length) {
+      dashboardLayout = snap.data().layout;
+    }
+    if (!dashboardLayoutEditMode) applyDashboardLayout(dashboardLayout);
+  }, err => console.error('[DashboardLayout] listener error', err));
+}
+
+function toggleDashboardLayoutEdit() {
+  dashboardLayoutEditMode = !dashboardLayoutEditMode;
+  const grid = document.getElementById('dash-chart-grid');
+  const btn = document.getElementById('dash-layout-toggle');
+  const hint = document.getElementById('dash-layout-hint');
+  if (grid) grid.classList.toggle('dash-layout-edit-active', dashboardLayoutEditMode);
+  if (hint) hint.style.display = dashboardLayoutEditMode ? 'block' : 'none';
+  if (dashboardLayoutEditMode) {
+    if (btn) { btn.textContent = '✓ Done'; btn.classList.remove('btn-gray'); btn.classList.add('btn-teal'); }
+    initDashboardPanelDragReorder();
+  } else {
+    if (btn) { btn.textContent = '⠿ Edit Layout'; btn.classList.remove('btn-teal'); btn.classList.add('btn-gray'); }
+    if (grid) {
+      const panels = Array.from(grid.querySelectorAll('.dash-chart-panel'));
+      const newLayout = panels.map(p => {
+        const sizeClass = ['dash-size-sm', 'dash-size-md', 'dash-size-lg'].find(s => p.classList.contains(s)) || 'dash-size-sm';
+        return { id: p.dataset.panel, size: sizeClass.replace('dash-size-', '') };
+      });
+      dashboardLayout = newLayout;
+      saveDashboardLayoutToFirebase(newLayout);
+    }
+    toast('Dashboard layout saved ✓');
+  }
+}
+
+function cycleDashboardPanelSize(panelId) {
+  const el = document.querySelector(`.dash-chart-panel[data-panel="${panelId}"]`);
+  if (!el) return;
+  const sizes = ['dash-size-sm', 'dash-size-md', 'dash-size-lg'];
+  const cur = sizes.find(s => el.classList.contains(s)) || 'dash-size-sm';
+  const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length];
+  sizes.forEach(s => el.classList.remove(s));
+  el.classList.add(next);
+  if (panelId === 'secured-hourly' && window._dashSecuredListCache) renderSecuredHourlyChart(window._dashSecuredListCache);
+}
+
+// Pointer Events, nearest-panel + before/after-of-center swap — the same
+// technique used for the tab bar's drag-to-reorder, generalized to work in a
+// wrapping grid (not just a single row) by picking the closest panel by
+// straight-line distance instead of assuming everything sits on one axis.
+function initDashboardPanelDragReorder() {
+  const grid = document.getElementById('dash-chart-grid');
+  if (!grid) return;
+  grid.querySelectorAll('.dash-chart-panel').forEach(dragEl => {
+    dragEl.onpointerdown = e => {
+      if (!dashboardLayoutEditMode) return;
+      if (e.target.closest('.dash-panel-resize-btn')) return; // let the resize button handle its own tap
+      e.preventDefault();
+      dragEl.classList.add('dash-panel-dragging');
+
+      const onMove = ev => {
+        const panels = Array.from(grid.querySelectorAll('.dash-chart-panel')).filter(p => p !== dragEl);
+        let closest = null, closestDist = Infinity;
+        panels.forEach(p => {
+          const r = p.getBoundingClientRect();
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const dist = Math.hypot(ev.clientX - cx, ev.clientY - cy);
+          if (dist < closestDist) { closestDist = dist; closest = p; }
+        });
+        if (closest) {
+          const rect = closest.getBoundingClientRect();
+          const before = ev.clientX < rect.left + rect.width / 2;
+          grid.insertBefore(dragEl, before ? closest : closest.nextSibling);
+        }
+      };
+      const onUp = () => {
+        dragEl.classList.remove('dash-panel-dragging');
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
+      };
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+    };
+  });
+}
+
 // Sales Side (PITT x2 / XPO x1) release times for a given day. Today uses the
 // live in-memory state kept in sync by the realtime listener; any other day
 // is fetched directly from the salesside/{date} Firestore doc.
@@ -2817,11 +2999,8 @@ async function renderDashboard() {
   document.getElementById('dash-chart-dwell').innerHTML = svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) });
   document.getElementById('dash-chart-released-trend').innerHTML = svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey });
   document.getElementById('dash-chart-type-pie').innerHTML = svgPieChart(getReleasesByType(releasedList));
-  {
-    const hourlyContainer = document.getElementById('dash-chart-secured-hourly');
-    const containerWidth = hourlyContainer ? hourlyContainer.clientWidth : 900;
-    hourlyContainer.innerHTML = svgLineChart(getSecuredByHalfHourWindow(securedList), { color: '#000', containerWidth });
-  }
+  window._dashSecuredListCache = securedList;
+  renderSecuredHourlyChart(securedList);
 
   const salesSideSlots = await getSalesSideForDate(dateKey);
   if (document.getElementById('dash-date').value === dateKey) renderDashSalesSide(salesSideSlots);
@@ -7297,6 +7476,7 @@ window._onFirebaseReady = async () => {
   setConnectionStatus('live');
   await loadSalesSideFromFirebase();
   subscribeTabOrder();
+  subscribeDashboardLayout();
   // If user is already logged in, show the app
   if (window._currentUser) {
     document.getElementById('fb-loading')?.remove();
