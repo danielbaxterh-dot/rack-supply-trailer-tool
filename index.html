@@ -1713,10 +1713,8 @@
     </div>
   </div>
 
-  <div class="section-header-row" style="margin-top:18px;">
-    <h3 style="font-size:14px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Trailers Secured — Time of Day (6a–5p)</h3>
-  </div>
-  <div id="dash-hourly-wrap" style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;padding:14px 10px 6px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+  <div id="dash-hourly-wrap" style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;padding:12px 10px 6px;margin-top:18px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+    <div style="font-size:14px;color:#000;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:0 4px 8px;">Trailers Secured — Time of Day (6a–5p)</div>
     <div id="dash-chart-secured-hourly"></div>
   </div>
 
@@ -2704,36 +2702,46 @@ function getReleasesByType(releasedList) {
   return counts;
 }
 
-// Buckets securedList (trailers secured/arrived that day) into hourly buckets
-// from 6a to 5p — the normal working window. Anything secured outside that
-// window isn't shown, matching the requested 6a–5p scope.
-function getSecuredByHourWindow(securedList) {
+// Buckets securedList (trailers secured/arrived that day) into 30-minute
+// buckets from 6a to 5p — the normal working window. Anything secured outside
+// that window isn't shown, matching the requested 6a–5p scope. Axis labels
+// only print on the whole-hour marks (half-hour points still plot, just
+// unlabeled) so the x-axis doesn't get crowded with 23 overlapping labels.
+function getSecuredByHalfHourWindow(securedList) {
   const startHour = 6, endHour = 17; // 6:00 AM through 5:00 PM inclusive
   const buckets = [];
   for (let h = startHour; h <= endHour; h++) {
-    const label = h === 12 ? '12p' : h < 12 ? `${h}a` : `${h - 12}p`;
-    buckets.push({ hour: h, label, value: 0 });
+    for (const m of [0, 30]) {
+      if (h === endHour && m === 30) continue; // stop exactly at 5:00p
+      const hourLabel = h === 12 ? '12p' : h < 12 ? `${h}a` : `${h - 12}p`;
+      buckets.push({ hour: h, min: m, label: m === 0 ? hourLabel : '', value: 0 });
+    }
   }
   securedList.forEach(r => {
     const d = parseFlexDate(r.arrival);
     if (!d) return;
-    const bucket = buckets.find(b => b.hour === d.getHours());
+    const h = d.getHours(), bucketMin = d.getMinutes() < 30 ? 0 : 30;
+    const bucket = buckets.find(b => b.hour === h && b.min === bucketMin);
     if (bucket) bucket.value++;
   });
   return buckets.map(b => ({ label: b.label, value: b.value }));
 }
 
-// Line chart for a time-of-day distribution. Uses preserveAspectRatio="none"
-// with width:100% so it stretches to exactly match whatever container it's
-// placed in (here, the same width as the detail table below it) while keeping
-// a fixed pixel height, rather than letterboxing to preserve the viewBox ratio.
+// Line chart for a time-of-day distribution. To avoid distorting circles/text
+// (which happened with preserveAspectRatio="none" stretching X and Y by
+// different factors), this renders at an EXACT pixel width passed in via
+// opts.containerWidth — 1 SVG unit = 1 real pixel on both axes, so nothing
+// gets skewed, while still visually matching the width of whatever it's
+// placed next to (the container width is measured in JS right before calling
+// this, from the actual rendered element).
 function svgLineChart(entries, opts = {}) {
   if (!entries.length) return `<div class="empty-state">No data</div>`;
   const max = Math.max(1, ...entries.map(d => d.value));
-  const w = 900, h = 150, padL = 14, padR = 14, padT = 20, padB = 22;
+  const w = Math.max(300, Math.round(opts.containerWidth || 900));
+  const h = 150, padL = 14, padR = 14, padT = 20, padB = 22;
   const plotW = w - padL - padR, plotH = h - padT - padB;
   const stepX = entries.length > 1 ? plotW / (entries.length - 1) : 0;
-  const color = opts.color || 'var(--blue)';
+  const color = opts.color || '#000';
   const points = entries.map((d, i) => ({
     x: padL + i * stepX,
     y: padT + plotH - (d.value / max) * plotH,
@@ -2742,12 +2750,12 @@ function svgLineChart(entries, opts = {}) {
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   let dots = '', labels = '', valueLabels = '';
   points.forEach(p => {
-    dots += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="${color}"></circle>`;
-    if (p.d.value > 0) valueLabels += `<text x="${p.x.toFixed(1)}" y="${(p.y - 8).toFixed(1)}" text-anchor="middle" font-size="10" fill="#000" font-weight="700" font-family="Roboto Mono, monospace">${p.d.value}</text>`;
-    labels += `<text x="${p.x.toFixed(1)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="#000" font-family="Roboto Condensed, Roboto, sans-serif">${escHtml(p.d.label)}</text>`;
+    dots += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${color}"></circle>`;
+    if (p.d.value > 0) valueLabels += `<text x="${p.x.toFixed(1)}" y="${(p.y - 7).toFixed(1)}" text-anchor="middle" font-size="10" fill="#000" font-weight="700" font-family="Roboto Mono, monospace">${p.d.value}</text>`;
+    if (p.d.label) labels += `<text x="${p.x.toFixed(1)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="#000" font-family="Roboto Condensed, Roboto, sans-serif">${escHtml(p.d.label)}</text>`;
   });
   const baseline = `<line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="#ddd" stroke-width="1"></line>`;
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" style="display:block;">${baseline}<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5"></path>${dots}${valueLabels}${labels}</svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="display:block;max-width:100%;">${baseline}<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2"></path>${dots}${valueLabels}${labels}</svg>`;
 }
 
 // Sales Side (PITT x2 / XPO x1) release times for a given day. Today uses the
@@ -2807,7 +2815,11 @@ async function renderDashboard() {
   document.getElementById('dash-chart-dwell').innerHTML = svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) });
   document.getElementById('dash-chart-released-trend').innerHTML = svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey });
   document.getElementById('dash-chart-type-pie').innerHTML = svgPieChart(getReleasesByType(releasedList));
-  document.getElementById('dash-chart-secured-hourly').innerHTML = svgLineChart(getSecuredByHourWindow(securedList), { color: 'var(--teal)' });
+  {
+    const hourlyContainer = document.getElementById('dash-chart-secured-hourly');
+    const containerWidth = hourlyContainer ? hourlyContainer.clientWidth : 900;
+    hourlyContainer.innerHTML = svgLineChart(getSecuredByHalfHourWindow(securedList), { color: '#000', containerWidth });
+  }
 
   const salesSideSlots = await getSalesSideForDate(dateKey);
   if (document.getElementById('dash-date').value === dateKey) renderDashSalesSide(salesSideSlots);
