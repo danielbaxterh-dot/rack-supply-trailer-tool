@@ -5388,7 +5388,8 @@ function bfSkidsRemainingForTrailer(t) {
 
 function isExcludedFromOpUpdates(carrierName) {
   if (!carrierName) return true;
-  const EXCLUDED_NAMES = new Set(['Junk Skids', 'Bin Freight']);
+  if (carrierName === 'Bin Freight') return false;
+  const EXCLUDED_NAMES = new Set(['Junk Skids']);
   if (EXCLUDED_NAMES.has(carrierName)) return true;
   const carrierObj = state.carriers.find(c => c.name === carrierName);
   if (carrierObj && (carrierObj.type === 'OTHER' || carrierObj.type === 'LIVE')) return true;
@@ -5400,7 +5401,8 @@ function isExcludedFromOpUpdates(carrierName) {
 // even though they drop off the table once actually slotted at a door.
 function isExcludedFromOpUpdatesPending(carrierName) {
   if (!carrierName) return true;
-  const EXCLUDED_NAMES = new Set(['Junk Skids', 'Bin Freight']);
+  if (carrierName === 'Bin Freight') return false;
+  const EXCLUDED_NAMES = new Set(['Junk Skids']);
   if (EXCLUDED_NAMES.has(carrierName)) return true;
   const carrierObj = state.carriers.find(c => c.name === carrierName);
   if (carrierObj && carrierObj.type === 'OTHER') return true;
@@ -5483,24 +5485,6 @@ function renderOpUpdates() {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  // TEMPORARY DIAGNOSTIC — remove once the CFF door issue is resolved.
-  // Dumps the raw stored fields for any door that looks CFF-related anywhere
-  // (id, num, name, or type), so we can see exactly what's actually stored.
-  let dbg = document.getElementById('opu-cff-debug');
-  if (!dbg) {
-    dbg = document.createElement('div');
-    dbg.id = 'opu-cff-debug';
-    dbg.style.cssText = 'font-family:monospace;font-size:11px;background:#fffbe6;border:1px solid #e0c060;border-radius:6px;padding:8px 10px;margin-bottom:10px;white-space:pre-wrap;color:#000;';
-    tbody.closest('table').parentElement.insertBefore(dbg, tbody.closest('table'));
-  }
-  const cffLike = state.doors.filter(d =>
-    /cff/i.test(d.id || '') || /cff/i.test(d.num || '') || /cff/i.test(d.name || '') || /cff/i.test(d.type || '')
-  );
-  dbg.textContent = 'DEBUG — doors matching "CFF" anywhere (' + cffLike.length + ' found):\n' +
-    (cffLike.length
-      ? cffLike.map(d => `id="${d.id}" num="${d.num}" name="${d.name || ''}" type="${d.type}" active=${d.active}`).join('\n')
-      : '(none found in state.doors at all)');
-
   const doorList = getOpUpdatesDoorList();
   const pendingRows = getPendingExpectedOpRows();
   const totalRow = document.getElementById('opu-total-row');
@@ -5518,6 +5502,8 @@ function renderOpUpdates() {
   doorList.forEach(door => {
     const t = state.trailers[door.id];
     const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+    const isYardDoor = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD') || /CFF/i.test(door.num) || /CFF/i.test(door.id) || (door.name && /CFF/i.test(door.name));
+    if (!occupied && isYardDoor) return; // skip empty yard/CFF doors entirely
     const tr = document.createElement('tr');
     tr.id = `opu-row-${door.id}`;
     if (!occupied) {
