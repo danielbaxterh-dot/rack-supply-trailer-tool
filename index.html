@@ -5574,10 +5574,18 @@ function printOpUpdatesWalkSheet() {
   const trailerRows = getOpUpdatesDoorList()
     .filter(door => {
       const t = state.trailers[door.id];
-      return !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+      const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+      if (occupied) return true;
+      // Empty doors: show regular 30-48 doors, but skip empty yard/CFF doors — same as the on-screen table
+      const isYardDoor = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD') || /CFF/i.test(door.num) || /CFF/i.test(door.id) || (door.name && /CFF/i.test(door.name));
+      return !isYardDoor;
     })
     .map(door => {
       const t = state.trailers[door.id];
+      const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+      if (!occupied) {
+        return { door: door.num, carrier: 'Empty', sub: '', remaining: '', bfRemaining: '' };
+      }
       const rem = linesRemainingForTrailer(t);
       const bfRem = bfSkidsRemainingForTrailer(t);
       return {
@@ -5603,13 +5611,17 @@ function printOpUpdatesWalkSheet() {
     }));
   const floorLocations = getFloorLocations();
 
-  const rowHtml = r => `
+  const rowHtml = r => {
+    const isEmpty = r.carrier === 'Empty';
+    const style = isEmpty ? 'color:#aaa;' : '';
+    return `
       <tr>
-        <td>${escHtml(String(r.door))}</td>
-        <td>${escHtml(r.carrier)}${r.sub ? `<br><span style="font-size:8px;color:#666;">${escHtml(r.sub)}</span>` : ''}</td>
-        <td style="text-align:center;">${r.remaining}</td>
-        <td style="text-align:center;">${r.bfRemaining}</td>
+        <td style="${style}">${escHtml(String(r.door))}</td>
+        <td style="${style}">${escHtml(r.carrier)}${r.sub ? `<br><span style="font-size:8px;color:#666;">${escHtml(r.sub)}</span>` : ''}</td>
+        <td style="text-align:center;${style}">${r.remaining}</td>
+        <td style="text-align:center;${style}">${r.bfRemaining}</td>
       </tr>`;
+  };
 
   // Split into two side-by-side tables to save vertical space on the printed page
   const half = Math.ceil(trailerRows.length / 2);
