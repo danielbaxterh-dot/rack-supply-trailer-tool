@@ -5583,6 +5583,7 @@ function printOpUpdatesWalkSheet() {
       return {
         door: door.num,
         carrier: t.carrier,
+        sub: t.trailerNum ? `#${t.trailerNum}` : '',
         remaining: (t.linesOverride !== null && t.linesOverride !== undefined && t.linesOverride !== '') || t.trailerEmpty ? rem : '',
         bfRemaining: (t.bfOverride !== null && t.bfOverride !== undefined && t.bfOverride !== '') || t.trailerEmpty ? bfRem : ''
       };
@@ -5591,22 +5592,31 @@ function printOpUpdatesWalkSheet() {
       const r = p.row;
       const rem = linesRemainingForTrailer(r);
       const bfRem = bfSkidsRemainingForTrailer(r);
+      const subParts = [r.time || '', r.trailerNum ? `#${r.trailerNum}` : ''].filter(Boolean);
       return {
         door: 'Not Yet Arrived',
         carrier: r.carrier,
+        sub: subParts.join(' \u00b7 '),
         remaining: (r.linesOverride !== null && r.linesOverride !== undefined && r.linesOverride !== '') || r.trailerEmpty ? rem : '',
         bfRemaining: (r.bfOverride !== null && r.bfOverride !== undefined && r.bfOverride !== '') || r.trailerEmpty ? bfRem : ''
       };
     }));
   const floorLocations = getFloorLocations();
 
-  const trailerRowsHtml = trailerRows.length ? trailerRows.map(r => `
+  const rowHtml = r => `
       <tr>
         <td>${escHtml(String(r.door))}</td>
-        <td>${escHtml(r.carrier)}</td>
+        <td>${escHtml(r.carrier)}${r.sub ? `<br><span style="font-size:8px;color:#666;">${escHtml(r.sub)}</span>` : ''}</td>
         <td style="text-align:center;">${r.remaining}</td>
         <td style="text-align:center;">${r.bfRemaining}</td>
-      </tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:#888;">No trailers currently slotted or expected</td></tr>`;
+      </tr>`;
+
+  // Split into two side-by-side tables to save vertical space on the printed page
+  const half = Math.ceil(trailerRows.length / 2);
+  const leftRows = trailerRows.slice(0, half);
+  const rightRows = trailerRows.slice(half);
+  const leftHtml = leftRows.length ? leftRows.map(rowHtml).join('') : `<tr><td colspan="4" style="text-align:center;color:#888;">No trailers currently slotted or expected</td></tr>`;
+  const rightHtml = rightRows.length ? rightRows.map(rowHtml).join('') : '';
 
   const floorRowsHtml = floorLocations.length ? floorLocations.map(loc => `
       <tr>
@@ -5616,6 +5626,13 @@ function printOpUpdatesWalkSheet() {
       </tr>`).join('') : `<tr><td colspan="3" style="text-align:center;color:#888;">No floor locations configured</td></tr>`;
 
   const stamp = new Date().toLocaleString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+  const trailersTableHtml = (rowsHtml) => `
+    <table class="trailers-table">
+      <colgroup><col class="col-door"><col class="col-label"><col class="col-narrow"><col class="col-narrow"></colgroup>
+      <thead><tr><th>Door</th><th>Carrier</th><th>Lines</th><th>BF Skids</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Operational Updates — Floor Walk Sheet</title>
 <style>
@@ -5637,9 +5654,11 @@ function printOpUpdatesWalkSheet() {
   td:not(:first-child), th:not(:first-child) { text-align: center; }
   thead { display: table-header-group; }
   tr { page-break-inside: avoid; }
-  #trailers-table col.col-door { width: 18%; }
-  #trailers-table col.col-label { width: 42%; }
-  #trailers-table col.col-narrow { width: 20%; }
+  .trailers-cols { display: flex; gap: 8px; align-items: flex-start; }
+  .trailers-cols > div { flex: 1 1 50%; min-width: 0; }
+  .trailers-table col.col-door { width: 20%; }
+  .trailers-table col.col-label { width: 46%; }
+  .trailers-table col.col-narrow { width: 17%; }
   #floor-table col.col-label { width: 46%; }
   #floor-table col.col-narrow { width: 27%; }
   @media print {
@@ -5653,11 +5672,10 @@ function printOpUpdatesWalkSheet() {
   <div class="stamp">${stamp}</div>
 
   <h2>Trailers</h2>
-  <table id="trailers-table">
-    <colgroup><col class="col-door"><col class="col-label"><col class="col-narrow"><col class="col-narrow"></colgroup>
-    <thead><tr><th>Door</th><th>Carrier</th><th>Lines Remaining</th><th>BF Skids Remaining</th></tr></thead>
-    <tbody>${trailerRowsHtml}</tbody>
-  </table>
+  <div class="trailers-cols">
+    <div>${trailersTableHtml(leftHtml)}</div>
+    ${rightHtml ? `<div>${trailersTableHtml(rightHtml)}</div>` : ''}
+  </div>
 
   <h2>Floor Line Estimations</h2>
   <table id="floor-table">
