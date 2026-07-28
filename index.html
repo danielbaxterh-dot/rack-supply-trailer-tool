@@ -1785,14 +1785,15 @@
   <div id="opu-trailer-wrap" style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
     <table style="background:#fff;width:auto;">
       <thead><tr>
-        <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Carrier / Door</th>
+        <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Door</th>
+        <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Carrier</th>
         <th style="text-align:center;white-space:nowrap;border-right:1px solid #4a7a5a;">Lines Remaining</th>
         <th style="text-align:center;white-space:nowrap;">BF Skids Remaining</th>
       </tr></thead>
       <tbody id="opupdates-tbody"></tbody>
       <tfoot>
         <tr id="opu-total-row" style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
-          <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;border-right:1px solid #ccc;">Estimated Totals</td>
+          <td colspan="2" style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;border-right:1px solid #ccc;">Estimated Totals</td>
           <td id="opu-total-remaining" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;border-right:1px solid #ccc;">0</td>
           <td id="opu-total-bf-remaining" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
         </tr>
@@ -5507,10 +5508,8 @@ function renderOpUpdates() {
     tr.id = `opu-row-${door.id}`;
     if (!occupied) {
       tr.innerHTML = `
-        <td style="border-right:1px solid #e0eeea;">
-          <div style="font-weight:800;color:#1a4731;font-size:13px;">Door ${door.num}</div>
-          <div style="font-size:10px;color:#aaa;font-weight:600;">Empty</div>
-        </td>
+        <td style="border-right:1px solid #e0eeea;font-weight:800;color:#1a4731;font-size:13px;">${door.num}</td>
+        <td style="border-right:1px solid #e0eeea;font-size:11px;color:#aaa;font-weight:600;">Empty</td>
         <td style="border-right:1px solid #e0eeea;"></td>
         <td></td>
       `;
@@ -5520,9 +5519,10 @@ function renderOpUpdates() {
     const remaining = linesRemainingForTrailer(t);
     const bfRemaining = bfSkidsRemainingForTrailer(t);
     tr.innerHTML = `
+      <td style="border-right:1px solid #e0eeea;font-weight:800;color:#1a4731;font-size:13px;">${door.num}</td>
       <td style="border-right:1px solid #e0eeea;">
         <div style="font-weight:800;color:#1a4731;font-size:13px;">${t.carrier}</div>
-        <div style="font-size:10px;color:#4a7a5a;font-weight:600;">Door ${door.num}${t.trailerNum ? ' &middot; #' + t.trailerNum : ''}</div>
+        <div style="font-size:10px;color:#4a7a5a;font-weight:600;">${t.trailerNum ? '#' + t.trailerNum : ''}</div>
       </td>
       <td style="text-align:center;border-right:1px solid #e0eeea;">
         <input type="number" inputmode="numeric" id="opu-remaining-${door.id}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${t.linesOverride !== null && t.linesOverride !== undefined && t.linesOverride !== '' ? t.linesOverride : ''}" placeholder="—" onchange="updateTrailerLinesOverride('${door.id}', this.value)">
@@ -5540,9 +5540,10 @@ function renderOpUpdates() {
     tr.id = `opu-exp-row-${idx}`;
     tr.style.opacity = '0.85';
     tr.innerHTML = `
+      <td style="border-right:1px solid #e0eeea;font-size:11px;color:#b06a2a;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Not Yet Arrived</td>
       <td style="border-right:1px solid #e0eeea;">
         <div style="font-weight:800;color:#1a4731;font-size:13px;">${r.carrier}</div>
-        <div style="font-size:10px;color:#b06a2a;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Not Yet Arrived${r.time ? ' &middot; ' + r.time : ''}${r.trailerNum ? ' &middot; #' + r.trailerNum : ''}</div>
+        <div style="font-size:10px;color:#4a7a5a;font-weight:600;">${r.time ? r.time : ''}${r.trailerNum ? ' &middot; #' + r.trailerNum : ''}</div>
       </td>
       <td style="text-align:center;border-right:1px solid #e0eeea;">
         <input type="number" inputmode="numeric" id="opu-exp-remaining-${idx}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${r.linesOverride !== null && r.linesOverride !== undefined && r.linesOverride !== '' ? r.linesOverride : ''}" placeholder="—" onchange="updateExpectedLinesOverride(${idx}, this.value)">
@@ -5570,41 +5571,42 @@ function renderOpUpdates() {
 // the Lines/BF Skids columns are left blank since those require an actual
 // physical walk-and-count.
 function printOpUpdatesWalkSheet() {
-  const trailerRows = getOpUpdatesDoorList().map(door => {
-    const t = state.trailers[door.id];
-    const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
-    if (!occupied) {
-      return { label: `Door ${door.num} — Empty`, empty: false, remaining: '', bfRemaining: '', unchecked: true };
-    }
-    return {
-      label: `${t.carrier} — Door ${door.num}`,
-      empty: !!t.trailerEmpty,
-      remaining: linesRemainingForTrailer(t),
-      bfRemaining: bfSkidsRemainingForTrailer(t),
-      unchecked: false
-    };
-  }).concat(getPendingExpectedOpRows().map(p => {
-    const r = p.row;
-    return {
-      label: `${r.carrier} — Expected (not yet on a door)`,
-      empty: !!r.trailerEmpty,
-      remaining: linesRemainingForTrailer(r),
-      bfRemaining: bfSkidsRemainingForTrailer(r),
-      unchecked: false
-    };
-  }));
+  const trailerRows = getOpUpdatesDoorList()
+    .filter(door => {
+      const t = state.trailers[door.id];
+      return !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+    })
+    .map(door => {
+      const t = state.trailers[door.id];
+      const rem = linesRemainingForTrailer(t);
+      const bfRem = bfSkidsRemainingForTrailer(t);
+      return {
+        door: door.num,
+        carrier: t.carrier,
+        remaining: (t.linesOverride !== null && t.linesOverride !== undefined && t.linesOverride !== '') || t.trailerEmpty ? rem : '',
+        bfRemaining: (t.bfOverride !== null && t.bfOverride !== undefined && t.bfOverride !== '') || t.trailerEmpty ? bfRem : ''
+      };
+    })
+    .concat(getPendingExpectedOpRows().map(p => {
+      const r = p.row;
+      const rem = linesRemainingForTrailer(r);
+      const bfRem = bfSkidsRemainingForTrailer(r);
+      return {
+        door: 'Not Yet Arrived',
+        carrier: r.carrier,
+        remaining: (r.linesOverride !== null && r.linesOverride !== undefined && r.linesOverride !== '') || r.trailerEmpty ? rem : '',
+        bfRemaining: (r.bfOverride !== null && r.bfOverride !== undefined && r.bfOverride !== '') || r.trailerEmpty ? bfRem : ''
+      };
+    }));
   const floorLocations = getFloorLocations();
 
-  const trailerRowsHtml = trailerRows.length ? trailerRows.map(r => {
-    const grayStyle = r.unchecked ? 'color:#bbb;' : '';
-    return `
+  const trailerRowsHtml = trailerRows.length ? trailerRows.map(r => `
       <tr>
-        <td>${escHtml(r.label)}</td>
-        <td style="text-align:center;${grayStyle}">${r.unchecked ? '' : (r.empty ? '☑' : '☐')}</td>
-        <td style="text-align:center;${grayStyle}">${r.remaining}</td>
-        <td style="text-align:center;${grayStyle}">${r.bfRemaining}</td>
-      </tr>`;
-  }).join('') : `<tr><td colspan="4" style="text-align:center;color:#888;">No doors configured</td></tr>`;
+        <td>${escHtml(String(r.door))}</td>
+        <td>${escHtml(r.carrier)}</td>
+        <td style="text-align:center;">${r.remaining}</td>
+        <td style="text-align:center;">${r.bfRemaining}</td>
+      </tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:#888;">No trailers currently slotted or expected</td></tr>`;
 
   const floorRowsHtml = floorLocations.length ? floorLocations.map(loc => `
       <tr>
@@ -5635,7 +5637,8 @@ function printOpUpdatesWalkSheet() {
   td:not(:first-child), th:not(:first-child) { text-align: center; }
   thead { display: table-header-group; }
   tr { page-break-inside: avoid; }
-  #trailers-table col.col-label { width: 40%; }
+  #trailers-table col.col-door { width: 18%; }
+  #trailers-table col.col-label { width: 42%; }
   #trailers-table col.col-narrow { width: 20%; }
   #floor-table col.col-label { width: 46%; }
   #floor-table col.col-narrow { width: 27%; }
@@ -5651,8 +5654,8 @@ function printOpUpdatesWalkSheet() {
 
   <h2>Trailers</h2>
   <table id="trailers-table">
-    <colgroup><col class="col-label"><col class="col-narrow"><col class="col-narrow"><col class="col-narrow"></colgroup>
-    <thead><tr><th>Carrier / Door</th><th>Empty</th><th>Lines Remaining</th><th>BF Skids Remaining</th></tr></thead>
+    <colgroup><col class="col-door"><col class="col-label"><col class="col-narrow"><col class="col-narrow"></colgroup>
+    <thead><tr><th>Door</th><th>Carrier</th><th>Lines Remaining</th><th>BF Skids Remaining</th></tr></thead>
     <tbody>${trailerRowsHtml}</tbody>
   </table>
 
