@@ -1841,8 +1841,8 @@
       <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Combined Totals</span>
     </div>
     <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Adds the trailer table's Estimated Totals to the Floor Totals. Enter Remaining Capacity to see estimated Carryover (Lines − Capacity).</div>
-    <div id="opu-grandtotal-wrap" style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
-      <table style="background:#fff;width:100%;">
+    <div id="opu-grandtotal-wrap" style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+      <table style="background:#fff;width:auto;min-width:100%;">
         <thead><tr>
           <th style="white-space:nowrap;">Source</th>
           <th style="text-align:center;white-space:nowrap;">Lines</th>
@@ -2462,6 +2462,7 @@ async function loadStateFromFirebase() {
     if (window._sandboxMode) return;
     state.forecast = {};
     snap.forEach(d => { state.forecast[d.id] = d.data(); });
+    window._forecastSynced = true;
     renderExpectedTrailers();
   });
 
@@ -3292,12 +3293,21 @@ function saveState() {
   // to prevent race conditions overwriting logos with empty defaults
   const today = todayStr();
   saveDoorsToFirebase();
-  if (state.forecast[today]) saveForecastToFirebase(today);
-  // If the user is viewing/editing a different (e.g. future) date on the Forecast tab,
-  // persist that date's forecast too so it's there when that date becomes "today"
-  const fcDateInp = document.getElementById('forecast-date');
-  const selDate = fcDateInp && fcDateInp.value;
-  if (selDate && selDate !== today && state.forecast[selDate]) saveForecastToFirebase(selDate);
+  // Guard against pushing stale forecast data: only auto-save here once this
+  // session has actually received a live forecast snapshot at least once.
+  // Without this, a device that was reopened/reconnected (e.g. mobile coming
+  // back from being backgrounded) could push whatever forecast it had sitting
+  // in memory from before — silently overwriting everyone else's newer
+  // changes — the instant any unrelated button (release, move, etc.) is
+  // pressed, before the fresh data has had a chance to arrive.
+  if (window._forecastSynced) {
+    if (state.forecast[today]) saveForecastToFirebase(today);
+    // If the user is viewing/editing a different (e.g. future) date on the Forecast tab,
+    // persist that date's forecast too so it's there when that date becomes "today"
+    const fcDateInp = document.getElementById('forecast-date');
+    const selDate = fcDateInp && fcDateInp.value;
+    if (selDate && selDate !== today && state.forecast[selDate]) saveForecastToFirebase(selDate);
+  }
   saveDailySummaryToFirebase(today);
   // Also keep localStorage as offline fallback (without logos to save space)
   try {
@@ -5897,15 +5907,9 @@ function updateGrandTotal() {
 // actually added or removed from the trailer table — never on every keystroke
 // or on window resize, so the tables don't visibly shrink or grow on their own.
 function syncOpuTableWidths() {
-  const trailerWrap = document.getElementById('opu-trailer-wrap');
-  const floorWrap = document.getElementById('opu-floor-wrap');
-  const grandWrap = document.getElementById('opu-grandtotal-wrap');
-  if (!trailerWrap || !floorWrap || !grandWrap) return;
-  const w = trailerWrap.scrollWidth;
-  if (w > 0) {
-    floorWrap.style.width = w + 'px';
-    grandWrap.style.width = w + 'px';
-  }
+  // Tables now size themselves naturally (no forced width-matching) — each
+  // has its own overflow-x:auto as a safety net if it's ever too wide for
+  // the screen, instead of silently clipping content with overflow:hidden.
 }
 
 function updateEstCarryover(grandLines) {
@@ -7785,13 +7789,12 @@ function checkDayRollover() {
     state.completedToday = [];
     state.trailers = {};
     state.history = [];
-    // Init fresh forecast for new day if not already saved
+    // Init fresh forecast for new day if not already saved — reuse getForecastData's
+    // seeding logic so removed carriers stay removed and custom carriers still show up
+    // (this used to build its own carrier list straight from the raw template, which
+    // bypassed both of those and silently brought back anything you'd removed).
     if (!state.forecast[today]) {
-      state.forecast[today] = {
-        carriers: JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS)),
-        schedule: JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE)),
-        carriedIn: 0, capacity: 0, notes: '', ltl: []
-      };
+      getForecastData(today);
     } else {
       // Reset per-day fields that should start fresh each day
       const fd = state.forecast[today];
