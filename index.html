@@ -1475,6 +1475,9 @@
       </div>
 
       <!-- Single unified table -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <button class="btn btn-teal" style="font-size:12px;padding:6px 14px;" onclick="addCarrierViaAssumptions()">+ Add Carrier</button>
+      </div>
       <div style="border-radius:8px;overflow:hidden;border:1px solid #2e4a38;">
         <table id="assump-unified-table" style="width:100%;font-size:12px;background:#fff;table-layout:fixed;">
           <colgroup>
@@ -5232,6 +5235,21 @@ function removeForecastCarrierPermanently(name) {
 // Registers a carrier name (not already in the default assumptions template)
 // so it durably shows up in the Assumptions tab too — persisted via settings
 // so it survives a reload and syncs to other devices.
+function addCarrierViaAssumptions() {
+  const name = prompt('New carrier name:');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  const alreadyExists = DEFAULT_FC_CARRIERS.some(c => c.name === trimmed) ||
+    (state.settings.extraForecastCarriers || []).includes(trimmed);
+  if (alreadyExists) {
+    toast(`${trimmed} is already in the list`);
+    return;
+  }
+  registerForecastCarrierForAssumptions(trimmed);
+  renderAssumptionsTab();
+  toast(`${trimmed} added — will show up in the Forecast table and Carrier Schedule starting with any new date`);
+}
+
 function registerForecastCarrierForAssumptions(name) {
   if (!name || name === 'Carryover') return;
   // Explicitly adding a carrier is a clear signal it's wanted back, even if it
