@@ -1786,14 +1786,13 @@
     <table style="background:#fff;width:auto;">
       <thead><tr>
         <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Carrier / Door</th>
-        <th style="text-align:center;white-space:nowrap;border-right:1px solid #4a7a5a;">Empty ✓</th>
         <th style="text-align:center;white-space:nowrap;border-right:1px solid #4a7a5a;">Lines Remaining</th>
         <th style="text-align:center;white-space:nowrap;">BF Skids Remaining</th>
       </tr></thead>
       <tbody id="opupdates-tbody"></tbody>
       <tfoot>
         <tr id="opu-total-row" style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
-          <td colspan="2" style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;border-right:1px solid #ccc;">Estimated Totals</td>
+          <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;border-right:1px solid #ccc;">Estimated Totals</td>
           <td id="opu-total-remaining" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;border-right:1px solid #ccc;">0</td>
           <td id="opu-total-bf-remaining" style="text-align:center;color:#1a4731;font-weight:800;font-size:15px;background:transparent;">0</td>
         </tr>
@@ -5374,7 +5373,7 @@ function linesRemainingForTrailer(t) {
   if (t.linesOverride !== null && t.linesOverride !== undefined && t.linesOverride !== '') {
     return Number(t.linesOverride) || 0;
   }
-  return getOpUpdatesAssumption(t.carrier, 'linesPerTrailer');
+  return 0;
 }
 
 function bfSkidsRemainingForTrailer(t) {
@@ -5383,7 +5382,7 @@ function bfSkidsRemainingForTrailer(t) {
   if (t.bfOverride !== null && t.bfOverride !== undefined && t.bfOverride !== '') {
     return Number(t.bfOverride) || 0;
   }
-  return getOpUpdatesAssumption(t.carrier, 'bfPerTrailer');
+  return 0;
 }
 
 function isExcludedFromOpUpdates(carrierName) {
@@ -5513,7 +5512,6 @@ function renderOpUpdates() {
           <div style="font-size:10px;color:#aaa;font-weight:600;">Empty</div>
         </td>
         <td style="border-right:1px solid #e0eeea;"></td>
-        <td style="border-right:1px solid #e0eeea;"></td>
         <td></td>
       `;
       tbody.appendChild(tr);
@@ -5527,13 +5525,10 @@ function renderOpUpdates() {
         <div style="font-size:10px;color:#4a7a5a;font-weight:600;">Door ${door.num}${t.trailerNum ? ' &middot; #' + t.trailerNum : ''}</div>
       </td>
       <td style="text-align:center;border-right:1px solid #e0eeea;">
-        <input type="checkbox" class="fc-arrived-chk" ${t.trailerEmpty ? 'checked' : ''} onchange="toggleTrailerEmpty('${door.id}', this.checked)">
-      </td>
-      <td style="text-align:center;border-right:1px solid #e0eeea;">
-        <input type="number" inputmode="numeric" id="opu-remaining-${door.id}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${remaining}" onchange="updateTrailerLinesOverride('${door.id}', this.value)">
+        <input type="number" inputmode="numeric" id="opu-remaining-${door.id}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${t.linesOverride !== null && t.linesOverride !== undefined && t.linesOverride !== '' ? t.linesOverride : ''}" placeholder="—" onchange="updateTrailerLinesOverride('${door.id}', this.value)">
       </td>
       <td style="text-align:center;">
-        <input type="number" inputmode="numeric" id="opu-bf-remaining-${door.id}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${bfRemaining}" onchange="updateTrailerBfOverride('${door.id}', this.value)">
+        <input type="number" inputmode="numeric" id="opu-bf-remaining-${door.id}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${t.bfOverride !== null && t.bfOverride !== undefined && t.bfOverride !== '' ? t.bfOverride : ''}" placeholder="—" onchange="updateTrailerBfOverride('${door.id}', this.value)">
       </td>
     `;
     tbody.appendChild(tr);
@@ -5550,13 +5545,10 @@ function renderOpUpdates() {
         <div style="font-size:10px;color:#b06a2a;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Not Yet Arrived${r.time ? ' &middot; ' + r.time : ''}${r.trailerNum ? ' &middot; #' + r.trailerNum : ''}</div>
       </td>
       <td style="text-align:center;border-right:1px solid #e0eeea;">
-        <input type="checkbox" class="fc-arrived-chk" ${r.trailerEmpty ? 'checked' : ''} onchange="toggleExpectedEmpty(${idx}, this.checked)">
-      </td>
-      <td style="text-align:center;border-right:1px solid #e0eeea;">
-        <input type="number" inputmode="numeric" id="opu-exp-remaining-${idx}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${remaining}" onchange="updateExpectedLinesOverride(${idx}, this.value)">
+        <input type="number" inputmode="numeric" id="opu-exp-remaining-${idx}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${r.linesOverride !== null && r.linesOverride !== undefined && r.linesOverride !== '' ? r.linesOverride : ''}" placeholder="—" onchange="updateExpectedLinesOverride(${idx}, this.value)">
       </td>
       <td style="text-align:center;">
-        <input type="number" inputmode="numeric" id="opu-exp-bf-remaining-${idx}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${bfRemaining}" onchange="updateExpectedBfOverride(${idx}, this.value)">
+        <input type="number" inputmode="numeric" id="opu-exp-bf-remaining-${idx}" class="fc-tbl-input" style="width:64px;display:inline-block;font-weight:800;" value="${r.bfOverride !== null && r.bfOverride !== undefined && r.bfOverride !== '' ? r.bfOverride : ''}" placeholder="—" onchange="updateExpectedBfOverride(${idx}, this.value)">
       </td>
     `;
     tbody.appendChild(tr);
