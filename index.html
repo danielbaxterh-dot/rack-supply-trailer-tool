@@ -1841,7 +1841,7 @@
       <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Combined Totals</span>
     </div>
     <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Adds the trailer table's Estimated Totals to the Floor Totals. Enter Remaining Capacity to see estimated Carryover (Lines − Capacity).</div>
-    <div id="opu-grandtotal-wrap" style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+    <div id="opu-grandtotal-wrap" style="display:inline-block;max-width:100%;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
       <table style="background:#fff;width:auto;min-width:100%;">
         <thead><tr>
           <th style="white-space:nowrap;">Source</th>
@@ -4997,7 +4997,74 @@ function getForecastData(dateKey) {
   const fd = state.forecast[dateKey];
   if (!fd.carriers || fd.carriers.length === 0) fd.carriers = JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS));
   if (!fd.schedule || fd.schedule.length === 0) fd.schedule = JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE));
+  reconcileForecastCarriers(fd);
   return fd;
+}
+
+// Keeps a day's carrier list durably in sync with the live Assumptions master
+// list every time it's accessed — not just at the moment the day was first
+// created. This is what actually fixes carriers not showing up/staying gone:
+// there's no more "snapshot taken once and never revisited." Runs every time
+// so it self-heals regardless of which code path touched this day's data.
+//
+// Deliberately does NOT touch: fd.ltl (Expected Trailers / Load to Expected
+// rules), or any already-configured day-pattern in fd.schedule — those keep
+// working exactly as before, just now operating on an always-current list.
+function reconcileForecastCarriers(fd) {
+  const removed = new Set(state.settings.removedForecastCarriers || []);
+
+  // Drop rows for anything permanently removed
+  fd.carriers = fd.carriers.filter(c => !removed.has(c.name));
+  fd.schedule = fd.schedule.filter(s => !removed.has(s.name));
+
+  // Refresh Lines/BF-per-trailer on every existing row from the live
+  // Assumptions values — never a stale copy from whenever the day was seeded.
+  fd.carriers.forEach(c => {
+    if (c.name === 'Carryover') return;
+    const lpt = getCarrierAssumption(c.name, 'linesPerTrailer');
+    const bpt = getCarrierAssumption(c.name, 'bfPerTrailer');
+    if (lpt !== null && lpt !== undefined) c.linesPerTrailer = lpt;
+    if (bpt !== null && bpt !== undefined) c.bfPerTrailer = bpt;
+  });
+
+  // Build the live master carrier name list (built-in + custom extras, minus
+  // removed), de-duped, in a stable order.
+  const seenMaster = new Set();
+  const masterNames = DEFAULT_FC_CARRIERS.map(c => c.name)
+    .concat(state.settings.extraForecastCarriers || [])
+    .filter(name => {
+      if (removed.has(name) || seenMaster.has(name)) return false;
+      seenMaster.add(name);
+      return true;
+    });
+
+  // Add any master carrier missing from this day's list (e.g. added to
+  // Assumptions after this day already existed) — appended, not inserted, so
+  // it never disturbs any custom drag-to-reorder ordering already in place.
+  const existingNames = new Set(fd.carriers.map(c => c.name));
+  masterNames.forEach(name => {
+    if (existingNames.has(name)) return;
+    const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
+    fd.carriers.push({
+      name,
+      linesPerTrailer: getCarrierAssumption(name, 'linesPerTrailer') || 0,
+      expTrailers: def ? (def.expTrailers || 0) : 0,
+      trailerAdj: 0, linesAdj: 0,
+      bfPerTrailer: getCarrierAssumption(name, 'bfPerTrailer') || 0,
+      arrived: false, remaining: 0, midday: 0
+    });
+  });
+
+  // Same for the Schedule table — only ADD a default entry for a carrier
+  // that's never appeared there before, so any already-configured day-pattern
+  // (e.g. ESTES only certain weekdays) is never overwritten. New entries
+  // default to every weekday, same as the existing "extras" convention.
+  const scheduleNames = new Set(fd.schedule.map(s => s.name));
+  masterNames.forEach(name => {
+    if (scheduleNames.has(name)) return;
+    const defSched = DEFAULT_FC_SCHEDULE.find(s => s.name === name);
+    fd.schedule.push(defSched ? JSON.parse(JSON.stringify(defSched)) : { name, mon: true, tue: true, wed: true, thu: true, fri: true });
+  });
 }
 
 function changeForecastDate(inp) {
