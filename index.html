@@ -1368,8 +1368,8 @@
         <button onclick="saveOutlook()" style="font-size:13px;font-weight:700;padding:7px 16px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">Save Outlook</button>
       </div>
     </div>
-    <!-- 3-column body -->
-    <div style="display:grid;grid-template-columns:220px 1fr 1fr;gap:14px;background:#d0d0d0;padding:14px;">
+    <!-- 2-column body: Add form on the left, both tables stacked on the right -->
+    <div style="display:grid;grid-template-columns:220px 1fr;gap:14px;background:#d0d0d0;padding:14px;">
       <!-- LEFT: Add form -->
       <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;">
         <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;">Add Trailer</div>
@@ -1397,37 +1397,41 @@
           <button onclick="addOutlookRowFromForm()" style="width:100%;margin-top:4px;font-size:13px;font-weight:700;padding:8px 0;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">+ Add</button>
         </div>
       </div>
-      <!-- CENTER: Expected Trailers Today -->
-      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;max-height:480px;">
-        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;flex-shrink:0;">Expected Trailers Today</div>
-        <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
-          <thead><tr>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Added By</th>
-            <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
-          </tr></thead>
-          <tbody id="outlook-today-tbody"></tbody>
-        </table>
+      <!-- RIGHT: both tables stacked, each getting the full column width -->
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+        <!-- Expected Trailers Today -->
+        <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;max-height:320px;">
+          <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;flex-shrink:0;">Expected Trailers Today</div>
+          <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
+            <thead><tr>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Added By</th>
+              <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
+            </tr></thead>
+            <tbody id="outlook-today-tbody"></tbody>
+          </table>
+          </div>
         </div>
-      </div>
-      <!-- RIGHT: Expected Trailers Next 5 Days -->
-      <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;max-height:480px;">
-        <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;flex-shrink:0;">Expected Trailers Next 5 Days</div>
-        <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
-          <thead><tr>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
-            <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Added By</th>
-            <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
-          </tr></thead>
-          <tbody id="outlook-future-tbody"></tbody>
-        </table>
+        <!-- Expected Trailers Next 5 Days -->
+        <div style="background:#fff;border-radius:8px;border:1px solid #b0d4c0;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;max-height:320px;">
+          <div style="background:linear-gradient(180deg,#f0faf5 0%,#e0f0e8 100%);color:#1a4731;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:7px 10px;border-bottom:1px solid #c8ddd4;flex-shrink:0;">Expected Trailers Next 5 Days</div>
+          <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
+            <thead><tr>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Added By</th>
+              <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
+            </tr></thead>
+            <tbody id="outlook-future-tbody"></tbody>
+          </table>
+          </div>
         </div>
       </div>
     </div>
@@ -7343,7 +7347,7 @@ function renderOutlookTables() {
   const futureTbody = document.getElementById('outlook-future-tbody');
   futureTbody.innerHTML = '';
   if (window._outlookFutureRows.length === 0) {
-    futureTbody.innerHTML = `<tr><td colspan="5" style="${tdCss}color:#4a7a5a;font-style:italic;">No future trailers scheduled</td></tr>`;
+    futureTbody.innerHTML = `<tr><td colspan="6" style="${tdCss}color:#4a7a5a;font-style:italic;">No future trailers scheduled</td></tr>`;
   } else {
     window._outlookFutureRows.forEach((row, i) => {
       const tr = document.createElement('tr');
@@ -7352,6 +7356,7 @@ function renderOutlookTables() {
         <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'date')">${dispDate}</td>
         <td style="${tdCss}font-weight:600;cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'carrier')">${row.carrier||'—'}</td>
         <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'trailerNum')">${row.trailerNum||'—'}</td>
+        <td style="${tdCss}font-style:italic;cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'notes')">${row.notes||'—'}</td>
         <td style="${tdCss}color:#4a7a5a;font-weight:600;">${row.addedBy||'—'}</td>
         <td style="padding:4px;"><button class="btn btn-red btn-sm" onclick="removeOutlookFutureRow(${i})" style="font-size:11px;padding:2px 7px;">✕</button></td>
       `;
