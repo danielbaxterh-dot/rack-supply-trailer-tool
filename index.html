@@ -854,7 +854,7 @@
 
   /* DASHBOARD */
   #tab-dashboard { background: #b8b8b8; margin: -14px -16px; padding: 14px 16px; }
-  .dash-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .dash-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); grid-auto-flow: dense; gap: 12px; }
   .dash-chart-panel {
     background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
     border: 1px solid #c8d2ce;
@@ -873,8 +873,9 @@
   }
   .dash-chart-panel .empty-state { padding: 10px 0; color: #444; }
   .dash-chart-panel { position: relative; }
-  .dash-size-sm { grid-column: span 1; }
-  .dash-size-md { grid-column: span 2; }
+  .dash-size-xs { grid-column: span 1; }
+  .dash-size-sm { grid-column: span 2; }
+  .dash-size-md { grid-column: span 4; }
   .dash-size-lg { grid-column: 1 / -1; }
   .dash-panel-resize-btn {
     display: none;
@@ -1701,7 +1702,7 @@
     </div>
   </div>
   <div style="font-size:13px;font-weight:700;color:#000;margin:0 0 4px;" id="dash-date-label"></div>
-  <div id="dash-layout-hint" style="display:none;font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:8px;">Drag a tile to reorder. Tap ⤢ on a tile to cycle its size (Small / Medium / Large).</div>
+  <div id="dash-layout-hint" style="display:none;font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:8px;">Drag a tile to reorder or drop it into an open space. Tap ⤢ on a tile to cycle its size (Extra Small / Small / Medium / Large).</div>
 
   <div class="stat-row">
     <div class="dash-stat-card">
@@ -1757,6 +1758,20 @@
       <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('secured-hourly')" title="Resize">⤢</button>
       <div class="dash-chart-title">Trailers Secured — Time of Day (6a–5p)</div>
       <div id="dash-chart-secured-hourly"></div>
+    </div>
+    <div class="dash-chart-panel dash-size-xs" data-panel="unexpected-dnr">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('unexpected-dnr')" title="Resize">⤢</button>
+      <div class="dash-chart-title">Unexpected / DNR</div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;text-align:center;">
+          <div id="dash-stat-unexpected" style="font-size:22px;font-weight:800;color:#c0392b;">0</div>
+          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Unexpected</div>
+        </div>
+        <div style="flex:1;text-align:center;border-left:1px solid #c8d2ce;">
+          <div id="dash-stat-dnr" style="font-size:22px;font-weight:800;color:#c0392b;">0</div>
+          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Did Not Receive</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2138,6 +2153,10 @@
       <label>Notes</label>
       <input type="text" autocomplete="off" id="qs-notes" placeholder="Optional notes..." style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);">
     </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <input type="checkbox" id="qs-unexpected" style="width:16px;height:16px;cursor:pointer;">
+      <label for="qs-unexpected" style="font-weight:700;color:#c0392b;cursor:pointer;font-size:13px;">Unexpected Load</label>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-quick-slot')" style="color:#000;">Cancel</button>
       <button class="btn btn-red" onclick="markDidNotReceive()" style="color:#000;margin:0 auto;">Did Not Receive</button>
@@ -2251,6 +2270,10 @@
       <input type="datetime-local" id="de-arrival">
     </div>
     <div id="de-secured-by-row" style="display:none;font-size:14px;color:#4a7a5a;font-weight:600;margin:0 0 14px;padding-left:2px;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <input type="checkbox" id="de-unexpected" style="width:16px;height:16px;cursor:pointer;">
+      <label for="de-unexpected" style="font-weight:700;color:#c0392b;cursor:pointer;font-size:13px;">Unexpected Load</label>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-door-edit')">Cancel</button>
       <button class="btn btn-teal" onclick="saveDoorEdit()">Save</button>
@@ -2653,7 +2676,10 @@ function getDashboardData(dateKey) {
   const avgDwellByCarrier = {};
   Object.keys(dwellSumByCarrier).forEach(c => { avgDwellByCarrier[c] = Math.round(dwellSumByCarrier[c] / dwellCountByCarrier[c]); });
 
-  return { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier };
+  const unexpectedCount = securedList.filter(r => r.unexpected).length;
+  const dnrCount = securedList.filter(r => r.didNotReceive).length;
+
+  return { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, unexpectedCount, dnrCount };
 }
 
 // Simple horizontal bar chart, drawn as inline SVG so it matches the app theme with no chart library
@@ -2847,7 +2873,8 @@ let dashboardLayout = [
   { id: 'type-pie', size: 'sm' },
   { id: 'dwell-carrier', size: 'sm' },
   { id: 'sales-side', size: 'sm' },
-  { id: 'secured-hourly', size: 'lg' }
+  { id: 'secured-hourly', size: 'lg' },
+  { id: 'unexpected-dnr', size: 'xs' }
 ];
 
 function applyDashboardLayout(layout) {
@@ -2860,7 +2887,7 @@ function applyDashboardLayout(layout) {
     const el = byId[entry.id];
     if (!el) return;
     grid.appendChild(el);
-    ['dash-size-sm', 'dash-size-md', 'dash-size-lg'].forEach(s => el.classList.remove(s));
+    ['dash-size-xs', 'dash-size-sm', 'dash-size-md', 'dash-size-lg'].forEach(s => el.classList.remove(s));
     el.classList.add(`dash-size-${entry.size || 'sm'}`);
   });
   // Anything not listed (e.g. a chart tile added in a future update) keeps
@@ -2904,7 +2931,7 @@ function toggleDashboardLayoutEdit() {
     if (grid) {
       const panels = Array.from(grid.querySelectorAll('.dash-chart-panel'));
       const newLayout = panels.map(p => {
-        const sizeClass = ['dash-size-sm', 'dash-size-md', 'dash-size-lg'].find(s => p.classList.contains(s)) || 'dash-size-sm';
+        const sizeClass = ['dash-size-xs', 'dash-size-sm', 'dash-size-md', 'dash-size-lg'].find(s => p.classList.contains(s)) || 'dash-size-sm';
         return { id: p.dataset.panel, size: sizeClass.replace('dash-size-', '') };
       });
       dashboardLayout = newLayout;
@@ -2917,7 +2944,7 @@ function toggleDashboardLayoutEdit() {
 function cycleDashboardPanelSize(panelId) {
   const el = document.querySelector(`.dash-chart-panel[data-panel="${panelId}"]`);
   if (!el) return;
-  const sizes = ['dash-size-sm', 'dash-size-md', 'dash-size-lg'];
+  const sizes = ['dash-size-xs', 'dash-size-sm', 'dash-size-md', 'dash-size-lg'];
   const cur = sizes.find(s => el.classList.contains(s)) || 'dash-size-sm';
   const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length];
   sizes.forEach(s => el.classList.remove(s));
@@ -3021,11 +3048,13 @@ async function renderDashboard() {
   // Bail if the user changed the date again while this was loading
   if (document.getElementById('dash-date').value !== dateKey) return;
 
-  const { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier } = getDashboardData(dateKey);
+  const { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, unexpectedCount, dnrCount } = getDashboardData(dateKey);
 
   document.getElementById('dash-stat-secured').textContent = securedList.length;
   document.getElementById('dash-stat-released').textContent = releasedList.length;
   document.getElementById('dash-stat-avgdwell').textContent = avgDwellMin !== null ? minsToHM(avgDwellMin) : '—';
+  document.getElementById('dash-stat-unexpected').textContent = unexpectedCount;
+  document.getElementById('dash-stat-dnr').textContent = dnrCount;
 
   document.getElementById('dash-chart-secured').innerHTML = svgBarChart(securedByCarrier, { color: 'var(--teal)' });
   document.getElementById('dash-chart-released').innerHTML = svgBarChart(releasedByCarrier, { color: 'var(--blue)' });
@@ -3771,6 +3800,7 @@ function openDoorEditModal(doorId) {
   } else {
     securedByRow.style.display = 'none';
   }
+  document.getElementById('de-unexpected').checked = !!(t && t.unexpected);
   document.getElementById('modal-door-edit').classList.add('open');
 }
 
@@ -3781,12 +3811,15 @@ function saveDoorEdit() {
   const carrier = document.getElementById('de-carrier').value;
   const type = document.getElementById('de-type').value;
   const notes = document.getElementById('de-notes').value;
+  const unexpected = document.getElementById('de-unexpected').checked;
   if (t) {
     // Update existing slotted trailer
     t.trailerNum = trailerNum;
     t.carrier = carrier;
     t.type = type;
     t.notes = notes;
+    t.unexpected = unexpected;
+    t.expected = !unexpected;
     const arrivalVal = document.getElementById('de-arrival').value;
     if (arrivalVal) t.arrival = new Date(arrivalVal).toISOString();
   }
@@ -7115,6 +7148,7 @@ function openQuickSlotModal(carrierName, trailerNum, notes) {
   document.getElementById('qs-trailer').value = trailerNum || '';
   document.getElementById('qs-type').value = 'DROP';
   document.getElementById('qs-notes').value = notes || '';
+  document.getElementById('qs-unexpected').checked = false;
   document.getElementById('modal-quick-slot').classList.add('open');
 }
 
@@ -7158,6 +7192,7 @@ function slotFromExpected() {
   const trailerNum = document.getElementById('qs-trailer').value;
   const type = document.getElementById('qs-type').value;
   const notes = document.getElementById('qs-notes').value;
+  const unexpected = document.getElementById('qs-unexpected').checked;
   if (!doorId) { toast('Please enter a valid door number', 'error'); return; }
   state.trailers[doorId] = {
     carrier: carrierName,
@@ -7166,7 +7201,8 @@ function slotFromExpected() {
     arrival: new Date().toISOString(),
     secured: false,
     notes,
-    expected: true,
+    expected: !unexpected,
+    unexpected,
     slottedFromExpected: true,
     slottedBy: (window._currentUser || 'unknown').toUpperCase()
   };
