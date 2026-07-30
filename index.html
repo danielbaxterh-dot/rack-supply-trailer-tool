@@ -1774,17 +1774,45 @@
       <div class="dash-chart-title">Trailers Secured — Time of Day (6a–5p)</div>
       <div id="dash-chart-secured-hourly"></div>
     </div>
-    <div class="dash-chart-panel dash-size-xs" data-panel="unexpected-dnr">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('unexpected-dnr')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Unexpected / DNR</div>
+    <div class="dash-chart-panel dash-size-xs" data-panel="unexpected-count">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('unexpected-count')" title="Resize">⤢</button>
+      <div style="text-align:center;">
+        <div class="dash-stat-val" id="dash-stat-unexpected" style="color:#c0392b;">0</div>
+        <div class="dash-stat-label">Unexpected</div>
+      </div>
+    </div>
+    <div class="dash-chart-panel dash-size-xs" data-panel="dnr-count">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('dnr-count')" title="Resize">⤢</button>
+      <div style="text-align:center;">
+        <div class="dash-stat-val" id="dash-stat-dnr" style="color:#c0392b;">0</div>
+        <div class="dash-stat-label">Trailers Not Received</div>
+      </div>
+    </div>
+    <div class="dash-chart-panel dash-size-xs" data-panel="binfreight-stats">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('binfreight-stats')" title="Resize">⤢</button>
+      <div class="dash-chart-title">Bin Freight</div>
       <div style="display:flex;gap:10px;">
         <div style="flex:1;text-align:center;">
-          <div id="dash-stat-unexpected" style="font-size:22px;font-weight:800;color:#c0392b;">0</div>
-          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Unexpected</div>
+          <div id="dash-stat-binfreight-secured" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Secured</div>
         </div>
         <div style="flex:1;text-align:center;border-left:1px solid #c8d2ce;">
-          <div id="dash-stat-dnr" style="font-size:22px;font-weight:800;color:#c0392b;">0</div>
-          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Did Not Receive</div>
+          <div id="dash-stat-binfreight-released" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Released</div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-chart-panel dash-size-xs" data-panel="shuttle-stats">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('shuttle-stats')" title="Resize">⤢</button>
+      <div class="dash-chart-title">Shuttle</div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;text-align:center;">
+          <div id="dash-stat-shuttle-secured" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Secured</div>
+        </div>
+        <div style="flex:1;text-align:center;border-left:1px solid #c8d2ce;">
+          <div id="dash-stat-shuttle-released" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Released</div>
         </div>
       </div>
     </div>
@@ -2651,19 +2679,27 @@ async function ensureDashboardHistory(dateKey) {
 }
 
 function getDashboardData(dateKey) {
+  // Bin Freight and Shuttle get their own dedicated tiles instead of being
+  // mixed into the general Secured/Released counts, carrier breakdowns, and
+  // average dwell time — a bin-freight or shuttle "trailer" isn't a normal
+  // door cycle and was skewing those numbers.
+  const SPECIAL_CARRIERS = ['Bin Freight', 'Shuttle'];
+
   // Secured on dateKey = completed cycles that arrived that day + trailers still on
-  // a door right now that also arrived that day.
+  // a door right now that also arrived that day. "Did Not Receive" records are
+  // excluded here — a DNR carrier never actually arrived, so it shouldn't
+  // inflate Secured, Released, or average dwell time.
   const securedList = [];
-  state.history.forEach(r => { if (dashDateKey(r.arrival) === dateKey) securedList.push({ ...r, _active: false }); });
+  state.history.forEach(r => { if (!r.didNotReceive && !SPECIAL_CARRIERS.includes(r.carrier) && dashDateKey(r.arrival) === dateKey) securedList.push({ ...r, _active: false }); });
   Object.entries(state.trailers).forEach(([doorId, t]) => {
-    if (dashDateKey(t.arrival) === dateKey) {
+    if (!SPECIAL_CARRIERS.includes(t.carrier) && dashDateKey(t.arrival) === dateKey) {
       const door = state.doors.find(d => d.id === doorId);
       securedList.push({ ...t, doorId, door: door?.num || doorId, _active: true });
     }
   });
 
   // Released on dateKey = completed cycles released that day (regardless of when secured)
-  const releasedList = state.history.filter(r => dashDateKey(r.released || r.completed) === dateKey);
+  const releasedList = state.history.filter(r => !r.didNotReceive && !SPECIAL_CARRIERS.includes(r.carrier) && dashDateKey(r.released || r.completed) === dateKey);
   releasedList.sort((a, b) =>
     (dashDateKey(a.arrival) || '').localeCompare(dashDateKey(b.arrival) || '') ||
     (new Date(a.arrival) - new Date(b.arrival))
@@ -2694,9 +2730,30 @@ function getDashboardData(dateKey) {
   Object.keys(dwellSumByCarrier).forEach(c => { avgDwellByCarrier[c] = Math.round(dwellSumByCarrier[c] / dwellCountByCarrier[c]); });
 
   const unexpectedCount = securedList.filter(r => r.unexpected).length;
-  const dnrCount = securedList.filter(r => r.didNotReceive).length;
+  // DNR is tracked from its own dedicated history slice (by date the carrier
+  // was marked DNR), independent of securedList now that DNR is excluded from it.
+  const dnrCount = state.history.filter(r => r.didNotReceive && dashDateKey(r.arrival) === dateKey).length;
 
-  return { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, unexpectedCount, dnrCount };
+  // Bin Freight and Shuttle counts, tracked the same way as the main
+  // Secured/Released counts but scoped to just that one carrier.
+  const countSecured = carrierName => {
+    let n = 0;
+    state.history.forEach(r => { if (!r.didNotReceive && r.carrier === carrierName && dashDateKey(r.arrival) === dateKey) n++; });
+    Object.values(state.trailers).forEach(t => { if (t.carrier === carrierName && dashDateKey(t.arrival) === dateKey) n++; });
+    return n;
+  };
+  const countReleased = carrierName => state.history.filter(r => !r.didNotReceive && r.carrier === carrierName && dashDateKey(r.released || r.completed) === dateKey).length;
+
+  const binFreightSecuredCount = countSecured('Bin Freight');
+  const binFreightReleasedCount = countReleased('Bin Freight');
+  const shuttleSecuredCount = countSecured('Shuttle');
+  const shuttleReleasedCount = countReleased('Shuttle');
+
+  return {
+    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier,
+    unexpectedCount, dnrCount,
+    binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount
+  };
 }
 
 // Simple horizontal bar chart, drawn as inline SVG so it matches the app theme with no chart library
@@ -2898,7 +2955,10 @@ const DASHBOARD_LAYOUT_DEFAULTS = [
   { id: 'dwell-carrier', size: 'sm' },
   { id: 'sales-side', size: 'sm' },
   { id: 'secured-hourly', size: 'lg' },
-  { id: 'unexpected-dnr', size: 'xs' }
+  { id: 'unexpected-count', size: 'xs' },
+  { id: 'dnr-count', size: 'xs' },
+  { id: 'binfreight-stats', size: 'xs' },
+  { id: 'shuttle-stats', size: 'xs' }
 ];
 // Default order + size for each Dashboard chart tile
 let dashboardLayout = DASHBOARD_LAYOUT_DEFAULTS.slice();
@@ -3080,13 +3140,21 @@ async function renderDashboard() {
   // Bail if the user changed the date again while this was loading
   if (document.getElementById('dash-date').value !== dateKey) return;
 
-  const { securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, unexpectedCount, dnrCount } = getDashboardData(dateKey);
+  const {
+    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier,
+    unexpectedCount, dnrCount,
+    binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount
+  } = getDashboardData(dateKey);
 
   document.getElementById('dash-stat-secured').textContent = securedList.length;
   document.getElementById('dash-stat-released').textContent = releasedList.length;
   document.getElementById('dash-stat-avgdwell').textContent = avgDwellMin !== null ? minsToHM(avgDwellMin) : '—';
   document.getElementById('dash-stat-unexpected').textContent = unexpectedCount;
   document.getElementById('dash-stat-dnr').textContent = dnrCount;
+  document.getElementById('dash-stat-binfreight-secured').textContent = binFreightSecuredCount;
+  document.getElementById('dash-stat-binfreight-released').textContent = binFreightReleasedCount;
+  document.getElementById('dash-stat-shuttle-secured').textContent = shuttleSecuredCount;
+  document.getElementById('dash-stat-shuttle-released').textContent = shuttleReleasedCount;
 
   document.getElementById('dash-chart-secured').innerHTML = svgBarChart(securedByCarrier, { color: 'var(--teal)' });
   document.getElementById('dash-chart-released').innerHTML = svgBarChart(releasedByCarrier, { color: 'var(--blue)' });
