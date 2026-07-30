@@ -2876,8 +2876,11 @@ function renderSecuredHourlyChart(securedList) {
 // ===================== DASHBOARD LAYOUT (drag to reorder, tap to resize) =====================
 let dashboardLayoutEditMode = false;
 let _unsubDashboardLayout = null;
-// Default order + size for each Dashboard chart tile
-let dashboardLayout = [
+// True defaults — kept separate from `dashboardLayout` below (which gets
+// overwritten by whatever's synced from Firestore) so that a layout doc saved
+// before a new tile existed can still be merged with that tile's intended
+// default position/size instead of losing it.
+const DASHBOARD_LAYOUT_DEFAULTS = [
   { id: 'stat-secured', size: 'xs' },
   { id: 'stat-released', size: 'xs' },
   { id: 'stat-trend', size: 'sm' },
@@ -2891,6 +2894,8 @@ let dashboardLayout = [
   { id: 'secured-hourly', size: 'lg' },
   { id: 'unexpected-dnr', size: 'xs' }
 ];
+// Default order + size for each Dashboard chart tile
+let dashboardLayout = DASHBOARD_LAYOUT_DEFAULTS.slice();
 
 function applyDashboardLayout(layout) {
   const grid = document.getElementById('dash-chart-grid');
@@ -2905,9 +2910,10 @@ function applyDashboardLayout(layout) {
     ['dash-size-xs', 'dash-size-sm', 'dash-size-md', 'dash-size-lg'].forEach(s => el.classList.remove(s));
     el.classList.add(`dash-size-${entry.size || 'sm'}`);
   });
-  // Anything not listed (e.g. a chart tile added in a future update) keeps
-  // its default position/size at the end, so it doesn't just disappear.
-  panels.forEach(p => { if (!layout.some(e => e.id === p.dataset.panel)) grid.appendChild(p); });
+  // Any panel not present in `layout` (e.g. a tile added in a later update,
+  // before this device has a chance to re-save) is deliberately left alone —
+  // no repositioning, no size change — so it keeps showing at its authored
+  // default instead of getting shoved to the end of the grid.
   // A resize (especially to/from "lg") can change the hourly chart's
   // container width even without a data change, so redraw it to match.
   if (window._dashSecuredListCache) renderSecuredHourlyChart(window._dashSecuredListCache);
@@ -2925,7 +2931,12 @@ function subscribeDashboardLayout() {
   if (_unsubDashboardLayout) _unsubDashboardLayout();
   _unsubDashboardLayout = fb().onSnapshot(fb().doc(getDb(), 'config', 'dashboardLayout'), snap => {
     if (snap.exists() && Array.isArray(snap.data().layout) && snap.data().layout.length) {
-      dashboardLayout = snap.data().layout;
+      const stored = snap.data().layout;
+      // A layout saved before a new tile existed won't list that tile's id —
+      // merge in its default entry so it isn't lost, appended after whatever
+      // was actually saved (rather than silently dropped or mis-sized).
+      const missing = DASHBOARD_LAYOUT_DEFAULTS.filter(d => !stored.some(s => s.id === d.id));
+      dashboardLayout = stored.concat(missing);
     }
     if (!dashboardLayoutEditMode) applyDashboardLayout(dashboardLayout);
   }, err => console.error('[DashboardLayout] listener error', err));
