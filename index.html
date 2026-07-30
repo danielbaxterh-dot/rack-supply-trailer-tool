@@ -498,6 +498,11 @@
   #opu-grandtotal-wrap th, #opu-grandtotal-wrap td, #opu-grandtotal-wrap .fc-tbl-input {
     font-size: 12pt !important;
   }
+  #opu-trailer-wrap th.opu-table-title,
+  #opu-floor-wrap th.opu-table-title,
+  #opu-grandtotal-wrap th.opu-table-title {
+    font-size: 14px !important;
+  }
   .fc-arrived-chk { width: 16px; height: 16px; cursor: pointer; accent-color: var(--green); }
   .fc-sched-chk { width: 17px; height: 17px; cursor: pointer; accent-color: var(--teal); }
   #fc-carrier-table td { padding: 4px 6px; border-bottom: 1px solid #c8ddd4; vertical-align: middle; background: #fff; color: #000; }
@@ -1783,19 +1788,33 @@
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
     <div style="flex:1 1 380px;min-width:300px;">
-      <div style="margin-bottom:4px;">
-        <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Trailers</span>
-      </div>
-      <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;">Totals default to each carrier's full Rack Lines per Trailer / BF Skids per Trailer assumption (set on the Forecast tab), scaled down by the % Remaining entered. Check "Empty" once a trailer is fully checked in to zero it out.</div>
       <div id="opu-trailer-wrap" style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
-        <table style="background:#fff;width:auto;">
-          <thead><tr>
-            <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Door</th>
-            <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Carrier</th>
-            <th style="text-align:center;white-space:nowrap;border-right:1px solid #4a7a5a;">Lines Remaining</th>
-            <th style="text-align:center;white-space:nowrap;">BF Skids Remaining</th>
-          </tr></thead>
-          <tbody id="opupdates-tbody"></tbody>
+        <div class="opu-table-title" style="text-align:left;background:#1a4731;color:#fff;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;border-radius:12px 12px 0 0;">Trailers</div>
+        <div id="opu-trailer-tables" style="display:flex;">
+          <table style="background:#fff;width:auto;flex:1;">
+            <thead>
+            <tr>
+              <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Door</th>
+              <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Carrier</th>
+              <th style="text-align:center;white-space:nowrap;border-right:1px solid #4a7a5a;">Lines Remaining</th>
+              <th style="text-align:center;white-space:nowrap;">BF Skids Remaining</th>
+            </tr>
+            </thead>
+            <tbody id="opupdates-tbody-left"></tbody>
+          </table>
+          <table style="background:#fff;width:auto;flex:1;border-left:2px solid #4a7a5a;">
+            <thead>
+            <tr>
+              <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Door</th>
+              <th style="white-space:nowrap;border-right:1px solid #4a7a5a;">Carrier</th>
+              <th style="text-align:center;white-space:nowrap;border-right:1px solid #4a7a5a;">Lines Remaining</th>
+              <th style="text-align:center;white-space:nowrap;">BF Skids Remaining</th>
+            </tr>
+            </thead>
+            <tbody id="opupdates-tbody-right"></tbody>
+          </table>
+        </div>
+        <table id="opu-total-table" style="background:#fff;width:100%;">
           <tfoot>
             <tr id="opu-total-row" style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
               <td colspan="2" style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;border-right:1px solid #ccc;">Estimated Totals</td>
@@ -1809,19 +1828,20 @@
     </div>
 
     <div style="flex:1 1 380px;min-width:300px;">
-      <div style="margin-bottom:4px;">
-        <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Floor Line Estimations</span>
-      </div>
-      <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Manually enter estimated Lines and BF Skids for each floor location.</div>
       <div id="opu-floor-wrap" style="display:inline-block;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
         <table style="background:#fff;width:100%;">
-          <thead><tr>
+          <thead>
+          <tr>
+            <th colspan="5" class="opu-table-title" style="text-align:left;background:#1a4731;color:#fff;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Floor Line Estimations</th>
+          </tr>
+          <tr>
             <th style="min-width:20px;"></th>
             <th style="white-space:nowrap;">Location</th>
             <th style="text-align:center;white-space:nowrap;">Lines</th>
             <th style="text-align:center;white-space:nowrap;">BF Skids</th>
             <th style="min-width:25px;"></th>
-          </tr></thead>
+          </tr>
+          </thead>
           <tbody id="floor-est-tbody"></tbody>
           <tfoot>
             <tr style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
@@ -1841,19 +1861,20 @@
   </div>
 
   <div>
-    <div style="margin:20px 0 4px;">
-      <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Combined Totals</span>
-    </div>
-    <div style="font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:10px;max-width:340px;">Adds the trailer table's Estimated Totals to the Floor Totals. Enter Remaining Capacity to see estimated Carryover (Lines − Capacity).</div>
-    <div id="opu-grandtotal-wrap" style="display:inline-block;max-width:100%;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
+    <div id="opu-grandtotal-wrap" style="display:inline-block;max-width:100%;background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);margin-top:20px;">
       <table style="background:#fff;width:auto;min-width:100%;">
-        <thead><tr>
+        <thead>
+        <tr>
+          <th colspan="5" class="opu-table-title" style="text-align:left;background:#1a4731;color:#fff;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Combined Totals</th>
+        </tr>
+        <tr>
           <th style="white-space:nowrap;">Source</th>
           <th style="text-align:center;white-space:nowrap;">Lines</th>
           <th style="text-align:center;white-space:nowrap;">BF Skids</th>
           <th style="text-align:center;white-space:nowrap;">Remaining Capacity</th>
           <th style="text-align:center;white-space:nowrap;">Est. Carryover</th>
-        </tr></thead>
+        </tr>
+        </thead>
         <tbody>
           <tr style="background:#e0e0e0;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
             <td style="text-align:right;color:#1a4731;background:transparent;padding:6px 10px;white-space:nowrap;">Grand Total</td>
@@ -5618,25 +5639,29 @@ function handleEnterMoveNext(event, selector) {
 }
 
 function renderOpUpdates() {
-  const tbody = document.getElementById('opupdates-tbody');
+  const tbodyLeft = document.getElementById('opupdates-tbody-left');
+  const tbodyRight = document.getElementById('opupdates-tbody-right');
+  const tablesWrap = document.getElementById('opu-trailer-tables');
   const empty = document.getElementById('opupdates-empty');
-  if (!tbody) return;
-  tbody.innerHTML = '';
+  if (!tbodyLeft || !tbodyRight) return;
+  tbodyLeft.innerHTML = '';
+  tbodyRight.innerHTML = '';
 
   const doorList = getOpUpdatesDoorList();
   const pendingRows = getPendingExpectedOpRows();
-  const totalRow = document.getElementById('opu-total-row');
+  const totalTable = document.getElementById('opu-total-table');
   if (!doorList.length && !pendingRows.length) {
     empty.style.display = 'block';
-    tbody.closest('table').style.display = 'none';
-    if (totalRow) totalRow.style.display = 'none';
+    if (tablesWrap) tablesWrap.style.display = 'none';
+    if (totalTable) totalTable.style.display = 'none';
     return;
   }
   empty.style.display = 'none';
-  tbody.closest('table').style.display = '';
-  if (totalRow) totalRow.style.display = '';
+  if (tablesWrap) tablesWrap.style.display = 'flex';
+  if (totalTable) totalTable.style.display = '';
 
-  
+  const rows = [];
+
   doorList.forEach(door => {
     const t = state.trailers[door.id];
     const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
@@ -5651,7 +5676,7 @@ function renderOpUpdates() {
         <td style="border-right:1px solid #e0eeea;"></td>
         <td></td>
       `;
-      tbody.appendChild(tr);
+      rows.push(tr);
       return;
     }
     const remaining = linesRemainingForTrailer(t);
@@ -5669,7 +5694,7 @@ function renderOpUpdates() {
         <input type="number" inputmode="numeric" id="opu-bf-remaining-${door.id}" class="fc-tbl-input opu-bf-input" style="width:64px;display:inline-block;font-weight:800;" value="${t.bfOverride !== null && t.bfOverride !== undefined && t.bfOverride !== '' ? t.bfOverride : ''}" placeholder="—" onchange="updateTrailerBfOverride('${door.id}', this.value)" onkeydown="handleEnterMoveNext(event, '.opu-bf-input')">
       </td>
     `;
-    tbody.appendChild(tr);
+    rows.push(tr);
   });
   pendingRows.forEach(({ row: r, idx }) => {
     const remaining = linesRemainingForTrailer(r);
@@ -5690,8 +5715,12 @@ function renderOpUpdates() {
         <input type="number" inputmode="numeric" id="opu-exp-bf-remaining-${idx}" class="fc-tbl-input opu-bf-input" style="width:64px;display:inline-block;font-weight:800;" value="${r.bfOverride !== null && r.bfOverride !== undefined && r.bfOverride !== '' ? r.bfOverride : ''}" placeholder="—" onchange="updateExpectedBfOverride(${idx}, this.value)" onkeydown="handleEnterMoveNext(event, '.opu-bf-input')">
       </td>
     `;
-    tbody.appendChild(tr);
+    rows.push(tr);
   });
+
+  const half = Math.ceil(rows.length / 2);
+  rows.slice(0, half).forEach(tr => tbodyLeft.appendChild(tr));
+  rows.slice(half).forEach(tr => tbodyRight.appendChild(tr));
 
   updateOpUpdatesTotal();
   renderFloorEstimates();
@@ -5799,15 +5828,15 @@ function printOpUpdatesWalkSheet() {
   h2 { font-family: Arial, Helvetica, sans-serif; font-size: 11px; margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; color: #000; }
   table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 6px; }
   th, td { font-family: Arial, Helvetica, sans-serif; border: 1px solid #999; padding: 3px 5px; font-size: 12pt; color: #000; overflow-wrap: break-word; }
-  th { background: #eee; text-align: left; }
+  th { background: #eee; text-align: left; font-size: 10pt; }
   td:first-child, th:first-child { text-align: left; }
   td:not(:first-child), th:not(:first-child) { text-align: center; }
   thead { display: table-header-group; }
   tr { page-break-inside: avoid; }
   .trailers-cols { display: flex; gap: 8px; align-items: flex-start; }
   .trailers-cols > div { flex: 1 1 50%; min-width: 0; }
-  .trailers-table col.col-door { width: 20%; }
-  .trailers-table col.col-label { width: 46%; }
+  .trailers-table col.col-door { width: 12%; }
+  .trailers-table col.col-label { width: 54%; }
   .trailers-table col.col-narrow { width: 17%; }
   #floor-table col.col-label { width: 46%; }
   #floor-table col.col-narrow { width: 27%; }
@@ -5821,7 +5850,6 @@ function printOpUpdatesWalkSheet() {
   <h1>Operational Updates — Floor Walk Sheet</h1>
   <div class="stamp">${stamp}</div>
 
-  <h2>Trailers</h2>
   <div class="trailers-cols">
     <div>${trailersTableHtml(leftHtml)}</div>
     ${rightHtml ? `<div>${trailersTableHtml(rightHtml)}</div>` : ''}
