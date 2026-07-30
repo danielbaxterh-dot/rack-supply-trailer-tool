@@ -1708,26 +1708,33 @@
   <div style="font-size:13px;font-weight:700;color:#000;margin:0 0 4px;" id="dash-date-label"></div>
   <div id="dash-layout-hint" style="display:none;font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:8px;">Drag a tile to reorder or drop it into an open space. Tap ⤢ on a tile to cycle its size (Extra Small / Small / Medium / Large).</div>
 
-  <div class="stat-row">
-    <div class="dash-stat-card">
-      <div class="dash-stat-val" id="dash-stat-secured">0</div>
-      <div class="dash-stat-label">Trailers Secured</div>
+  <div class="dash-chart-grid" id="dash-chart-grid">
+    <div class="dash-chart-panel dash-size-xs" data-panel="stat-secured">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-secured')" title="Resize">⤢</button>
+      <div style="text-align:center;">
+        <div class="dash-stat-val" id="dash-stat-secured">0</div>
+        <div class="dash-stat-label">Trailers Secured</div>
+      </div>
     </div>
-    <div class="dash-stat-card">
-      <div class="dash-stat-val" id="dash-stat-released">0</div>
-      <div class="dash-stat-label">Trailers Released</div>
+    <div class="dash-chart-panel dash-size-xs" data-panel="stat-released">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-released')" title="Resize">⤢</button>
+      <div style="text-align:center;">
+        <div class="dash-stat-val" id="dash-stat-released">0</div>
+        <div class="dash-stat-label">Trailers Released</div>
+      </div>
     </div>
-    <div class="dash-stat-card" style="grid-column:span 2;min-width:260px;">
-      <div class="dash-stat-label" style="margin-bottom:6px;">Trailers Released — by Day Secured</div>
+    <div class="dash-chart-panel dash-size-sm" data-panel="stat-trend">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-trend')" title="Resize">⤢</button>
+      <div class="dash-chart-title">Trailers Released — by Day Secured</div>
       <div id="dash-chart-released-trend"></div>
     </div>
-    <div class="dash-stat-card">
-      <div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div>
-      <div class="dash-stat-label">Avg Secure → Release</div>
+    <div class="dash-chart-panel dash-size-xs" data-panel="stat-avgdwell">
+      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-avgdwell')" title="Resize">⤢</button>
+      <div style="text-align:center;">
+        <div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div>
+        <div class="dash-stat-label">Avg Secure → Release</div>
+      </div>
     </div>
-  </div>
-
-  <div class="dash-chart-grid" id="dash-chart-grid">
     <div class="dash-chart-panel dash-size-sm" data-panel="secured-carrier">
       <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('secured-carrier')" title="Resize">⤢</button>
       <div class="dash-chart-title">Trailers Secured by Carrier</div>
@@ -2871,6 +2878,10 @@ let dashboardLayoutEditMode = false;
 let _unsubDashboardLayout = null;
 // Default order + size for each Dashboard chart tile
 let dashboardLayout = [
+  { id: 'stat-secured', size: 'xs' },
+  { id: 'stat-released', size: 'xs' },
+  { id: 'stat-trend', size: 'sm' },
+  { id: 'stat-avgdwell', size: 'xs' },
   { id: 'secured-carrier', size: 'sm' },
   { id: 'released-carrier', size: 'sm' },
   { id: 'released-pie', size: 'sm' },
