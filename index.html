@@ -4159,7 +4159,7 @@ function sendMoveSlackNotification(t, fromDoor, toDoor) {
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ Rack_supply_trailer_move: message })
+    body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
   }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
 }
 
@@ -4229,7 +4229,7 @@ function confirmJunkSkidsReset() {
     fetch(SLACK_RELEASE_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ Rack_supply_trailer_move: message })
+      body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
     }).catch(err => console.error('Slack webhook failed:', err));
   }
   toast('Timer reset & message sent ✓');
@@ -4659,6 +4659,17 @@ function releaseTrailer(doorId, sendSlack = true) {
 
 // Slack workflow webhook for door releases.
 const SLACK_RELEASE_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
+
+// Slack's Block Kit requires &, <, and > to be HTML-entity-escaped in message
+// text — an unescaped one can make the whole block invalid and get the
+// message rejected with "invalid_blocks". Carrier names, trailer numbers,
+// and notes are all free-text typed by whoever's using the app, so any one
+// of them could contain one of these characters on any given call — which is
+// why failures show up sporadically instead of every time. Every outgoing
+// Slack message is run through this right before sending.
+function escapeSlackText(str) {
+  return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 // Slack workflow webhook for the CFF Yard Storage Update button.
 const CFF_YARD_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
 const CFF_YARD_WEBHOOK_PAYLOAD_KEY = 'CFF_Storage_update';
@@ -4689,7 +4700,7 @@ function sendCFFYardStorageUpdate() {
   fetch(CFF_YARD_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ [CFF_YARD_WEBHOOK_PAYLOAD_KEY]: message })
+    body: JSON.stringify({ [CFF_YARD_WEBHOOK_PAYLOAD_KEY]: escapeSlackText(message) })
   }).then(() => {
     toast('CFF Yard Storage Update sent ✓');
   }).catch(err => {
@@ -4732,7 +4743,7 @@ function sendReleaseSlackNotification(rec, salesSlot) {
   return fetch(SLACK_RELEASE_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ Rack_supply_trailer_move: message })
+    body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
   }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
 }
 function completeTrailer(doorId) {
@@ -7801,7 +7812,7 @@ function sendAutoReadyMessage() {
     fetch(SLACK_RELEASE_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ Rack_supply_trailer_move: message })
+      body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
     }).catch(err => console.error('Slack webhook failed:', err));
   }
   closeModal('modal-auto-ready');
