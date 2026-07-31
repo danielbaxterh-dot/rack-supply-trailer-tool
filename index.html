@@ -1178,6 +1178,7 @@
           <button onclick="resetZoom()" title="Reset zoom" style="border:none;background:#fff;border-radius:15px;padding:3px 10px;cursor:pointer;font-weight:700;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.25);">Reset</button>
         </div>
         <button onclick="openAutoReadyModal()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Auto Trailer Ready</button>
+        <button onclick="sendCFFYardStorageUpdate()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">CFF Yard Storage Update</button>
         <span class="edit-mode-badge" id="edit-mode-badge" style="display:none;">EDIT MODE</span>
       </div>
 
@@ -4658,6 +4659,45 @@ function releaseTrailer(doorId, sendSlack = true) {
 
 // Slack workflow webhook for door releases.
 const SLACK_RELEASE_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
+// Slack workflow webhook for the CFF Yard Storage Update button.
+const CFF_YARD_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
+const CFF_YARD_WEBHOOK_PAYLOAD_KEY = 'CFF_Storage_update';
+
+// Sends a plain-text list of every carrier + trailer # currently slotted in a
+// CFF Yard door, headed by today's date.
+function sendCFFYardStorageUpdate() {
+  if (!CFF_YARD_WEBHOOK_URL) {
+    toast('CFF Yard webhook URL is not configured yet', 'error');
+    return;
+  }
+  const isCFFYardDoor = door => door.type === 'cff_yard' || /CFF/i.test(door.num) || (door.name && /CFF/i.test(door.name));
+  const rows = state.doors
+    .filter(d => d.active && isCFFYardDoor(d))
+    .map(d => ({ door: d, t: state.trailers[d.id] }))
+    .filter(({ t }) => t && t.carrier)
+    .sort((a, b) => a.door.num.localeCompare(b.door.num, undefined, { numeric: true }));
+
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const lines = [dateStr];
+  if (!rows.length) {
+    lines.push('No trailers currently in CFF Yard storage.');
+  } else {
+    rows.forEach(({ t }) => lines.push(`${t.carrier}${t.trailerNum ? ' - ' + t.trailerNum : ''}`));
+  }
+  const message = lines.join('\n');
+
+  fetch(CFF_YARD_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ [CFF_YARD_WEBHOOK_PAYLOAD_KEY]: message })
+  }).then(() => {
+    toast('CFF Yard Storage Update sent ✓');
+  }).catch(err => {
+    console.error('CFF Yard webhook failed:', err);
+    toast('Failed to send CFF Yard update', 'error');
+  });
+}
+
 // Carrier name overrides for webhook messages — add entries here as needed.
 const WEBHOOK_CARRIER_ALIAS = {
   'Dohrn':     'Craig',
