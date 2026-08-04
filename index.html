@@ -1457,12 +1457,6 @@
     <button id="assump-toggle-btn" onclick="toggleAssumptionsPanel()" style="font-size:10px;font-weight:700;padding:3px 8px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #8b0000;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #8b0000'">⚙ Assumptions</button>
   </div>
 
-  <!-- Carrier list mismatch banner — shown when the carrier table and schedule drift apart -->
-  <div id="fc-sync-banner" style="display:none;margin-bottom:12px;background:#fff3cd;border:1px solid #e0b400;border-radius:8px;padding:8px 12px;align-items:center;gap:12px;flex-wrap:wrap;">
-    <span style="font-size:12px;color:#7a5c00;font-weight:600;flex:1;min-width:200px;" id="fc-sync-banner-text"></span>
-    <button class="btn btn-teal btn-sm" onclick="syncForecastCarrierLists()">↻ Sync Now</button>
-  </div>
-
   <!-- Inline Assumptions Panel -->
   <div id="fc-assumptions-panel" style="display:none;margin-bottom:14px;">
     <div style="background:#1f2f24;border:1px solid #2e4a38;border-radius:10px;padding:14px 16px;">
@@ -1497,21 +1491,26 @@
         <table id="assump-unified-table" style="width:100%;font-size:12px;background:#fff;table-layout:fixed;">
           <colgroup>
             <col style="width:3%"><!-- drag handle -->
-            <col style="width:12%"><!-- Carrier -->
-            <col style="width:9%"><!-- Default Expected Trailers -->
-            <col style="width:9%"><!-- Lines/Trlr (manual) -->
-            <col style="width:9%"><!-- BF Skids (manual) -->
+            <col style="width:11%"><!-- Carrier -->
+            <col style="width:8%"><!-- Default Expected Trailers -->
+            <col style="width:8%"><!-- Lines/Trlr (manual) -->
+            <col style="width:8%"><!-- BF Skids (manual) -->
             <col style="width:4%;background:#d4eee2;"><!-- divider -->
-            <col style="width:9%"><!-- Avg Lines (avg) -->
-            <col style="width:9%"><!-- BF Skids (avg) -->
-            <col style="width:6%"><!-- Loads -->
-            <col style="width:9%"><!-- Upload -->
+            <col style="width:8%"><!-- Avg Lines (avg) -->
+            <col style="width:8%"><!-- BF Skids (avg) -->
+            <col style="width:5%"><!-- Loads -->
+            <col style="width:7%"><!-- Upload -->
+            <col style="width:5%"><!-- M -->
+            <col style="width:5%"><!-- T -->
+            <col style="width:5%"><!-- W -->
+            <col style="width:5%"><!-- Th -->
+            <col style="width:5%"><!-- F -->
           </colgroup>
           <thead>
             <tr>
               <th rowspan="2" style="background:#bfbfbf;"></th>
               <th rowspan="2" style="font-size:10px;white-space:nowrap;vertical-align:middle;">Carrier</th>
-              <th rowspan="2" style="text-align:center;font-size:10px;white-space:nowrap;vertical-align:middle;" title="Expected trailer count used whenever this carrier is active per the Carrier Schedule">Default Expected Trailers</th>
+              <th rowspan="2" style="text-align:center;font-size:10px;white-space:nowrap;vertical-align:middle;" title="Expected trailer count used whenever this carrier is active per its Active Days schedule below">Default Expected Trailers</th>
               <th colspan="2" style="text-align:center;font-size:10px;border-bottom:1px solid #27b589;padding-bottom:3px;">
                 <span style="color:var(--yellow);">MANUAL</span>
                 <span id="assump-manual-badge" style="display:none;font-size:9px;font-weight:700;background:#27b589;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;">ACTIVE</span>
@@ -1528,12 +1527,18 @@
                   <button class="btn btn-blue btn-sm" title="Excel format: Column A = Carrier name, Column B = Lines checked in (one row per load). Average is computed per carrier." onclick="document.getElementById('assump-excel-upload').click()" style="white-space:nowrap;">📂 Upload</button>
                 </label>
               </th>
+              <th colspan="5" style="text-align:center;font-size:10px;border-bottom:1px solid #27b589;padding-bottom:3px;color:var(--yellow);" title="Days this carrier is active. This is the single source of truth for the Forecast table and the Carrier Schedule panel — no separate copy to keep in sync.">ACTIVE DAYS</th>
             </tr>
             <tr>
               <th style="text-align:center;font-size:10px;white-space:nowrap;">Lines / Trlr</th>
               <th style="text-align:center;font-size:10px;white-space:nowrap;">BF Skids / Trlr</th>
               <th style="text-align:center;font-size:10px;white-space:nowrap;">Avg Lines / Trlr</th>
               <th style="text-align:center;font-size:10px;white-space:nowrap;">BF Skids / Trlr</th>
+              <th style="text-align:center;font-size:10px;">M</th>
+              <th style="text-align:center;font-size:10px;">T</th>
+              <th style="text-align:center;font-size:10px;">W</th>
+              <th style="text-align:center;font-size:10px;">Th</th>
+              <th style="text-align:center;font-size:10px;">F</th>
             </tr>
           </thead>
           <tbody id="assump-unified-tbody"></tbody>
@@ -1637,10 +1642,11 @@
       <span id="fc-bf-total" style="display:none;">0</span>
     </div>
 
-    <!-- RIGHT: Carrier Schedule -->
+    <!-- RIGHT: Carrier Schedule (defaults to Assumptions' Active Days, editable per-day override) -->
     <div>
       <div class="panel" style="margin:0;background:#fff;border:1px solid #c8ddd4;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
         <h3 style="font-size:12px;color:#1a4731;border-bottom-color:#c8ddd4;">Carrier Schedule</h3>
+        <div style="font-size:10px;color:#4a7a5a;font-style:italic;padding:0 2px 6px;">Defaults to Assumptions' Active Days. Check/uncheck a box to override just today's date — highlighted cells are overridden; ↺ resets a carrier back to the default.</div>
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="width:100%;font-size:11px;min-width:300px;">
           <thead><tr>
@@ -1655,7 +1661,6 @@
           <tbody id="fc-schedule-tbody"></tbody>
         </table>
         </div>
-        <button class="btn btn-gray btn-sm mt8" onclick="addScheduleRow()">+ Add Carrier</button>
       </div>
     </div>
   </div>
@@ -5177,7 +5182,6 @@ function getForecastData(dateKey) {
         ov.bfPerTrailer   !== undefined ? {bfPerTrailer:    ov.bfPerTrailer}    : {}
       );
     });
-    const seededSchedule = JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE)).filter(s => !removed.has(s.name));
 
     // Carry forward any custom carriers that have been permanently added (tracked
     // in state.settings.extraForecastCarriers) so a carrier someone adds sticks
@@ -5193,12 +5197,10 @@ function getForecastData(dateKey) {
         bfPerTrailer: getCarrierAssumption(name, 'bfPerTrailer') || 0,
         arrived: false, remaining: 0, midday: 0
       });
-      seededSchedule.push({ name, mon: true, tue: true, wed: true, thu: true, fri: true });
     });
 
     state.forecast[dateKey] = {
       carriers: seededCarriers,
-      schedule: seededSchedule,
       carriedIn: 0, capacity: 0,
       yestCarried: 0, yestChecked: 0, yestForecast: 0, checkRate: 0, linesPerson: 0,
       notes: '',
@@ -5207,7 +5209,6 @@ function getForecastData(dateKey) {
   }
   const fd = state.forecast[dateKey];
   if (!fd.carriers || fd.carriers.length === 0) fd.carriers = JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS));
-  if (!fd.schedule || fd.schedule.length === 0) fd.schedule = JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE));
   reconcileForecastCarriers(fd);
   return fd;
 }
@@ -5218,24 +5219,29 @@ function getForecastData(dateKey) {
 // there's no more "snapshot taken once and never revisited." Runs every time
 // so it self-heals regardless of which code path touched this day's data.
 //
-// Deliberately does NOT touch: fd.ltl (Expected Trailers / Load to Expected
-// rules), or any already-configured day-pattern in fd.schedule — those keep
-// working exactly as before, just now operating on an always-current list.
+// Deliberately does NOT touch fd.ltl (Expected Trailers / Load to Expected
+// rules). Active Days scheduling is no longer per-day data at all — it's read
+// live from Assumptions via getCarrierScheduleDays(), so there's nothing here
+// to reconcile for it.
 function reconcileForecastCarriers(fd) {
   const removed = new Set(state.settings.removedForecastCarriers || []);
 
   // Drop rows for anything permanently removed
   fd.carriers = fd.carriers.filter(c => !removed.has(c.name));
-  fd.schedule = fd.schedule.filter(s => !removed.has(s.name));
 
-  // Refresh Lines/BF-per-trailer on every existing row from the live
-  // Assumptions values — never a stale copy from whenever the day was seeded.
+  // Refresh Lines/BF-per-trailer AND the Default Expected Trailers count on
+  // every existing row from the live Assumptions values — never a stale copy
+  // from whenever the day was seeded. Expected Trailers is skipped for a row
+  // that's been directly edited for this specific day (expTrailersManual) —
+  // a day-specific manual bump/reduction stays put; only an untouched row
+  // picks up a later change to the Assumptions default automatically.
   fd.carriers.forEach(c => {
     if (c.name === 'Carryover') return;
     const lpt = getCarrierAssumption(c.name, 'linesPerTrailer');
     const bpt = getCarrierAssumption(c.name, 'bfPerTrailer');
     if (lpt !== null && lpt !== undefined) c.linesPerTrailer = lpt;
     if (bpt !== null && bpt !== undefined) c.bfPerTrailer = bpt;
+    if (!c.expTrailersManual) c.expTrailers = getDefaultExpTrailers(c.name);
   });
 
   // Build the live master carrier name list (built-in + custom extras, minus
@@ -5265,17 +5271,6 @@ function reconcileForecastCarriers(fd) {
     });
   });
 
-  // Same for the Schedule table — only ADD a default entry for a carrier
-  // that's never appeared there before, so any already-configured day-pattern
-  // (e.g. ESTES only certain weekdays) is never overwritten. New entries
-  // default to every weekday, same as the existing "extras" convention.
-  const scheduleNames = new Set(fd.schedule.map(s => s.name));
-  masterNames.forEach(name => {
-    if (scheduleNames.has(name)) return;
-    const defSched = DEFAULT_FC_SCHEDULE.find(s => s.name === name);
-    fd.schedule.push(defSched ? JSON.parse(JSON.stringify(defSched)) : { name, mon: true, tue: true, wed: true, thu: true, fri: true });
-  });
-
   // Row order is now driven centrally by Assumptions (drag-to-reorder there),
   // not per-day — apply that canonical order here so every day always
   // matches. Carryover and anything not yet positioned keep their existing
@@ -5301,75 +5296,10 @@ function changeForecastDate(inp) {
   renderForecastTab();
 }
 
-// Detects when the main carrier table and the Carrier Schedule panel have
-// drifted apart (a carrier exists in one but not the other) — this happens if
-// a row was ever removed from just one side, e.g. by an older version of the
-// delete button, or a Firestore edit made outside the app.
-function getForecastCarrierMismatches(fd) {
-  const carrierNames = new Set(fd.carriers.filter(c => c.name !== 'Carryover').map(c => c.name));
-  const scheduleNames = new Set((fd.schedule || []).map(s => s.name));
-  const onlyInCarriers = [...carrierNames].filter(n => !scheduleNames.has(n));
-  const onlyInSchedule = [...scheduleNames].filter(n => !carrierNames.has(n));
-  return { onlyInCarriers, onlyInSchedule };
-}
-
-function renderForecastSyncBanner(fd) {
-  const banner = document.getElementById('fc-sync-banner');
-  const text = document.getElementById('fc-sync-banner-text');
-  if (!banner || !text) return;
-  const { onlyInCarriers, onlyInSchedule } = getForecastCarrierMismatches(fd);
-  if (!onlyInCarriers.length && !onlyInSchedule.length) {
-    banner.style.display = 'none';
-    return;
-  }
-  const parts = [];
-  if (onlyInSchedule.length) parts.push(`missing from the carrier table: ${onlyInSchedule.join(', ')}`);
-  if (onlyInCarriers.length) parts.push(`missing from the schedule: ${onlyInCarriers.join(', ')}`);
-  text.textContent = `⚠ Carrier table and schedule are out of sync — ${parts.join('; ')}.`;
-  banner.style.display = 'flex';
-}
-
-// Adds a default row to whichever side (carrier table / schedule) is missing a
-// carrier that exists on the other side. Never removes anything — this only
-// heals drift, it doesn't second-guess an intentional single-side edit made
-// moments ago (removeFCCarrier/removeScheduleRow already keep both sides in
-// step for new deletions going forward).
-function syncForecastCarrierLists() {
-  const dateKey = document.getElementById('forecast-date').value || todayStr();
-  const fd = getForecastData(dateKey);
-  if (!fd.schedule) fd.schedule = [];
-  const { onlyInCarriers, onlyInSchedule } = getForecastCarrierMismatches(fd);
-  let added = 0;
-
-  onlyInCarriers.forEach(name => {
-    const def = DEFAULT_FC_SCHEDULE.find(s => s.name === name);
-    fd.schedule.push(def ? { ...def } : { name, mon: true, tue: true, wed: true, thu: true, fri: true });
-    added++;
-  });
-
-  onlyInSchedule.forEach(name => {
-    const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
-    fd.carriers.push(def ? { ...def } : {
-      name,
-      linesPerTrailer: getCarrierAssumption(name, 'linesPerTrailer') || 0,
-      expTrailers: 1, trailerAdj: 0, linesAdj: 0,
-      bfPerTrailer: getCarrierAssumption(name, 'bfPerTrailer') || 0,
-      arrived: false, remaining: 0, midday: 0
-    });
-    registerForecastCarrierForAssumptions(name);
-    added++;
-  });
-
-  saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers, schedule: fd.schedule });
-  renderForecastTab();
-  toast(added ? `Synced — added ${added} missing row${added > 1 ? 's' : ''} ✓` : 'Already in sync ✓');
-}
-
 function renderForecastTab() {
   const dateInp = document.getElementById('forecast-date');
   if (!dateInp.value) dateInp.value = todayStr();
   const fd = getForecastData(dateInp.value);
-  renderForecastSyncBanner(fd);
 
   // Summary inputs
   document.getElementById('fc-carried-in').value = fd.carriedIn || 0;
@@ -5385,10 +5315,10 @@ function renderForecastTab() {
   const selDayKey = dayKeys[selDate.getDay()];
   const isWeekday = selDayKey !== 'sun' && selDayKey !== 'sat';
 
-  // Build scheduled-today set from schedule
+  // Build scheduled-today set from the global Assumptions schedule
   const scheduledForDay = new Set();
-  if (fd.schedule && isWeekday) {
-    fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
+  if (isWeekday) {
+    fd.carriers.forEach(c => { if (getEffectiveScheduleDay(fd, c.name, selDayKey)) scheduledForDay.add(c.name); });
   }
 
   // Carriers grouped visually with background colors matching the Excel exactly
@@ -5422,7 +5352,7 @@ function renderForecastTab() {
       tbody.appendChild(divider);
     }
     // Use 0 trailers if not scheduled for this day (but still show row)
-    const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers || 0);
+    const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers || 0);
     const adjTrailers = schedTrailers + (c.trailerAdj || 0);
     // Pull linesPerTrailer and bfPerTrailer from assumptions
     const rawLpt = getCarrierAssumption(c.name, 'linesPerTrailer');
@@ -5435,7 +5365,7 @@ function renderForecastTab() {
     const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
     const bf = bfPerTrailer * adjTrailers * linesPerSkid;
     const tr = document.createElement('tr');
-    const notScheduled = !ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name);
+    const notScheduled = !ALWAYS_ACTIVE.has(c.name) && isWeekday && !scheduledForDay.has(c.name);
     const carrierBg = CARRIER_COLOR[c.name] || '';
     tr.innerHTML = `
       <td class="carrier-name-cell" style="background:#ffffff;"><select id="fc-carrier-select-${i}" class="fc-tbl-input" style="text-align:left;font-weight:600;font-size:15px;background:#ffffff;${notScheduled?'color:var(--text2);':''}" onchange="updateFCCarrier(${i},'name',this.value)">${state.carriers.map(sc => `<option value="${sc.name}"${sc.name===c.name?' selected':''}>${sc.name}</option>`).join('')}${state.carriers.some(sc=>sc.name===c.name)?'':`<option value="${c.name}" selected>${c.name}</option>`}</select></td>
@@ -5458,7 +5388,13 @@ function renderForecastTab() {
 function updateFCCarrier(idx, field, val) {
   const dateKey = document.getElementById('forecast-date').value || todayStr();
   const fd = getForecastData(dateKey);
-  if (fd.carriers[idx]) fd.carriers[idx][field] = val;
+  if (fd.carriers[idx]) {
+    fd.carriers[idx][field] = val;
+    // Flag a direct edit to Expected Trailers as an intentional per-day
+    // override, so reconcileForecastCarriers's live-default refresh (below)
+    // never silently reverts it back to the Assumptions default.
+    if (field === 'expTrailers') fd.carriers[idx].expTrailersManual = true;
+  }
   if (field === 'name') registerForecastCarrierForAssumptions(val);
   saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers });
   renderForecastTab();
@@ -5470,15 +5406,9 @@ function removeFCCarrier(idx) {
   const removed = fd.carriers[idx];
   if (!removed) return;
   fd.carriers.splice(idx, 1);
-  // Keep the Carrier Schedule panel in sync — a carrier removed from the main
-  // table shouldn't linger there with stale day checkboxes.
-  if (fd.schedule) {
-    const schedIdx = fd.schedule.findIndex(s => s.name === removed.name);
-    if (schedIdx !== -1) fd.schedule.splice(schedIdx, 1);
-  }
-  saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers, schedule: fd.schedule });
+  saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers });
   renderForecastTab();
-  toast(`${removed.name} removed from the carrier table and schedule`);
+  toast(`${removed.name} removed from today's carrier table`);
 }
 
 // Removes a carrier everywhere, permanently — unlike the ✕ above (which only
@@ -5504,11 +5434,7 @@ function removeForecastCarrierPermanently(name) {
   if (fd) {
     const cIdx = fd.carriers.findIndex(c => c.name === name);
     if (cIdx !== -1) fd.carriers.splice(cIdx, 1);
-    if (fd.schedule) {
-      const sIdx = fd.schedule.findIndex(s => s.name === name);
-      if (sIdx !== -1) fd.schedule.splice(sIdx, 1);
-    }
-    saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers, schedule: fd.schedule });
+    saveForecastFieldsToFirebase(dateKey, { carriers: fd.carriers });
   }
 
   renderForecastTab();
@@ -5611,14 +5537,70 @@ function saveForecastSettings() {
 }
 
 // ===================== ASSUMPTIONS TAB =====================
-// The Expected Trailers count used whenever a carrier is active per the
-// Carrier Schedule — editable per-carrier in the Assumptions tab now, instead
-// of being a fixed built-in number.
+// The Expected Trailers count used whenever a carrier is active per its
+// Active Days schedule — editable per-carrier in the Assumptions tab now,
+// instead of being a fixed built-in number.
 function getDefaultExpTrailers(name) {
   const custom = state.settings.carrierDefaultExpTrailers;
   if (custom && custom[name] !== undefined) return custom[name];
   const def = DEFAULT_FC_CARRIERS.find(c => c.name === name);
   return def ? (def.expTrailers || 0) : 1;
+}
+
+// Active-days schedule now lives entirely in Assumptions (state.settings.
+// carrierAssumptions[name].days) — this is the single source of truth used
+// by the Forecast table, calcForecastSummary, syncForecastToLTL, and the
+// read-only Carrier Schedule panel alike. There's no more per-day copy to
+// drift out of sync: every one of those reads through this same function.
+function getCarrierScheduleDays(name) {
+  const override = (state.settings.carrierAssumptions || {})[name];
+  if (override && override.days) return override.days;
+  const def = DEFAULT_FC_SCHEDULE.find(s => s.name === name);
+  if (def) return { mon: def.mon, tue: def.tue, wed: def.wed, thu: def.thu, fri: def.fri };
+  return { mon: true, tue: true, wed: true, thu: true, fri: true };
+}
+
+function updateCarrierScheduleDay(name, day, checked) {
+  if (!state.settings.carrierAssumptions) state.settings.carrierAssumptions = {};
+  if (!state.settings.carrierAssumptions[name]) state.settings.carrierAssumptions[name] = {};
+  if (!state.settings.carrierAssumptions[name].days) state.settings.carrierAssumptions[name].days = getCarrierScheduleDays(name);
+  state.settings.carrierAssumptions[name].days[day] = checked;
+  saveState();
+  saveSettingsToFirebase();
+  renderForecastTab();
+}
+
+// Per-day override on top of the Assumptions default — lives in
+// fd.carrierScheduleOverrides[carrierName][dayKey], and ONLY exists for a
+// carrier/day someone has explicitly flipped for this specific date. Nothing
+// is ever pre-seeded here, so there's no full per-day copy to go stale like
+// the old fd.schedule array; a day that's never been touched always falls
+// straight through to the live Assumptions value.
+function getEffectiveScheduleDay(fd, carrierName, dayKey) {
+  const ov = fd.carrierScheduleOverrides && fd.carrierScheduleOverrides[carrierName];
+  if (ov && ov[dayKey] !== undefined) return ov[dayKey];
+  return getCarrierScheduleDays(carrierName)[dayKey];
+}
+
+function toggleCarrierScheduleOverrideDay(carrierName, dayKey, checked) {
+  const dateKey = document.getElementById('forecast-date').value || todayStr();
+  const fd = getForecastData(dateKey);
+  if (!fd.carrierScheduleOverrides) fd.carrierScheduleOverrides = {};
+  if (!fd.carrierScheduleOverrides[carrierName]) fd.carrierScheduleOverrides[carrierName] = {};
+  fd.carrierScheduleOverrides[carrierName][dayKey] = checked;
+  saveForecastFieldsToFirebase(dateKey, { carrierScheduleOverrides: fd.carrierScheduleOverrides });
+  renderForecastTab();
+}
+
+// Clears every override for one carrier on the current date, dropping it
+// back to whatever Assumptions says for every day of the week.
+function resetCarrierScheduleOverride(carrierName) {
+  const dateKey = document.getElementById('forecast-date').value || todayStr();
+  const fd = getForecastData(dateKey);
+  if (fd.carrierScheduleOverrides) delete fd.carrierScheduleOverrides[carrierName];
+  saveForecastFieldsToFirebase(dateKey, { carrierScheduleOverrides: fd.carrierScheduleOverrides || {} });
+  renderForecastTab();
+  toast(`${carrierName} reset to the Assumptions default for today`);
 }
 
 function getCarrierAssumption(name, field) {
@@ -6447,6 +6429,12 @@ function renderAssumptionsTab() {
     const bfptA   = avgData.bfPerTrailer ?? bfptM;
     const loads   = avgData.count || 0;
     const defaultExpTrailers = getDefaultExpTrailers(def.name);
+    const days = getCarrierScheduleDays(def.name);
+    const escName = def.name.replace(/'/g, "\\'");
+    const dayCell = (dayKey) => `
+      <td style="text-align:center;padding:3px 2px;">
+        <input type="checkbox" ${days[dayKey] ? 'checked' : ''} onchange="updateCarrierScheduleDay('${escName}', '${dayKey}', this.checked)" style="width:15px;height:15px;cursor:pointer;">
+      </td>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="text-align:center;cursor:grab;color:#999;font-size:13px;background:#f5f5f5;user-select:none;">⋮⋮</td>
@@ -6474,7 +6462,8 @@ function renderAssumptionsTab() {
           onchange="saveAssumptions()">
       </td>
       <td style="text-align:center;padding:4px 7px;font-size:12px;color:#888;">${loads || '—'}</td>
-      <td style="text-align:center;padding:3px 4px;"><button class="delete-btn" style="background:#7a2020;" onclick="removeForecastCarrierPermanently('${def.name.replace(/'/g, "\\'")}')" title="Remove permanently">\u2715</button></td>`;
+      <td style="text-align:center;padding:3px 4px;"><button class="delete-btn" style="background:#7a2020;" onclick="removeForecastCarrierPermanently('${escName}')" title="Remove permanently">\u2715</button></td>
+      ${dayCell('mon')}${dayCell('tue')}${dayCell('wed')}${dayCell('thu')}${dayCell('fri')}`;
     tr.draggable = true;
     tr.dataset.carrierName = def.name;
     tr.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', def.name); e.dataTransfer.effectAllowed = 'move'; tr.style.opacity = '0.4'; });
@@ -6610,7 +6599,7 @@ function calcForecastSummary() {
   const selDayKey = dayKeys[selDate.getDay()];
   const isWeekday = selDayKey !== 'sun' && selDayKey !== 'sat';
   const scheduledForDay = new Set();
-  if (fd.schedule && isWeekday) fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
+  if (isWeekday) fd.carriers.forEach(c => { if (getEffectiveScheduleDay(fd, c.name, selDayKey)) scheduledForDay.add(c.name); });
 
   let totTrailers = 0, totExpLines = 0, totTotal = 0, totBF = 0, totBFSkids = 0;
   let newLines = 0;
@@ -6618,7 +6607,7 @@ function calcForecastSummary() {
   const linesPerSkid = (state.settings.bfLinesPerSkid || 9);
   fd.carriers.forEach(c => {
     if (c.name === 'Carryover') return; // legacy row from old saved forecasts — no longer tracked here
-    const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
+    const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
     const expLines = (c.linesPerTrailer||0) * adjTrailers;
     const total = expLines + (c.linesAdj||0);
@@ -6671,72 +6660,36 @@ function saveCheckers(val) {
   saveState();
 }
 
+// Read-only reflection of the Active Days schedule set in Assumptions — this
+// panel no longer stores or edits anything of its own, so there's nothing
+// left for it to drift out of sync with. Edit a carrier's days in the
+// Assumptions panel and it shows up here immediately.
+// Editable per-day view: checking/unchecking a box here sets a one-day
+// override for the currently-viewed date (fd.carrierScheduleOverrides),
+// without touching the Assumptions default. Overridden cells are highlighted
+// so it's obvious at a glance which days are following the default vs. have
+// been hand-adjusted for today; the ↺ button clears all of a carrier's
+// overrides for the day and drops it back to the Assumptions default.
 function renderFCSchedule(fd) {
   const tbody = document.getElementById('fc-schedule-tbody');
   tbody.innerHTML = '';
-  (fd.schedule || []).forEach((s, i) => {
+  const days = ['mon','tue','wed','thu','fri'];
+  fd.carriers.filter(c => c.name !== 'Carryover').forEach(c => {
+    const escName = c.name.replace(/'/g, "\\'");
+    const ov = (fd.carrierScheduleOverrides && fd.carrierScheduleOverrides[c.name]) || {};
+    const hasOverride = days.some(d => ov[d] !== undefined);
     const tr = document.createElement('tr');
-    const days = ['mon','tue','wed','thu','fri'];
-    let cells = `<td style="text-align:center;cursor:grab;color:#999;font-size:13px;background:#fff;user-select:none;">⋮⋮</td><td style="font-size:15px;font-weight:700;color:#000;background:#fff;padding:6px 8px;">${s.name}</td>`;
+    let cells = `<td style="background:#fff;text-align:center;padding:2px;">${hasOverride ? `<button onclick="resetCarrierScheduleOverride('${escName}')" title="Reset to Assumptions default" style="font-size:11px;border:none;background:none;color:#c0392b;cursor:pointer;padding:2px;">↺</button>` : ''}</td><td style="font-size:15px;font-weight:700;color:#000;background:#fff;padding:6px 8px;">${c.name}</td>`;
     days.forEach(d => {
-      cells += `<td style="text-align:center;background:#fff;padding:5px;"><input type="checkbox" class="fc-sched-chk" ${s[d]?'checked':''} onchange="updateFCSchedule(${i},'${d}',this.checked)"></td>`;
+      const effective = getEffectiveScheduleDay(fd, c.name, d);
+      const isOverridden = ov[d] !== undefined;
+      cells += `<td style="text-align:center;background:${isOverridden ? '#fff3cd' : '#fff'};padding:5px;" title="${isOverridden ? "Overridden for today's date only" : 'Following the Assumptions default'}">
+        <input type="checkbox" ${effective ? 'checked' : ''} onchange="toggleCarrierScheduleOverrideDay('${escName}', '${d}', this.checked)" style="width:15px;height:15px;cursor:pointer;">
+      </td>`;
     });
-    cells += `<td style="background:#fff;padding:3px 4px;"><button onclick="removeScheduleRow(${i})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>`;
     tr.innerHTML = cells;
-    tr.draggable = true;
-    tr.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; tr.style.opacity = '0.4'; });
-    tr.addEventListener('dragend', () => { tr.style.opacity = ''; });
-    tr.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
-    tr.addEventListener('drop', e => {
-      e.preventDefault();
-      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
-      if (isNaN(fromIdx) || fromIdx === i) return;
-      const dk = document.getElementById('forecast-date').value || todayStr();
-      const fdd = getForecastData(dk);
-      const [moved] = fdd.schedule.splice(fromIdx, 1);
-      fdd.schedule.splice(i, 0, moved);
-      saveState();
-      renderForecastTab();
-    });
     tbody.appendChild(tr);
   });
-}
-
-function updateFCSchedule(idx, day, val) {
-  const dateKey = document.getElementById('forecast-date').value || todayStr();
-  const fd = getForecastData(dateKey);
-  if (fd.schedule[idx]) fd.schedule[idx][day] = val;
-  saveForecastFieldsToFirebase(dateKey, { schedule: fd.schedule });
-  renderForecastTab();
-}
-
-function removeScheduleRow(idx) {
-  const dateKey = document.getElementById('forecast-date').value || todayStr();
-  const fd = getForecastData(dateKey);
-  const removed = fd.schedule[idx];
-  if (!removed) return;
-  fd.schedule.splice(idx, 1);
-  // Keep the main carrier table in sync — a carrier removed from the schedule
-  // shouldn't linger there with a row that no longer has day settings behind it.
-  const carrierIdx = fd.carriers.findIndex(c => c.name === removed.name);
-  if (carrierIdx !== -1) fd.carriers.splice(carrierIdx, 1);
-  saveForecastFieldsToFirebase(dateKey, { schedule: fd.schedule, carriers: fd.carriers });
-  renderForecastTab();
-  toast(`${removed.name} removed from the schedule and carrier table`);
-}
-
-function addScheduleRow() {
-  const name = prompt('Carrier name for schedule:');
-  if (!name) return;
-  const dateKey = document.getElementById('forecast-date').value || todayStr();
-  const fd = getForecastData(dateKey);
-  fd.schedule.push({name, mon:false, tue:false, wed:false, thu:false, fri:false});
-  if (!fd.carriers.some(c => c.name === name)) {
-    fd.carriers.push({name, linesPerTrailer:0, expTrailers:1, trailerAdj:0, linesAdj:0, bfPerTrailer:0, arrived:false, remaining:0, midday:0});
-  }
-  registerForecastCarrierForAssumptions(name);
-  saveForecastFieldsToFirebase(dateKey, { schedule: fd.schedule, carriers: fd.carriers });
-  renderForecastTab();
 }
 
 // Sync carrier data to the LTL array used by the Expected Trailers sidebar
@@ -6747,7 +6700,7 @@ function syncForecastToLTL(fd, dateKey) {
   const selDayKey = dayKeys[selDate.getDay()];
   const isWeekday = selDayKey !== 'sun' && selDayKey !== 'sat';
   const scheduledForDay = new Set();
-  if (fd.schedule && isWeekday) fd.schedule.forEach(s => { if (s[selDayKey]) scheduledForDay.add(s.name); });
+  if (isWeekday) fd.carriers.forEach(c => { if (getEffectiveScheduleDay(fd, c.name, selDayKey)) scheduledForDay.add(c.name); });
 
   // Additive: never remove or overwrite existing rows (e.g. ones added by hand
   // via the Morning Outlook form with real trailer numbers) — only top up
@@ -6766,7 +6719,7 @@ function syncForecastToLTL(fd, dateKey) {
   if (!fd.ltl) fd.ltl = [];
   fd.carriers.forEach(c => {
     if (EXCLUDE_FROM_EXPECTED.has(c.name)) return;
-    const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && fd.schedule && fd.schedule.length && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
+    const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
     const existingCount = fd.ltl.filter(r => r.carrier === c.name).length;
     const alreadyAccountedFor = existingCount + (arrivedCounts[c.name] || 0);
