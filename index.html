@@ -1549,21 +1549,25 @@
 
 
   <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;">
-    <!-- LEFT: Summary + Main Table -->
-    <div>
+    <!-- LEFT: Summary + Main Table. min-width:0 keeps this column from forcing
+         the whole grid (and the Carrier Schedule column with it) to overflow —
+         without it, a 1fr grid track won't shrink below its content's natural
+         width, which pushed the schedule off-screen and required scrolling
+         the whole page sideways just to reach it. -->
+    <div style="min-width:0;">
       <!-- Main Carrier Forecast Table -->
       <div class="panel" style="padding:0;overflow-x:auto;margin-bottom:12px;background:#fff;border:1px solid #c8ddd4;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.9);border-radius:10px;">
         <table id="fc-carrier-table" style="width:100%;font-size:10px;background:#fff;border-radius:8px;overflow:hidden;">
           <thead><tr>
-            <th style="min-width:150px;font-size:10px;background:#bfbfbf;color:#000;">Carrier</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;" title="Historical average rack lines per trailer">Rack Lines per Trailer</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Expected trailers</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Expected lines</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Lines adjustment (+/-)</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Total</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">BF skids per trailer</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Line per Skid</th>
-            <th style="min-width:55px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Freight Lines</th>
+            <th style="min-width:100px;font-size:10px;background:#bfbfbf;color:#000;">Carrier</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;" title="Historical average rack lines per trailer">Rack Lines per Trailer</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Expected trailers</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Expected lines</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Lines adjustment (+/-)</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Total</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">BF skids per trailer</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Line per Skid</th>
+            <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;">Freight Lines</th>
           </tr></thead>
           <tbody id="fc-carrier-tbody"></tbody>
           <tfoot>
@@ -1648,7 +1652,7 @@
         <h3 style="font-size:12px;color:#1a4731;border-bottom-color:#c8ddd4;">Carrier Schedule</h3>
         <div style="font-size:10px;color:#4a7a5a;font-style:italic;padding:0 2px 6px;">Defaults to Assumptions' Active Days. Check/uncheck a box to override just today's date — highlighted cells are overridden; ↺ resets a carrier back to the default.</div>
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <table style="width:100%;font-size:11px;min-width:300px;">
+        <table style="width:100%;font-size:11px;min-width:260px;">
           <thead><tr>
             <th style="width:16px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);"></th>
             <th style="min-width:90px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
@@ -2069,7 +2073,7 @@
     <h2 id="release-confirm-title">Release Trailer</h2>
     <p class="modal-xl-summary" style="font-size:13px;color:#000;margin-bottom:16px;" id="release-confirm-summary"></p>
     <div class="modal-actions" style="flex-direction:column;gap:8px;">
-      <button class="btn btn-teal" onclick="releaseConfirmChoice(true)" style="color:#000;width:100%;">CONFIRM | REQUEST MOVE</button>
+      <button class="btn btn-green" onclick="releaseConfirmChoice(true)" style="width:100%;">CONFIRM | REQUEST MOVE</button>
       <button class="btn btn-gray" onclick="releaseConfirmChoice(false)" style="width:100%;">CONFIRM | NO REQUEST</button>
       <button class="btn btn-gray btn-cancel" onclick="closeModal('modal-release-confirm')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;font-size:12px;padding:4px;">Cancel</button>
     </div>
@@ -2259,7 +2263,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-auto-ready')">Cancel</button>
-      <button class="btn btn-teal" onclick="sendAutoReadyMessage()" style="color:#000;">Confirm | Send Request</button>
+      <button class="btn btn-green" onclick="sendAutoReadyMessage()">Confirm | Send Request</button>
     </div>
   </div>
 </div>
@@ -4316,6 +4320,7 @@ function openSlotLTLModal(presetDoorNum) {
   document.getElementById('sltl-type').value = 'LIVE';
   document.getElementById('sltl-arrival').value = localDateTimeInputValue();
   document.getElementById('sltl-unexpected').checked = false;
+  document.getElementById('sltl-carrier').value = ''; // clear before rebuilding — filterSltlCarriersByType() re-selects a previous value if it's still valid, which is what was carrying the old carrier over between uses
   filterSltlCarriersByType();
   if (presetDoorNum) document.getElementById('sltl-door').value = presetDoorNum;
   document.getElementById('modal-slot-ltl').classList.add('open');
@@ -4330,9 +4335,9 @@ function filterSltlCarriersByType() {
   const prevValue = carrierSelect.value;
   const matches = state.carriers.filter(c => {
     const ctype = (c.type || '').toUpperCase();
-    if (type === 'DROP') return ctype === 'DROP' || ctype === 'LTL';
-    if (type === 'LIVE') return ctype === 'LIVE';
-    return ctype !== 'DROP' && ctype !== 'LTL' && ctype !== 'LIVE';
+    if (type === 'DROP') return ctype === 'DROP' || ctype === 'LTL' || c.dualType;
+    if (type === 'LIVE') return ctype === 'LIVE' || c.dualType;
+    return ctype !== 'DROP' && ctype !== 'LTL' && ctype !== 'LIVE' && !c.dualType;
   }).sort((a, b) => a.name.localeCompare(b.name));
   carrierSelect.innerHTML = `<option value="" disabled${matches.some(c=>c.name===prevValue)?'':' selected'}>Select carrier…</option>` +
     matches.map(c => `<option value="${c.name}"${c.name===prevValue?' selected':''}>${c.name}</option>`).join('');
@@ -4545,7 +4550,7 @@ function isSlackEligible(t) {
   if (!t || t.type !== 'DROP') return false;
   if (state.settings.slackReleaseEnabled === false) return false;
   const carrierObj = state.carriers.find(c => c.name === t.carrier);
-  if (carrierObj && carrierObj.type !== 'DROP') return false;
+  if (carrierObj && carrierObj.type !== 'DROP' && !carrierObj.dualType) return false;
   return true;
 }
 
@@ -4724,9 +4729,9 @@ function sendReleaseSlackNotification(rec, salesSlot) {
   if (!SLACK_RELEASE_WEBHOOK_URL) return null;
   if (state.settings.slackReleaseEnabled === false) return null;
   if (rec.type !== 'DROP') return null;
-  // Also check carrier type — only fire for DROP carriers
+  // Also check carrier type — only fire for DROP (or DROP-eligible BOTH) carriers
   const carrierObj = state.carriers.find(c => c.name === rec.carrier);
-  if (carrierObj && carrierObj.type !== 'DROP') return null;
+  if (carrierObj && carrierObj.type !== 'DROP' && !carrierObj.dualType) return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[rec.carrier] || rec.carrier || 'Trailer';
   const door = rec.door;
 
@@ -4906,6 +4911,7 @@ function renderCarriers() {
           <div style="flex:1;min-width:0;">
             <div class="carrier-name" style="font-size:14px;">${c.name}</div>
             <span class="badge ${typeColor}" style="font-size:10px;color:#000;">${typeLabel}</span>
+            ${c.dualType ? `<span class="badge badge-purple" style="font-size:10px;color:#000;margin-left:4px;" title="Also shows up on the other type's dropdown when slotting a trailer">+ both</span>` : ''}
           </div>
           <button class="delete-btn" onclick="removeCarrier('${c.id}')" style="align-self:flex-start;flex-shrink:0;color:#ccc;font-size:13px;">✕</button>
         </div>
@@ -4922,6 +4928,10 @@ function renderCarriers() {
           <option value="LIVE" ${c.type === 'LIVE' ? 'selected' : ''}>LIVE</option>
           <option value="OTHER" ${(c.type !== 'DROP' && c.type !== 'LIVE') ? 'selected' : ''}>OTHER</option>
         </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
+          <input type="checkbox" class="carrier-dual-type-chk" ${c.dualType ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
+          Also list under the other type when slotting a trailer
+        </label>
         <div style="display:flex;gap:6px;justify-content:flex-end;">
           <button style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #ccc;background:#eee;color:#000;cursor:pointer;" onclick="cancelCarrierEdit(this)">Cancel</button>
           <button style="font-size:11px;padding:3px 10px;border-radius:5px;border:none;background:#27b589;color:#000;font-weight:700;cursor:pointer;" onclick="saveCarrierEdit('${c.id}', this)">Save</button>
@@ -4958,11 +4968,13 @@ function saveCarrierEdit(id, btn) {
   const card = btn.closest('.carrier-card');
   const name = card.querySelector('.carrier-edit-mode input').value.trim();
   const type = card.querySelector('.carrier-edit-mode select').value;
+  const dualType = card.querySelector('.carrier-dual-type-chk').checked;
   if (!name) { toast('Carrier name required', 'error'); return; }
   const c = state.carriers.find(c => c.id === id);
   if (!c) return;
   c.name = name;
   c.type = type;
+  c.dualType = dualType;
   saveOneCarrierToFirebase(id);
   saveState();
   renderCarriers();
@@ -7096,6 +7108,16 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modal-outlook') releaseOutlookLock();
 }
+
+// All buttons require an actual click — Enter never activates one. This
+// blocks it even for a button that has keyboard focus, where a browser would
+// otherwise fire a click natively by default.
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.tagName === 'BUTTON') {
+    e.preventDefault();
+  }
+});
+
 function showMoveBanner(webhookPromise) {
   const el = document.getElementById('release-banner');
   el.textContent = webhookPromise ? 'Trailer Moved & Move Request Sent' : 'Trailer Moved';
