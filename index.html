@@ -936,6 +936,7 @@
   #dash-detail-wrap .empty-state { font-size: 9px; padding: 15px; }
   .dash-stat-val { font-size: 28px; font-weight: 700; color: #000; line-height: 1; text-align: center; }
   .dash-stat-label { font-size: 11px; color: #333; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; text-align: center; }
+  .dash-tile-total-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
 
   /* SETTINGS */
   .settings-section { margin-bottom: 18px; }
@@ -1175,6 +1176,7 @@
   <button class="tab-btn" data-tab="history" onclick="switchTab('history')">History</button>
   <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab-btn" data-tab="opupdates" onclick="switchTab('opupdates')">🚧 Operational Updates</button>
+  <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙ Settings</button>
 </div>
 <div class="tabs-toolbar">
   <span class="tabs-toolbar-hint" id="tab-reorder-hint">Drag tabs to reorder — saves for everyone</span>
@@ -1882,6 +1884,26 @@
 
 <!-- REPORT TAB -->
 <!-- SETTINGS TAB -->
+<div id="tab-settings" class="tab-content">
+  <div class="settings-section">
+    <h3>Dashboard Carrier Filters</h3>
+    <div style="font-size:12px;color:#000;margin-bottom:12px;max-width:640px;">
+      Choose which carriers are counted in each dashboard breakdown. This is a global setting — it applies to every day, not just today, until you change it again. <strong>Every carrier defaults to included</strong> until you uncheck it here, so if you want Bin Freight and Shuttle left out the way they used to be by default, uncheck them below (one time) — after that there's no hidden rule left, just what's set here.
+    </div>
+    <div style="background:#fff;border:1px solid #c8ddd4;border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+      <table style="width:100%;font-size:12px;min-width:520px;">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 10px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Carrier</th>
+          <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Secured by Carrier</th>
+          <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Released by Carrier</th>
+          <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Avg Dwell by Carrier</th>
+          <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Released Share Pie</th>
+        </tr></thead>
+        <tbody id="dash-carrier-filter-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 <!-- MODALS -->
 <div class="modal-overlay" id="modal-slot">
   <div class="modal" style="background:#d0d0d0;">
@@ -2602,34 +2624,80 @@ async function ensureDashboardHistory(dateKey) {
   _dashLoadedRangeKey = rangeKey;
 }
 
-function getDashboardData(dateKey) {
-  // Bin Freight and Shuttle get their own dedicated tiles instead of being
-  // mixed into the general Secured/Released counts, carrier breakdowns, and
-  // average dwell time — a bin-freight or shuttle "trailer" isn't a normal
-  // door cycle and was skewing those numbers.
-  const SPECIAL_CARRIERS = ['Bin Freight', 'Shuttle'];
+// Replaces the old fixed "always hide Bin Freight and Shuttle" rule — each
+// dashboard breakdown (Secured by Carrier, Released by Carrier, Avg Dwell by
+// Carrier, Released Share pie) now has its own independently editable set of
+// included carriers, managed on the Settings tab, and that setting is global
+// and permanent (state.settings.dashboardCarrierFilters — same place
+// carrierAssumptions and the rest of the app's settings live), not scoped to
+// a particular day. So there's no need for any carrier-specific hardcoded
+// business rule anymore: a carrier that's never been explicitly toggled
+// simply defaults to included, same as any other untouched carrier. Set the
+// real preferences once on the Settings tab and they hold from then on.
+function isCarrierIncludedInTable(tableKey, carrierName) {
+  const filters = state.settings.dashboardCarrierFilters;
+  const table = filters && filters[tableKey];
+  if (table && Object.prototype.hasOwnProperty.call(table, carrierName)) return !!table[carrierName];
+  return true;
+}
 
+const DASH_CARRIER_FILTER_TABLES = ['secured', 'released', 'dwell', 'pie'];
+
+function renderDashCarrierFilters() {
+  const tbody = document.getElementById('dash-carrier-filter-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = state.carriers.map(c => {
+    const cells = DASH_CARRIER_FILTER_TABLES.map(tableKey => {
+      const checked = isCarrierIncludedInTable(tableKey, c.name);
+      return `<td style="text-align:center;padding:6px;border-bottom:1px solid #eee;">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleDashCarrierFilter('${tableKey}', '${c.name.replace(/'/g, "\\'")}', this.checked)" style="width:15px;height:15px;cursor:pointer;">
+      </td>`;
+    }).join('');
+    return `<tr>
+      <td style="padding:6px 10px;font-weight:700;color:#000;border-bottom:1px solid #eee;white-space:nowrap;">${escHtml(c.name)}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+function toggleDashCarrierFilter(tableKey, carrierName, checked) {
+  if (!state.settings.dashboardCarrierFilters) state.settings.dashboardCarrierFilters = {};
+  if (!state.settings.dashboardCarrierFilters[tableKey]) state.settings.dashboardCarrierFilters[tableKey] = {};
+  state.settings.dashboardCarrierFilters[tableKey][carrierName] = checked;
+  saveState();
+  saveSettingsToFirebase();
+  if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
+}
+
+function getDashboardData(dateKey) {
   // Secured on dateKey = completed cycles that arrived that day + trailers still on
   // a door right now that also arrived that day. "Did Not Receive" records are
   // excluded here — a DNR carrier never actually arrived, so it shouldn't
-  // inflate Secured, Released, or average dwell time.
-  const securedList = [];
-  state.history.forEach(r => { if (!r.didNotReceive && !SPECIAL_CARRIERS.includes(r.carrier) && dashDateKey(r.arrival) === dateKey) securedList.push({ ...r, _active: false }); });
+  // inflate Secured, Released, or average dwell time. This raw list is NOT
+  // carrier-filtered — each breakdown below applies its own filter from the
+  // Settings tab, since different charts can now include different carriers.
+  const rawSecuredList = [];
+  state.history.forEach(r => { if (!r.didNotReceive && dashDateKey(r.arrival) === dateKey) rawSecuredList.push({ ...r, _active: false }); });
   Object.entries(state.trailers).forEach(([doorId, t]) => {
-    if (!SPECIAL_CARRIERS.includes(t.carrier) && dashDateKey(t.arrival) === dateKey) {
+    if (dashDateKey(t.arrival) === dateKey) {
       const door = state.doors.find(d => d.id === doorId);
-      securedList.push({ ...t, doorId, door: door?.num || doorId, _active: true });
+      rawSecuredList.push({ ...t, doorId, door: door?.num || doorId, _active: true });
     }
   });
 
   // Released on dateKey = completed cycles released that day (regardless of when secured)
-  const releasedList = state.history.filter(r => !r.didNotReceive && !SPECIAL_CARRIERS.includes(r.carrier) && dashDateKey(r.released || r.completed) === dateKey);
-  releasedList.sort((a, b) =>
+  const rawReleasedList = state.history.filter(r => !r.didNotReceive && dashDateKey(r.released || r.completed) === dateKey);
+  const sortByArrival = (a, b) =>
     (dashDateKey(a.arrival) || '').localeCompare(dashDateKey(b.arrival) || '') ||
-    (new Date(a.arrival) - new Date(b.arrival))
-  );
+    (new Date(a.arrival) - new Date(b.arrival));
+  rawReleasedList.sort(sortByArrival);
 
-  const dwellMinsList = releasedList.map(r => {
+  const securedList = rawSecuredList.filter(r => isCarrierIncludedInTable('secured', r.carrier));
+  const releasedList = rawReleasedList.filter(r => isCarrierIncludedInTable('released', r.carrier));
+  const dwellReleasedList = rawReleasedList.filter(r => isCarrierIncludedInTable('dwell', r.carrier));
+  const pieReleasedList = rawReleasedList.filter(r => isCarrierIncludedInTable('pie', r.carrier));
+
+  const dwellMinsList = dwellReleasedList.map(r => {
     const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
     return (a && rel) ? Math.max(0, Math.round((rel - a) / 60000)) : null;
   }).filter(m => m !== null);
@@ -2641,8 +2709,11 @@ function getDashboardData(dateKey) {
   const releasedByCarrier = {};
   releasedList.forEach(r => { const c = r.carrier || 'Unknown'; releasedByCarrier[c] = (releasedByCarrier[c] || 0) + 1; });
 
+  const pieByCarrier = {};
+  pieReleasedList.forEach(r => { const c = r.carrier || 'Unknown'; pieByCarrier[c] = (pieByCarrier[c] || 0) + 1; });
+
   const dwellSumByCarrier = {}, dwellCountByCarrier = {};
-  releasedList.forEach(r => {
+  dwellReleasedList.forEach(r => {
     const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
     if (!a || !rel) return;
     const c = r.carrier || 'Unknown';
@@ -2653,7 +2724,9 @@ function getDashboardData(dateKey) {
   const avgDwellByCarrier = {};
   Object.keys(dwellSumByCarrier).forEach(c => { avgDwellByCarrier[c] = Math.round(dwellSumByCarrier[c] / dwellCountByCarrier[c]); });
 
-  const unexpectedCount = securedList.filter(r => r.unexpected).length;
+  // Unexpected/DNR stay comprehensive regardless of any chart's carrier
+  // filter — they're anomaly counts, not a curated breakdown view.
+  const unexpectedCount = rawSecuredList.filter(r => r.unexpected).length;
   // DNR is tracked from its own dedicated history slice (by date the carrier
   // was marked DNR), independent of securedList now that DNR is excluded from it.
   const dnrCount = state.history.filter(r => r.didNotReceive && dashDateKey(r.arrival) === dateKey).length;
@@ -2675,10 +2748,12 @@ function getDashboardData(dateKey) {
 
   // Anything released from Door 1 specifically (matches whatever door label
   // is on the history record — usually the door number as typed/configured).
-  const door1ReleasedCount = releasedList.filter(r => String(r.door || r.doorId || '') === '1').length;
+  // Uses the raw, unfiltered list — a door-specific count shouldn't be
+  // affected by any chart's carrier inclusion settings.
+  const door1ReleasedCount = rawReleasedList.filter(r => String(r.door || r.doorId || '') === '1').length;
 
   return {
-    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier,
+    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, pieByCarrier,
     unexpectedCount, dnrCount,
     binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
     door1ReleasedCount
@@ -2885,19 +2960,19 @@ const DASHBOARD_TILE_REGISTRY = {
   },
   'stat-avgdwell': {
     title: 'Avg Secure → Release', defaultW: 8, defaultH: 6, stat: true,
-    bodyHTML: `<div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div><div class="dash-stat-label">Avg Secure → Release</div>`
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div>`
   },
   'secured-carrier': {
     title: 'Trailers Secured by Carrier', defaultW: 16, defaultH: 11,
-    bodyHTML: `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;"><span id="dash-stat-secured-carrier-total" style="font-size:20px;font-weight:800;color:#1a4731;">0</span><span style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Total Secured</span></div><div id="dash-chart-secured"></div>`
+    bodyHTML: `<div class="dash-tile-total-row"><span id="dash-stat-secured-carrier-total" style="font-size:20px;font-weight:800;color:#1a4731;">0</span><span style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Total Secured</span></div><div id="dash-chart-secured"></div>`
   },
   'released-carrier': {
     title: 'Trailers Released by Carrier', defaultW: 16, defaultH: 11,
-    bodyHTML: `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;"><span id="dash-stat-released-carrier-total" style="font-size:20px;font-weight:800;color:#1a4731;">0</span><span style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Total Released</span></div><div id="dash-chart-released"></div>`
+    bodyHTML: `<div class="dash-tile-total-row"><span id="dash-stat-released-carrier-total" style="font-size:20px;font-weight:800;color:#1a4731;">0</span><span style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Total Released</span></div><div id="dash-chart-released"></div>`
   },
   'door1-interactions': {
     title: 'Door 1 Interactions', defaultW: 8, defaultH: 6, stat: true,
-    bodyHTML: `<div class="dash-stat-val" id="dash-stat-door1-released">0</div><div class="dash-stat-label">Released from Door 1</div>`
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-door1-released">0</div>`
   },
   'released-pie': {
     title: 'Released Share by Carrier', defaultW: 16, defaultH: 11,
@@ -2921,11 +2996,11 @@ const DASHBOARD_TILE_REGISTRY = {
   },
   'unexpected-count': {
     title: 'Unexpected', defaultW: 8, defaultH: 6, stat: true,
-    bodyHTML: `<div class="dash-stat-val" id="dash-stat-unexpected" style="color:#c0392b;">0</div><div class="dash-stat-label">Unexpected</div>`
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-unexpected" style="color:#c0392b;">0</div>`
   },
   'dnr-count': {
     title: 'Trailers Not Received', defaultW: 8, defaultH: 6, stat: true,
-    bodyHTML: `<div class="dash-stat-val" id="dash-stat-dnr" style="color:#c0392b;">0</div><div class="dash-stat-label">Trailers Not Received</div>`
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-dnr" style="color:#c0392b;">0</div>`
   },
   'binfreight-stats': {
     title: 'Bin Freight', defaultW: 10, defaultH: 7,
@@ -3280,7 +3355,7 @@ async function renderDashboard() {
   if (document.getElementById('dash-date').value !== dateKey) return;
 
   const {
-    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier,
+    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, pieByCarrier,
     unexpectedCount, dnrCount,
     binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
     door1ReleasedCount
@@ -3299,7 +3374,7 @@ async function renderDashboard() {
 
   dashSetHTML('dash-chart-secured', svgBarChart(securedByCarrier, { color: 'var(--teal)' }));
   dashSetHTML('dash-chart-released', svgBarChart(releasedByCarrier, { color: 'var(--blue)' }));
-  dashSetHTML('dash-chart-pie', svgPieChart(releasedByCarrier));
+  dashSetHTML('dash-chart-pie', svgPieChart(pieByCarrier));
   dashSetHTML('dash-chart-dwell', svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) }));
   dashSetHTML('dash-chart-released-trend', svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey }));
   dashSetHTML('dash-chart-type-pie', svgPieChart(getReleasesByType(releasedList)));
@@ -3713,6 +3788,7 @@ function switchTab(name) {
   if (btn) btn.classList.add('active');
   if (name === 'home') { renderDoors(); renderSalesSideTable(); }
   if (name === 'carriers') renderCarriers();
+  if (name === 'settings') renderDashCarrierFilters();
   if (name === 'history') {
     const startInp = document.getElementById('history-range-start');
     const endInp = document.getElementById('history-range-end');
