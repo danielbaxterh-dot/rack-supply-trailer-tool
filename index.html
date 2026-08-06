@@ -1176,7 +1176,6 @@
   <button class="tab-btn" data-tab="history" onclick="switchTab('history')">History</button>
   <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab-btn" data-tab="opupdates" onclick="switchTab('opupdates')">🚧 Operational Updates</button>
-  <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙ Settings</button>
 </div>
 <div class="tabs-toolbar">
   <span class="tabs-toolbar-hint" id="tab-reorder-hint">Drag tabs to reorder — saves for everyone</span>
@@ -1735,6 +1734,7 @@
     <div class="flex-row">
       <button id="dash-layout-toggle" class="btn btn-gray btn-sm" onclick="toggleDashboardLayoutEdit()">⠿ Edit Layout</button>
       <button id="dash-add-tile-btn" class="btn btn-gray btn-sm" onclick="toggleDashAddTileMenu()" style="display:none;position:relative;">+ Add Tile</button>
+      <button class="btn btn-gray btn-sm" onclick="openDashSettingsModal()">⚙ Carrier Filters</button>
       <button class="btn btn-gray btn-sm" onclick="exportDashboardCSV()">Export CSV</button>
     </div>
   </div>
@@ -1883,14 +1883,14 @@
 </div>
 
 <!-- REPORT TAB -->
-<!-- SETTINGS TAB -->
-<div id="tab-settings" class="tab-content">
-  <div class="settings-section">
-    <h3>Dashboard Carrier Filters</h3>
+<!-- DASHBOARD CARRIER FILTERS MODAL -->
+<div class="modal-overlay" id="modal-dash-settings">
+  <div class="modal modal-xl">
+    <h2>⚙ Dashboard Carrier Filters</h2>
     <div style="font-size:12px;color:#000;margin-bottom:12px;max-width:640px;">
       Choose which carriers are counted in each dashboard breakdown. This is a global setting — it applies to every day, not just today, until you change it again. <strong>Every carrier defaults to included</strong> until you uncheck it here, so if you want Bin Freight and Shuttle left out the way they used to be by default, uncheck them below (one time) — after that there's no hidden rule left, just what's set here.
     </div>
-    <div style="background:#fff;border:1px solid #c8ddd4;border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+    <div style="background:#fff;border:1px solid #c8ddd4;border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:50vh;">
       <table style="width:100%;font-size:12px;min-width:520px;">
         <thead><tr>
           <th style="text-align:left;padding:8px 10px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Carrier</th>
@@ -1901,6 +1901,9 @@
         </tr></thead>
         <tbody id="dash-carrier-filter-tbody"></tbody>
       </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-teal" onclick="closeModal('modal-dash-settings')">Done</button>
     </div>
   </div>
 </div>
@@ -2642,6 +2645,11 @@ function isCarrierIncludedInTable(tableKey, carrierName) {
 }
 
 const DASH_CARRIER_FILTER_TABLES = ['secured', 'released', 'dwell', 'pie'];
+
+function openDashSettingsModal() {
+  renderDashCarrierFilters();
+  document.getElementById('modal-dash-settings').classList.add('open');
+}
 
 function renderDashCarrierFilters() {
   const tbody = document.getElementById('dash-carrier-filter-tbody');
@@ -3788,7 +3796,6 @@ function switchTab(name) {
   if (btn) btn.classList.add('active');
   if (name === 'home') { renderDoors(); renderSalesSideTable(); }
   if (name === 'carriers') renderCarriers();
-  if (name === 'settings') renderDashCarrierFilters();
   if (name === 'history') {
     const startInp = document.getElementById('history-range-start');
     const endInp = document.getElementById('history-range-end');
