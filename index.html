@@ -854,72 +854,88 @@
 
   /* DASHBOARD */
   #tab-dashboard { background: #b8b8b8; margin: -14px -16px; padding: 14px 16px; }
-  .dash-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-  .dash-chart-panel {
+  .dash-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(48, 1fr);
+    grid-auto-rows: 20px;
+    gap: 6px;
+  }
+  .dash-grid.dash-edit-active {
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.07) 1px, transparent 1px);
+    background-size: calc(100% / 48) 26px;
+    border-radius: 8px;
+  }
+  .dash-tile {
     background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
     border: 1px solid #c8d2ce;
     border-bottom: 2px solid #b8c4bf;
     border-radius: 10px;
-    padding: 12px 14px 14px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.14), 0 1px 0 rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    min-width: 0;
+    min-height: 0;
   }
-  .dash-chart-title {
+  .dash-tile-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
     font-size: 11px;
     font-weight: 700;
     color: #000;
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    margin-bottom: 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
   }
-  .dash-chart-panel .empty-state { padding: 10px 0; color: #444; }
-  .dash-chart-panel { position: relative; }
-  .dash-size-xs { grid-column: span 1; }
-  .dash-size-sm { grid-column: span 2; }
-  .dash-size-md { grid-column: span 4; }
-  .dash-size-lg { grid-column: 1 / -1; }
-  .dash-panel-resize-btn {
+  .dash-tile-drag-handle { display: none; cursor: grab; color: #888; font-size: 13px; user-select: none; flex-shrink: 0; }
+  .dash-grid.dash-edit-active .dash-tile-drag-handle { display: block; }
+  .dash-tile-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dash-tile-remove-btn {
+    display: none;
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    align-items: center; justify-content: center;
+    border: none; border-radius: 4px;
+    background: rgba(192,57,43,0.15); color: #c0392b;
+    font-size: 12px; font-weight: 700; cursor: pointer; line-height: 1;
+  }
+  .dash-grid.dash-edit-active .dash-tile-remove-btn { display: flex; }
+  .dash-tile-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px 12px; }
+  .dash-tile-body.dash-tile-body-stat { display: flex; align-items: center; justify-content: center; }
+  .dash-tile .empty-state { padding: 10px 0; color: #444; }
+  .dash-tile-resize-handle {
     display: none;
     position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 24px;
-    height: 24px;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #999;
-    border-radius: 6px;
-    background: #fff;
-    color: #000;
-    font-size: 13px;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    z-index: 2;
-  }
-  #dash-chart-grid.dash-layout-edit-active .dash-chart-panel {
-    cursor: grab;
-    outline: 2px dashed rgba(0,0,0,0.35);
-    outline-offset: 2px;
+    right: 1px; bottom: 1px;
+    width: 18px; height: 18px;
+    cursor: nwse-resize;
+    z-index: 3;
     touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
   }
-  #dash-chart-grid.dash-layout-edit-active .dash-panel-resize-btn { display: flex; touch-action: auto; }
-  .dash-panel-dragging { opacity: 0.5; cursor: grabbing; }
+  .dash-tile-resize-handle::after {
+    content: '';
+    position: absolute; right: 3px; bottom: 3px;
+    width: 8px; height: 8px;
+    border-right: 2px solid #888; border-bottom: 2px solid #888;
+  }
+  .dash-grid.dash-edit-active .dash-tile-resize-handle { display: block; }
+  .dash-grid.dash-edit-active .dash-tile { outline: 1px dashed rgba(0,0,0,0.25); outline-offset: 1px; }
+  .dash-grid.dash-edit-active .dash-tile-header { touch-action: none; user-select: none; -webkit-user-select: none; }
+  .dash-tile-dragging, .dash-tile-resizing { opacity: 0.8; z-index: 5; box-shadow: 0 10px 24px rgba(0,0,0,0.35); }
+  .dash-tile-invalid { outline: 2px solid #c0392b !important; }
   .dash-detail-table { font-size: 9px; }
   .dash-detail-table th { font-size: 8px; padding: 4.5px 5px; }
   .dash-detail-table td { padding: 4px 5px; }
   #dash-detail-wrap .empty-state { font-size: 9px; padding: 15px; }
-  .dash-stat-card {
-    background: linear-gradient(180deg, #ececec 0%, #dcdcdc 100%);
-    border: 1px solid #c8d2ce;
-    border-bottom: 2px solid #b8c4bf;
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.14), 0 1px 0 rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95);
-  }
-  .dash-stat-val { font-size: 28px; font-weight: 700; color: #000; line-height: 1; }
-  .dash-stat-label { font-size: 11px; color: #333; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .dash-stat-val { font-size: 28px; font-weight: 700; color: #000; line-height: 1; text-align: center; }
+  .dash-stat-label { font-size: 11px; color: #333; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; text-align: center; }
 
   /* SETTINGS */
   .settings-section { margin-bottom: 18px; }
@@ -1716,117 +1732,15 @@
     </div>
     <div class="flex-row">
       <button id="dash-layout-toggle" class="btn btn-gray btn-sm" onclick="toggleDashboardLayoutEdit()">⠿ Edit Layout</button>
+      <button id="dash-add-tile-btn" class="btn btn-gray btn-sm" onclick="toggleDashAddTileMenu()" style="display:none;position:relative;">+ Add Tile</button>
       <button class="btn btn-gray btn-sm" onclick="exportDashboardCSV()">Export CSV</button>
     </div>
   </div>
   <div style="font-size:13px;font-weight:700;color:#000;margin:0 0 4px;" id="dash-date-label"></div>
-  <div id="dash-layout-hint" style="display:none;font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:8px;">Drag a tile anywhere to reorder it. Tap ⤢ on a tile to cycle its size (Extra Small / Small / Medium / Large) — tiles keep their place in the order, so mixed sizes stay right where you put them.</div>
+  <div id="dash-layout-hint" style="display:none;font-size:11px;color:#4a7a5a;font-style:italic;margin-bottom:8px;">Drag a tile's header anywhere on the grid to move it. Drag the ⌟ handle in its bottom-right corner to resize it — both directions, any number of squares. ✕ removes a tile (add it back anytime with "+ Add Tile").</div>
+  <div id="dash-add-tile-menu" style="display:none;position:relative;margin-bottom:8px;background:#fff;border:1px solid #c8ddd4;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2);padding:8px;max-width:340px;"></div>
 
-  <div class="dash-chart-grid" id="dash-chart-grid">
-    <div class="dash-chart-panel dash-size-xs" data-panel="stat-secured">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-secured')" title="Resize">⤢</button>
-      <div style="text-align:center;">
-        <div class="dash-stat-val" id="dash-stat-secured">0</div>
-        <div class="dash-stat-label">Trailers Secured</div>
-      </div>
-    </div>
-    <div class="dash-chart-panel dash-size-xs" data-panel="stat-released">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-released')" title="Resize">⤢</button>
-      <div style="text-align:center;">
-        <div class="dash-stat-val" id="dash-stat-released">0</div>
-        <div class="dash-stat-label">Trailers Released</div>
-      </div>
-    </div>
-    <div class="dash-chart-panel dash-size-sm" data-panel="stat-trend">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-trend')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Trailers Released — by Day Secured</div>
-      <div id="dash-chart-released-trend"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-xs" data-panel="stat-avgdwell">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('stat-avgdwell')" title="Resize">⤢</button>
-      <div style="text-align:center;">
-        <div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div>
-        <div class="dash-stat-label">Avg Secure → Release</div>
-      </div>
-    </div>
-    <div class="dash-chart-panel dash-size-sm" data-panel="secured-carrier">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('secured-carrier')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Trailers Secured by Carrier</div>
-      <div id="dash-chart-secured"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-sm" data-panel="released-carrier">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('released-carrier')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Trailers Released by Carrier</div>
-      <div id="dash-chart-released"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-sm" data-panel="released-pie">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('released-pie')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Released Share by Carrier</div>
-      <div id="dash-chart-pie"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-sm" data-panel="type-pie">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('type-pie')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Releases by Type — Drop vs Live</div>
-      <div id="dash-chart-type-pie"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-sm" data-panel="dwell-carrier">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('dwell-carrier')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Avg Secure → Release by Carrier</div>
-      <div id="dash-chart-dwell"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-sm" data-panel="sales-side">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('sales-side')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Sales Side Releases — PITT ×2 / XPO ×1</div>
-      <div id="dash-salesside-body"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-lg" data-panel="secured-hourly">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('secured-hourly')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Trailers Secured — Time of Day (6a–5p)</div>
-      <div id="dash-chart-secured-hourly"></div>
-    </div>
-    <div class="dash-chart-panel dash-size-xs" data-panel="unexpected-count">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('unexpected-count')" title="Resize">⤢</button>
-      <div style="text-align:center;">
-        <div class="dash-stat-val" id="dash-stat-unexpected" style="color:#c0392b;">0</div>
-        <div class="dash-stat-label">Unexpected</div>
-      </div>
-    </div>
-    <div class="dash-chart-panel dash-size-xs" data-panel="dnr-count">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('dnr-count')" title="Resize">⤢</button>
-      <div style="text-align:center;">
-        <div class="dash-stat-val" id="dash-stat-dnr" style="color:#c0392b;">0</div>
-        <div class="dash-stat-label">Trailers Not Received</div>
-      </div>
-    </div>
-    <div class="dash-chart-panel dash-size-xs" data-panel="binfreight-stats">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('binfreight-stats')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Bin Freight</div>
-      <div style="display:flex;gap:10px;">
-        <div style="flex:1;text-align:center;">
-          <div id="dash-stat-binfreight-secured" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
-          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Secured</div>
-        </div>
-        <div style="flex:1;text-align:center;border-left:1px solid #c8d2ce;">
-          <div id="dash-stat-binfreight-released" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
-          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Released</div>
-        </div>
-      </div>
-    </div>
-    <div class="dash-chart-panel dash-size-xs" data-panel="shuttle-stats">
-      <button class="dash-panel-resize-btn" onclick="cycleDashboardPanelSize('shuttle-stats')" title="Resize">⤢</button>
-      <div class="dash-chart-title">Shuttle</div>
-      <div style="display:flex;gap:10px;">
-        <div style="flex:1;text-align:center;">
-          <div id="dash-stat-shuttle-secured" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
-          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Secured</div>
-        </div>
-        <div style="flex:1;text-align:center;border-left:1px solid #c8d2ce;">
-          <div id="dash-stat-shuttle-released" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
-          <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Released</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="dash-grid" id="dash-grid"></div>
 
   <div class="section-header-row" style="margin-top:18px;">
     <h3 style="font-size:14px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Released Trailers — by Day Secured</h3>
@@ -2946,52 +2860,156 @@ function renderSecuredHourlyChart(securedList) {
   hourlyContainer.innerHTML = svgLineChart(getSecuredByHalfHourWindow(securedList), { color: '#000', containerWidth });
 }
 
-// ===================== DASHBOARD LAYOUT (drag to reorder, tap to resize) =====================
+// ===================== DASHBOARD GRID BUILDER =====================
+// True grid-builder layout: every tile has an {x, y, w, h} position in grid
+// units (not a handful of fixed size presets), freely draggable to any open
+// spot and resizable in both directions independently. Tiles can also be
+// removed from the dashboard and added back later via "+ Add Tile" — the
+// registry below is the master list of every tile that CAN exist; the layout
+// array only lists the ones currently placed.
+const DASH_GRID_COLS = 48;
+
+// Master tile registry: id -> { title, defaultW, defaultH, bodyHTML, stat }.
+// bodyHTML is exactly the inner markup each tile used to have — same element
+// IDs as before — so renderDashboard() (all the Secured/Released/dwell/DNR/
+// Bin Freight/Shuttle calculations) needed ZERO changes to keep working.
+const DASHBOARD_TILE_REGISTRY = {
+  'stat-secured': {
+    title: 'Trailers Secured', defaultW: 8, defaultH: 6, stat: true,
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-secured">0</div><div class="dash-stat-label">Trailers Secured</div>`
+  },
+  'stat-released': {
+    title: 'Trailers Released', defaultW: 8, defaultH: 6, stat: true,
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-released">0</div><div class="dash-stat-label">Trailers Released</div>`
+  },
+  'stat-trend': {
+    title: 'Trailers Released — by Day Secured', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-chart-released-trend"></div>`
+  },
+  'stat-avgdwell': {
+    title: 'Avg Secure → Release', defaultW: 8, defaultH: 6, stat: true,
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div><div class="dash-stat-label">Avg Secure → Release</div>`
+  },
+  'secured-carrier': {
+    title: 'Trailers Secured by Carrier', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-chart-secured"></div>`
+  },
+  'released-carrier': {
+    title: 'Trailers Released by Carrier', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-chart-released"></div>`
+  },
+  'released-pie': {
+    title: 'Released Share by Carrier', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-chart-pie"></div>`
+  },
+  'type-pie': {
+    title: 'Releases by Type — Drop vs Live', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-chart-type-pie"></div>`
+  },
+  'dwell-carrier': {
+    title: 'Avg Secure → Release by Carrier', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-chart-dwell"></div>`
+  },
+  'sales-side': {
+    title: 'Sales Side Releases — PITT ×2 / XPO ×1', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-salesside-body"></div>`
+  },
+  'secured-hourly': {
+    title: 'Trailers Secured — Time of Day (6a–5p)', defaultW: 48, defaultH: 13,
+    bodyHTML: `<div id="dash-chart-secured-hourly"></div>`
+  },
+  'unexpected-count': {
+    title: 'Unexpected', defaultW: 8, defaultH: 6, stat: true,
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-unexpected" style="color:#c0392b;">0</div><div class="dash-stat-label">Unexpected</div>`
+  },
+  'dnr-count': {
+    title: 'Trailers Not Received', defaultW: 8, defaultH: 6, stat: true,
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-dnr" style="color:#c0392b;">0</div><div class="dash-stat-label">Trailers Not Received</div>`
+  },
+  'binfreight-stats': {
+    title: 'Bin Freight', defaultW: 10, defaultH: 7,
+    bodyHTML: `<div style="display:flex;gap:10px;height:100%;">
+      <div style="flex:1;text-align:center;align-self:center;">
+        <div id="dash-stat-binfreight-secured" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+        <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Secured</div>
+      </div>
+      <div style="flex:1;text-align:center;align-self:center;border-left:1px solid #c8d2ce;">
+        <div id="dash-stat-binfreight-released" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+        <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Released</div>
+      </div>
+    </div>`
+  },
+  'shuttle-stats': {
+    title: 'Shuttle', defaultW: 10, defaultH: 7,
+    bodyHTML: `<div style="display:flex;gap:10px;height:100%;">
+      <div style="flex:1;text-align:center;align-self:center;">
+        <div id="dash-stat-shuttle-secured" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+        <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Secured</div>
+      </div>
+      <div style="flex:1;text-align:center;align-self:center;border-left:1px solid #c8d2ce;">
+        <div id="dash-stat-shuttle-released" style="font-size:22px;font-weight:800;color:#1a4731;">0</div>
+        <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Released</div>
+      </div>
+    </div>`
+  }
+};
+
+// Simple shelf-packing layout: places tiles left-to-right in registry order,
+// wrapping to a new row (below the tallest tile so far in the current row)
+// whenever one wouldn't fit — used only to generate the very first default
+// arrangement, or to recover if a saved layout is ever missing/corrupt.
+function computeDefaultDashLayout() {
+  let x = 0, y = 0, rowH = 0;
+  const layout = [];
+  Object.keys(DASHBOARD_TILE_REGISTRY).forEach(id => {
+    const def = DASHBOARD_TILE_REGISTRY[id];
+    if (x + def.defaultW > DASH_GRID_COLS) { x = 0; y += rowH; rowH = 0; }
+    layout.push({ id, x, y, w: def.defaultW, h: def.defaultH });
+    x += def.defaultW;
+    rowH = Math.max(rowH, def.defaultH);
+  });
+  return layout;
+}
+
 let dashboardLayoutEditMode = false;
 let _unsubDashboardLayout = null;
-// True defaults — kept separate from `dashboardLayout` below (which gets
-// overwritten by whatever's synced from Firestore) so that a layout doc saved
-// before a new tile existed can still be merged with that tile's intended
-// default position/size instead of losing it.
-const DASHBOARD_LAYOUT_DEFAULTS = [
-  { id: 'stat-secured', size: 'xs' },
-  { id: 'stat-released', size: 'xs' },
-  { id: 'stat-trend', size: 'sm' },
-  { id: 'stat-avgdwell', size: 'xs' },
-  { id: 'secured-carrier', size: 'sm' },
-  { id: 'released-carrier', size: 'sm' },
-  { id: 'released-pie', size: 'sm' },
-  { id: 'type-pie', size: 'sm' },
-  { id: 'dwell-carrier', size: 'sm' },
-  { id: 'sales-side', size: 'sm' },
-  { id: 'secured-hourly', size: 'lg' },
-  { id: 'unexpected-count', size: 'xs' },
-  { id: 'dnr-count', size: 'xs' },
-  { id: 'binfreight-stats', size: 'xs' },
-  { id: 'shuttle-stats', size: 'xs' }
-];
-// Default order + size for each Dashboard chart tile
-let dashboardLayout = DASHBOARD_LAYOUT_DEFAULTS.slice();
+let dashboardLayout = computeDefaultDashLayout();
 
-function applyDashboardLayout(layout) {
-  const grid = document.getElementById('dash-chart-grid');
-  if (!grid || !Array.isArray(layout) || !layout.length) return;
-  const panels = Array.from(grid.querySelectorAll('.dash-chart-panel'));
-  const byId = {};
-  panels.forEach(p => { byId[p.dataset.panel] = p; });
-  layout.forEach(entry => {
-    const el = byId[entry.id];
-    if (!el) return;
-    grid.appendChild(el);
-    ['dash-size-xs', 'dash-size-sm', 'dash-size-md', 'dash-size-lg'].forEach(s => el.classList.remove(s));
-    el.classList.add(`dash-size-${entry.size || 'sm'}`);
+function dashTilesOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+function dashHasCollision(candidate, excludeId) {
+  return dashboardLayout.some(t => t.id !== excludeId && dashTilesOverlap(t, candidate));
+}
+
+// Renders the grid from scratch from `dashboardLayout`. Safe to call anytime
+// (e.g. after add/remove/drag/resize) — rebuilds every tile's DOM, then the
+// caller is responsible for re-running whatever fills the tiles with data
+// (renderDashboard() for chart/stat content).
+function renderDashboardGrid() {
+  const grid = document.getElementById('dash-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  dashboardLayout.forEach(entry => {
+    const def = DASHBOARD_TILE_REGISTRY[entry.id];
+    if (!def) return; // stale id from an old save — silently skip
+    const tile = document.createElement('div');
+    tile.className = 'dash-tile';
+    tile.dataset.tileId = entry.id;
+    tile.style.gridColumn = `${entry.x + 1} / span ${entry.w}`;
+    tile.style.gridRow = `${entry.y + 1} / span ${entry.h}`;
+    tile.innerHTML = `
+      <div class="dash-tile-header">
+        <span class="dash-tile-drag-handle">⠿⠿</span>
+        <span class="dash-tile-title">${def.title}</span>
+        <button class="dash-tile-remove-btn" onclick="removeDashboardTile('${entry.id}')" title="Remove tile">✕</button>
+      </div>
+      <div class="dash-tile-body${def.stat ? ' dash-tile-body-stat' : ''}">${def.bodyHTML}</div>
+      <div class="dash-tile-resize-handle"></div>
+    `;
+    grid.appendChild(tile);
   });
-  // Any panel not present in `layout` (e.g. a tile added in a later update,
-  // before this device has a chance to re-save) is deliberately left alone —
-  // no repositioning, no size change — so it keeps showing at its authored
-  // default instead of getting shoved to the end of the grid.
-  // A resize (especially to/from "lg") can change the hourly chart's
-  // container width even without a data change, so redraw it to match.
+  if (dashboardLayoutEditMode) initDashboardTileInteractions();
   if (window._dashSecuredListCache) renderSecuredHourlyChart(window._dashSecuredListCache);
 }
 
@@ -3006,97 +3024,158 @@ function subscribeDashboardLayout() {
   if (!window._fbReady || !getDb()) return;
   if (_unsubDashboardLayout) _unsubDashboardLayout();
   _unsubDashboardLayout = fb().onSnapshot(fb().doc(getDb(), 'config', 'dashboardLayout'), snap => {
-    if (snap.exists() && Array.isArray(snap.data().layout) && snap.data().layout.length) {
-      const stored = snap.data().layout;
-      // A layout saved before a new tile existed won't list that tile's id —
-      // merge in its default entry so it isn't lost, appended after whatever
-      // was actually saved (rather than silently dropped or mis-sized).
-      const missing = DASHBOARD_LAYOUT_DEFAULTS.filter(d => !stored.some(s => s.id === d.id));
-      dashboardLayout = stored.concat(missing);
+    const stored = snap.exists() ? snap.data().layout : null;
+    // Only accept a stored layout that actually looks like the new {x,y,w,h}
+    // shape — an old save from before this rebuild (the old {id,size} format)
+    // is intentionally NOT migrated; it falls back to a fresh default grid.
+    if (Array.isArray(stored) && stored.length && stored.every(e => 'x' in e && 'y' in e && 'w' in e && 'h' in e)) {
+      dashboardLayout = stored.filter(e => DASHBOARD_TILE_REGISTRY[e.id]);
     }
-    if (!dashboardLayoutEditMode) applyDashboardLayout(dashboardLayout);
+    if (!dashboardLayoutEditMode) renderDashboardGrid();
   }, err => console.error('[DashboardLayout] listener error', err));
 }
 
 function toggleDashboardLayoutEdit() {
   dashboardLayoutEditMode = !dashboardLayoutEditMode;
-  const grid = document.getElementById('dash-chart-grid');
+  const grid = document.getElementById('dash-grid');
   const btn = document.getElementById('dash-layout-toggle');
+  const addBtn = document.getElementById('dash-add-tile-btn');
   const hint = document.getElementById('dash-layout-hint');
-  if (grid) grid.classList.toggle('dash-layout-edit-active', dashboardLayoutEditMode);
+  if (grid) grid.classList.toggle('dash-edit-active', dashboardLayoutEditMode);
   if (hint) hint.style.display = dashboardLayoutEditMode ? 'block' : 'none';
+  if (addBtn) addBtn.style.display = dashboardLayoutEditMode ? '' : 'none';
   if (dashboardLayoutEditMode) {
     if (btn) { btn.textContent = '✓ Done'; btn.classList.remove('btn-gray'); btn.classList.add('btn-teal'); }
-    initDashboardPanelDragReorder();
+    initDashboardTileInteractions();
   } else {
     if (btn) { btn.textContent = '⠿ Edit Layout'; btn.classList.remove('btn-teal'); btn.classList.add('btn-gray'); }
-    if (grid) {
-      const panels = Array.from(grid.querySelectorAll('.dash-chart-panel'));
-      const newLayout = panels.map(p => {
-        const sizeClass = ['dash-size-xs', 'dash-size-sm', 'dash-size-md', 'dash-size-lg'].find(s => p.classList.contains(s)) || 'dash-size-sm';
-        return { id: p.dataset.panel, size: sizeClass.replace('dash-size-', '') };
-      });
-      dashboardLayout = newLayout;
-      saveDashboardLayoutToFirebase(newLayout);
-    }
+    document.getElementById('dash-add-tile-menu').style.display = 'none';
+    saveDashboardLayoutToFirebase(dashboardLayout);
     toast('Dashboard layout saved ✓');
   }
 }
 
-function cycleDashboardPanelSize(panelId) {
-  const el = document.querySelector(`.dash-chart-panel[data-panel="${panelId}"]`);
-  if (!el) return;
-  const sizes = ['dash-size-xs', 'dash-size-sm', 'dash-size-md', 'dash-size-lg'];
-  const cur = sizes.find(s => el.classList.contains(s)) || 'dash-size-sm';
-  const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length];
-  sizes.forEach(s => el.classList.remove(s));
-  el.classList.add(next);
-  if (panelId === 'secured-hourly' && window._dashSecuredListCache) renderSecuredHourlyChart(window._dashSecuredListCache);
+function removeDashboardTile(id) {
+  dashboardLayout = dashboardLayout.filter(t => t.id !== id);
+  renderDashboardGrid();
+  renderDashboard();
+  saveDashboardLayoutToFirebase(dashboardLayout);
 }
 
-// Pointer Events, nearest-panel + before/after-of-center swap — the same
-// technique used for the tab bar's drag-to-reorder, generalized to work in a
-// wrapping grid (not just a single row) by picking the closest panel by
-// straight-line distance instead of assuming everything sits on one axis.
-function initDashboardPanelDragReorder() {
-  const grid = document.getElementById('dash-chart-grid');
+function toggleDashAddTileMenu() {
+  const menu = document.getElementById('dash-add-tile-menu');
+  if (menu.style.display === 'block') { menu.style.display = 'none'; return; }
+  const placedIds = new Set(dashboardLayout.map(t => t.id));
+  const available = Object.keys(DASHBOARD_TILE_REGISTRY).filter(id => !placedIds.has(id));
+  menu.innerHTML = available.length
+    ? available.map(id => `<button onclick="addDashboardTile('${id}')" style="display:block;width:100%;text-align:left;padding:7px 10px;border:none;background:none;font-size:12px;color:#000;cursor:pointer;border-radius:5px;" onmouseover="this.style.background='#f0faf5'" onmouseout="this.style.background='none'">+ ${DASHBOARD_TILE_REGISTRY[id].title}</button>`).join('')
+    : `<div style="font-size:12px;color:#888;padding:6px 10px;">All tiles are already on the dashboard.</div>`;
+  menu.style.display = 'block';
+}
+
+function addDashboardTile(id) {
+  const def = DASHBOARD_TILE_REGISTRY[id];
+  if (!def || dashboardLayout.some(t => t.id === id)) return;
+  // Place it below everything currently on the grid, left-aligned.
+  const y = dashboardLayout.length ? Math.max(...dashboardLayout.map(t => t.y + t.h)) : 0;
+  dashboardLayout.push({ id, x: 0, y, w: def.defaultW, h: def.defaultH });
+  document.getElementById('dash-add-tile-menu').style.display = 'none';
+  renderDashboardGrid();
+  renderDashboard();
+  saveDashboardLayoutToFirebase(dashboardLayout);
+}
+
+// Wires up drag-to-move (via the header) and drag-to-resize (via the corner
+// handle) for every tile currently in the grid. Both operate in grid units,
+// computed from the live pixel size of one grid cell, and both reject a move
+// that would overlap another tile — snapping back to the last valid position
+// instead of letting tiles stack on top of each other.
+function initDashboardTileInteractions() {
+  const grid = document.getElementById('dash-grid');
   if (!grid) return;
-  grid.querySelectorAll('.dash-chart-panel').forEach(dragEl => {
-    dragEl.onpointerdown = e => {
+  const cellMetrics = () => {
+    const rect = grid.getBoundingClientRect();
+    const styles = getComputedStyle(grid);
+    const gap = parseFloat(styles.columnGap) || 0;
+    const colW = (rect.width - gap * (DASH_GRID_COLS - 1)) / DASH_GRID_COLS;
+    const rowH = 20; // matches grid-auto-rows
+    return { rect, colW: colW + gap, rowH: rowH + gap };
+  };
+
+  grid.querySelectorAll('.dash-tile').forEach(tileEl => {
+    const id = tileEl.dataset.tileId;
+    const entry = dashboardLayout.find(t => t.id === id);
+    if (!entry) return;
+
+    // --- Drag to move (header only, not the remove button) ---
+    const header = tileEl.querySelector('.dash-tile-header');
+    header.onpointerdown = e => {
       if (!dashboardLayoutEditMode) return;
-      if (e.target.closest('.dash-panel-resize-btn')) return; // let the resize button handle its own tap
+      if (e.target.closest('.dash-tile-remove-btn')) return;
       e.preventDefault();
-      dragEl.classList.add('dash-panel-dragging');
+      const { colW, rowH } = cellMetrics();
+      const startX = e.clientX, startY = e.clientY;
+      const orig = { x: entry.x, y: entry.y };
+      tileEl.classList.add('dash-tile-dragging');
 
       const onMove = ev => {
-        const panels = Array.from(grid.querySelectorAll('.dash-chart-panel')).filter(p => p !== dragEl);
-        if (!panels.length) return;
-        // Dropping into blank grid space (below the last row, or above the
-        // first) has nothing nearby to snap to by distance alone — handle it
-        // explicitly as "move to the end" / "move to the start."
-        const minTop = Math.min(...panels.map(p => p.getBoundingClientRect().top));
-        const maxBottom = Math.max(...panels.map(p => p.getBoundingClientRect().bottom));
-        if (ev.clientY < minTop) { grid.insertBefore(dragEl, grid.firstChild); return; }
-        if (ev.clientY > maxBottom) { grid.appendChild(dragEl); return; }
-
-        let closest = null, closestDist = Infinity;
-        panels.forEach(p => {
-          const r = p.getBoundingClientRect();
-          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-          const dist = Math.hypot(ev.clientX - cx, ev.clientY - cy);
-          if (dist < closestDist) { closestDist = dist; closest = p; }
-        });
-        if (closest) {
-          const rect = closest.getBoundingClientRect();
-          const before = ev.clientX < rect.left + rect.width / 2;
-          grid.insertBefore(dragEl, before ? closest : closest.nextSibling);
+        const dxCells = Math.round((ev.clientX - startX) / colW);
+        const dyCells = Math.round((ev.clientY - startY) / rowH);
+        const candX = Math.min(Math.max(0, orig.x + dxCells), DASH_GRID_COLS - entry.w);
+        const candY = Math.max(0, orig.y + dyCells);
+        const candidate = { x: candX, y: candY, w: entry.w, h: entry.h };
+        const collides = dashHasCollision(candidate, id);
+        tileEl.classList.toggle('dash-tile-invalid', collides);
+        if (!collides) {
+          entry.x = candX; entry.y = candY;
+          tileEl.style.gridColumn = `${candX + 1} / span ${entry.w}`;
+          tileEl.style.gridRow = `${candY + 1} / span ${entry.h}`;
         }
       };
       const onUp = () => {
-        dragEl.classList.remove('dash-panel-dragging');
+        tileEl.classList.remove('dash-tile-dragging', 'dash-tile-invalid');
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
         document.removeEventListener('pointercancel', onUp);
+        saveDashboardLayoutToFirebase(dashboardLayout);
+      };
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+    };
+
+    // --- Drag to resize (bottom-right corner handle, both directions) ---
+    const handle = tileEl.querySelector('.dash-tile-resize-handle');
+    handle.onpointerdown = e => {
+      if (!dashboardLayoutEditMode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const { colW, rowH } = cellMetrics();
+      const startX = e.clientX, startY = e.clientY;
+      const orig = { w: entry.w, h: entry.h };
+      tileEl.classList.add('dash-tile-resizing');
+
+      const onMove = ev => {
+        const dwCells = Math.round((ev.clientX - startX) / colW);
+        const dhCells = Math.round((ev.clientY - startY) / rowH);
+        const candW = Math.min(Math.max(3, orig.w + dwCells), DASH_GRID_COLS - entry.x);
+        const candH = Math.max(3, orig.h + dhCells);
+        const candidate = { x: entry.x, y: entry.y, w: candW, h: candH };
+        const collides = dashHasCollision(candidate, id);
+        tileEl.classList.toggle('dash-tile-invalid', collides);
+        if (!collides) {
+          entry.w = candW; entry.h = candH;
+          tileEl.style.gridColumn = `${entry.x + 1} / span ${candW}`;
+          tileEl.style.gridRow = `${entry.y + 1} / span ${candH}`;
+        }
+      };
+      const onUp = () => {
+        tileEl.classList.remove('dash-tile-resizing', 'dash-tile-invalid');
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
+        saveDashboardLayoutToFirebase(dashboardLayout);
+        if (id === 'secured-hourly' && window._dashSecuredListCache) renderSecuredHourlyChart(window._dashSecuredListCache);
       };
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
@@ -3134,6 +3213,12 @@ function renderDashSalesSide(slots) {
   }).join('');
 }
 
+// Tiles can now be removed from the dashboard entirely, so any of these
+// elements may not exist at any given moment — these helpers no-op instead
+// of throwing, which would otherwise abort the rest of renderDashboard().
+function dashSetText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function dashSetHTML(id, val) { const el = document.getElementById(id); if (el) el.innerHTML = val; }
+
 async function renderDashboard() {
   const dateInp = document.getElementById('dash-date');
   if (!dateInp) return;
@@ -3156,22 +3241,22 @@ async function renderDashboard() {
     binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount
   } = getDashboardData(dateKey);
 
-  document.getElementById('dash-stat-secured').textContent = securedList.length;
-  document.getElementById('dash-stat-released').textContent = releasedList.length;
-  document.getElementById('dash-stat-avgdwell').textContent = avgDwellMin !== null ? minsToHM(avgDwellMin) : '—';
-  document.getElementById('dash-stat-unexpected').textContent = unexpectedCount;
-  document.getElementById('dash-stat-dnr').textContent = dnrCount;
-  document.getElementById('dash-stat-binfreight-secured').textContent = binFreightSecuredCount;
-  document.getElementById('dash-stat-binfreight-released').textContent = binFreightReleasedCount;
-  document.getElementById('dash-stat-shuttle-secured').textContent = shuttleSecuredCount;
-  document.getElementById('dash-stat-shuttle-released').textContent = shuttleReleasedCount;
+  dashSetText('dash-stat-secured', securedList.length);
+  dashSetText('dash-stat-released', releasedList.length);
+  dashSetText('dash-stat-avgdwell', avgDwellMin !== null ? minsToHM(avgDwellMin) : '—');
+  dashSetText('dash-stat-unexpected', unexpectedCount);
+  dashSetText('dash-stat-dnr', dnrCount);
+  dashSetText('dash-stat-binfreight-secured', binFreightSecuredCount);
+  dashSetText('dash-stat-binfreight-released', binFreightReleasedCount);
+  dashSetText('dash-stat-shuttle-secured', shuttleSecuredCount);
+  dashSetText('dash-stat-shuttle-released', shuttleReleasedCount);
 
-  document.getElementById('dash-chart-secured').innerHTML = svgBarChart(securedByCarrier, { color: 'var(--teal)' });
-  document.getElementById('dash-chart-released').innerHTML = svgBarChart(releasedByCarrier, { color: 'var(--blue)' });
-  document.getElementById('dash-chart-pie').innerHTML = svgPieChart(releasedByCarrier);
-  document.getElementById('dash-chart-dwell').innerHTML = svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) });
-  document.getElementById('dash-chart-released-trend').innerHTML = svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey });
-  document.getElementById('dash-chart-type-pie').innerHTML = svgPieChart(getReleasesByType(releasedList));
+  dashSetHTML('dash-chart-secured', svgBarChart(securedByCarrier, { color: 'var(--teal)' }));
+  dashSetHTML('dash-chart-released', svgBarChart(releasedByCarrier, { color: 'var(--blue)' }));
+  dashSetHTML('dash-chart-pie', svgPieChart(releasedByCarrier));
+  dashSetHTML('dash-chart-dwell', svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) }));
+  dashSetHTML('dash-chart-released-trend', svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey }));
+  dashSetHTML('dash-chart-type-pie', svgPieChart(getReleasesByType(releasedList)));
   window._dashSecuredListCache = securedList;
   renderSecuredHourlyChart(securedList);
 
@@ -3600,7 +3685,7 @@ function switchTab(name) {
       renderHistory();
     }
   }
-  if (name === 'dashboard') renderDashboard();
+  if (name === 'dashboard') { renderDashboardGrid(); renderDashboard(); }
   if (name === 'forecast') {
     const inp = document.getElementById('forecast-date');
     if (inp && !inp._prevDate) inp._prevDate = inp.value || todayStr();
