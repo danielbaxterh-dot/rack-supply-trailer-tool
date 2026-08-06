@@ -2937,6 +2937,33 @@ function svgLineChart(entries, opts = {}) {
   return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="display:block;max-width:100%;">${baseline}<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2"></path>${dots}${valueLabels}${labels}</svg>`;
 }
 
+// Bar chart for a time-of-day distribution. Same sizing/padding/responsive-
+// width approach as svgLineChart (1 SVG unit = 1 real pixel at the container's
+// current width, measured in JS right before calling this) — just rects
+// instead of a line+dots, for the Trailers Secured hourly tile.
+function svgHourlyBarChart(entries, opts = {}) {
+  if (!entries.length) return `<div class="empty-state">No data</div>`;
+  const max = Math.max(1, ...entries.map(d => d.value));
+  const w = Math.max(300, Math.round(opts.containerWidth || 900));
+  const h = 150, padL = 14, padR = 14, padT = 20, padB = 22;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const color = opts.color || '#000';
+  const slotW = plotW / entries.length;
+  const barGap = 2;
+  const barW = Math.max(2, slotW - barGap);
+  let bars = '', labels = '', valueLabels = '';
+  entries.forEach((d, i) => {
+    const barH = (d.value / max) * plotH;
+    const x = padL + i * slotW + barGap / 2;
+    const y = padT + plotH - barH;
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="2" fill="${color}"></rect>`;
+    if (d.value > 0) valueLabels += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="#000" font-weight="700" font-family="Roboto Mono, monospace">${d.value}</text>`;
+    if (d.label) labels += `<text x="${(x + barW / 2).toFixed(1)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="#000" font-family="Roboto Condensed, Roboto, sans-serif">${escHtml(d.label)}</text>`;
+  });
+  const baseline = `<line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="#ddd" stroke-width="1"></line>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="display:block;max-width:100%;">${baseline}${bars}${valueLabels}${labels}</svg>`;
+}
+
 // Draws (or redraws) the hourly line chart at its container's *current*
 // pixel width. Needs to be callable on its own — not just from renderDashboard
 // — because resizing that tile's panel in Edit Layout mode changes its
@@ -2945,7 +2972,7 @@ function renderSecuredHourlyChart(securedList) {
   const hourlyContainer = document.getElementById('dash-chart-secured-hourly');
   if (!hourlyContainer) return;
   const containerWidth = hourlyContainer.clientWidth || 900;
-  hourlyContainer.innerHTML = svgLineChart(getSecuredByHalfHourWindow(securedList), { color: '#000', containerWidth });
+  hourlyContainer.innerHTML = svgHourlyBarChart(getSecuredByHalfHourWindow(securedList), { color: '#000', containerWidth });
 }
 
 // ===================== DASHBOARD GRID BUILDER =====================
