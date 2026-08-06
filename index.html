@@ -1232,6 +1232,11 @@
             <input type="range" min="180" max="520" value="320" id="et-sidebar" oninput="applyEditSlider()">
             <input type="number" min="180" max="520" value="320" id="et-sidebar-val" class="et-num-input" onchange="applyEditNumber('et-sidebar', this.value)">px
           </div>
+          <div class="edit-slider-row">
+            <label>Age Badges Shown</label>
+            <input type="range" min="0" max="15" value="5" id="et-agebadges" oninput="applyEditSlider()">
+            <input type="number" min="0" max="15" value="5" id="et-agebadges-val" class="et-num-input" onchange="applyEditNumber('et-agebadges', this.value)">
+          </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-left:16px;">
           <button onclick="openAddDoorModal()" style="font-size:12px;font-weight:700;padding:6px 14px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#2ecc8f 0%,#27b589 50%,#1d9470 100%);color:#fff;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:3px solid #156b50;transition:all 0.1s;" onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.25)';this.style.borderBottom='1px solid #156b50'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='3px solid #156b50'">+ Add Door</button>
@@ -3968,6 +3973,10 @@ function renderDoors() {
   const cols = s.columns || 6;
   const rows = s.rows || 8;
   const totalSlots = cols * rows;
+  // How many of the oldest active doors get the numbered priority badge
+  // (and the bold "oldest" elapsed-time styling) — configurable in Edit
+  // Layout instead of a fixed count.
+  const ageBadgeCount = s.doorAgeBadgeCount !== undefined ? s.doorAgeBadgeCount : 5;
   grid.style.gridTemplateColumns = `repeat(${cols}, ${s.doorWidth}px)`;
   grid.style.minWidth = `${cols * s.doorWidth + (cols - 1) * (s.cardGap || 10)}px`;
   grid.style.gap = (s.cardGap || 10) + 'px';
@@ -4040,7 +4049,7 @@ function renderDoors() {
       rightCol += `
         <span class="door-trailer-num">${t.trailerNum ? '#' + t.trailerNum : '#—'}</span>
         ${t.type === 'LIVE' ? `<span class="door-type-badge ${typeClass}">${t.type}</span>` : ''}
-        ${elLabel !== null ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''} ${priorityMap[door.id] && priorityMap[door.id] <= 4 ? 'door-elapsed-oldest' : ''}">${elLabel}</span>` : ''}
+        ${elLabel !== null ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''} ${priorityMap[door.id] && priorityMap[door.id] <= ageBadgeCount ? 'door-elapsed-oldest' : ''}">${elLabel}</span>` : ''}
         `;
     }
     rightCol += `</div>`;
@@ -4056,9 +4065,9 @@ function renderDoors() {
       const carrierObj = state.carriers.find(c => c.name === t.carrier);
       const isOther = (carrierObj && carrierObj.type === 'OTHER') || t.carrier === 'Junk Skids' || t.carrier === 'Bin Freight';
       const rankNum = isOther ? null : (priorityMap[door.id] || null);
-      const rank = rankNum && rankNum <= 5 ? rankNum : '';
+      const rank = rankNum && rankNum <= ageBadgeCount ? rankNum : '';
       actions = `<div class="door-actions">
-        ${rank ? `<span class="door-priority-badge${rankNum && rankNum <= 5 ? ' door-priority-badge-pulse' : ''}">${rank}</span>` : '<span></span>'}
+        ${rank ? `<span class="door-priority-badge${rankNum && rankNum <= ageBadgeCount ? ' door-priority-badge-pulse' : ''}">${rank}</span>` : '<span></span>'}
         ${(() => {
           const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
           const wrap = inner => `<div style="display:flex;gap:calc(5px * var(--card-scale));align-items:center;">${inner}</div>`;
@@ -7935,6 +7944,7 @@ function toggleEditMode() {
     setSlider('et-columns', s.columns || 6);
     setSlider('et-rows', s.rows || 8);
     setSlider('et-sidebar', s.sidebar);
+    setSlider('et-agebadges', s.doorAgeBadgeCount !== undefined ? s.doorAgeBadgeCount : 5);
   } else {
     // Exiting edit mode — this is the one point where the layout gets pushed to Firebase
     saveSettingsToFirebase();
@@ -7959,12 +7969,14 @@ function applyEditSlider() {
   s.columns     = +document.getElementById('et-columns').value;
   s.rows        = +document.getElementById('et-rows').value;
   s.sidebar     = +document.getElementById('et-sidebar').value;
+  s.doorAgeBadgeCount = +document.getElementById('et-agebadges').value;
   document.getElementById('et-doorwidth-val').value  = s.doorWidth;
   document.getElementById('et-doorheight-val').value = s.doorHeight;
   document.getElementById('et-gap-val').value        = s.cardGap;
   document.getElementById('et-columns-val').value    = s.columns;
   document.getElementById('et-rows-val').value       = s.rows;
   document.getElementById('et-sidebar-val').value    = s.sidebar;
+  document.getElementById('et-agebadges-val').value  = s.doorAgeBadgeCount;
   document.querySelector('.home-layout').style.gridTemplateColumns = `1fr ${s.sidebar}px`;
   saveState();
   renderDoors();
