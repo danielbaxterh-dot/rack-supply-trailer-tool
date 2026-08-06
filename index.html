@@ -3024,6 +3024,12 @@ function subscribeDashboardLayout() {
   if (!window._fbReady || !getDb()) return;
   if (_unsubDashboardLayout) _unsubDashboardLayout();
   _unsubDashboardLayout = fb().onSnapshot(fb().doc(getDb(), 'config', 'dashboardLayout'), snap => {
+    // Ignore entirely while actively editing — the drag/resize handlers hold
+    // direct references to the objects inside dashboardLayout and mutate them
+    // in place, so replacing the array out from under them mid-edit would
+    // silently orphan the user's in-progress changes (this was the cause of
+    // both the collision-detection glitches and "Done" saving stale data).
+    if (dashboardLayoutEditMode) return;
     const stored = snap.exists() ? snap.data().layout : null;
     // Only accept a stored layout that actually looks like the new {x,y,w,h}
     // shape — an old save from before this rebuild (the old {id,size} format)
@@ -3031,7 +3037,7 @@ function subscribeDashboardLayout() {
     if (Array.isArray(stored) && stored.length && stored.every(e => 'x' in e && 'y' in e && 'w' in e && 'h' in e)) {
       dashboardLayout = stored.filter(e => DASHBOARD_TILE_REGISTRY[e.id]);
     }
-    if (!dashboardLayoutEditMode) renderDashboardGrid();
+    renderDashboardGrid();
   }, err => console.error('[DashboardLayout] listener error', err));
 }
 
@@ -3050,9 +3056,32 @@ function toggleDashboardLayoutEdit() {
   } else {
     if (btn) { btn.textContent = '⠿ Edit Layout'; btn.classList.remove('btn-teal'); btn.classList.add('btn-gray'); }
     document.getElementById('dash-add-tile-menu').style.display = 'none';
+    // Read positions straight off the actual DOM rather than trusting the
+    // dashboardLayout objects the drag/resize handlers were mutating — this
+    // guarantees whatever's on screen is exactly what gets saved, regardless
+    // of any timing edge case that could otherwise leave those objects stale.
+    dashboardLayout = rebuildDashboardLayoutFromDOM();
     saveDashboardLayoutToFirebase(dashboardLayout);
     toast('Dashboard layout saved ✓');
   }
+}
+
+function rebuildDashboardLayoutFromDOM() {
+  const grid = document.getElementById('dash-grid');
+  if (!grid) return dashboardLayout;
+  const parseSpan = str => {
+    const m = /^\s*(\d+)\s*\/\s*span\s*(\d+)\s*$/.exec(str || '');
+    return m ? { start: parseInt(m[1], 10), span: parseInt(m[2], 10) } : null;
+  };
+  const layout = [];
+  grid.querySelectorAll('.dash-tile').forEach(tileEl => {
+    const id = tileEl.dataset.tileId;
+    const col = parseSpan(tileEl.style.gridColumn);
+    const row = parseSpan(tileEl.style.gridRow);
+    if (!id || !col || !row) return;
+    layout.push({ id, x: col.start - 1, y: row.start - 1, w: col.span, h: row.span });
+  });
+  return layout;
 }
 
 function removeDashboardTile(id) {
@@ -3117,26 +3146,35 @@ function initDashboardTileInteractions() {
       const startX = e.clientX, startY = e.clientY;
       const orig = { x: entry.x, y: entry.y };
       tileEl.classList.add('dash-tile-dragging');
+      let candX = orig.x, candY = orig.y;
 
+      // Follows the cursor unconditionally — it's fine for the dragged tile
+      // to visually pass over another tile mid-drag (that's exactly what
+      // lets you reach open space on the other side of something wide).
+      // Collision is only checked once, on release.
       const onMove = ev => {
         const dxCells = Math.round((ev.clientX - startX) / colW);
         const dyCells = Math.round((ev.clientY - startY) / rowH);
-        const candX = Math.min(Math.max(0, orig.x + dxCells), DASH_GRID_COLS - entry.w);
-        const candY = Math.max(0, orig.y + dyCells);
-        const candidate = { x: candX, y: candY, w: entry.w, h: entry.h };
-        const collides = dashHasCollision(candidate, id);
+        candX = Math.min(Math.max(0, orig.x + dxCells), DASH_GRID_COLS - entry.w);
+        candY = Math.max(0, orig.y + dyCells);
+        const collides = dashHasCollision({ x: candX, y: candY, w: entry.w, h: entry.h }, id);
         tileEl.classList.toggle('dash-tile-invalid', collides);
-        if (!collides) {
-          entry.x = candX; entry.y = candY;
-          tileEl.style.gridColumn = `${candX + 1} / span ${entry.w}`;
-          tileEl.style.gridRow = `${candY + 1} / span ${entry.h}`;
-        }
+        tileEl.style.gridColumn = `${candX + 1} / span ${entry.w}`;
+        tileEl.style.gridRow = `${candY + 1} / span ${entry.h}`;
       };
       const onUp = () => {
         tileEl.classList.remove('dash-tile-dragging', 'dash-tile-invalid');
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
         document.removeEventListener('pointercancel', onUp);
+        const collides = dashHasCollision({ x: candX, y: candY, w: entry.w, h: entry.h }, id);
+        if (collides) {
+          // Snap back — the space it's hovering over on release is occupied.
+          tileEl.style.gridColumn = `${orig.x + 1} / span ${entry.w}`;
+          tileEl.style.gridRow = `${orig.y + 1} / span ${entry.h}`;
+        } else {
+          entry.x = candX; entry.y = candY;
+        }
         saveDashboardLayoutToFirebase(dashboardLayout);
       };
       document.addEventListener('pointermove', onMove);
@@ -3154,26 +3192,31 @@ function initDashboardTileInteractions() {
       const startX = e.clientX, startY = e.clientY;
       const orig = { w: entry.w, h: entry.h };
       tileEl.classList.add('dash-tile-resizing');
+      let candW = orig.w, candH = orig.h;
 
       const onMove = ev => {
         const dwCells = Math.round((ev.clientX - startX) / colW);
         const dhCells = Math.round((ev.clientY - startY) / rowH);
-        const candW = Math.min(Math.max(3, orig.w + dwCells), DASH_GRID_COLS - entry.x);
-        const candH = Math.max(3, orig.h + dhCells);
-        const candidate = { x: entry.x, y: entry.y, w: candW, h: candH };
-        const collides = dashHasCollision(candidate, id);
+        candW = Math.min(Math.max(3, orig.w + dwCells), DASH_GRID_COLS - entry.x);
+        candH = Math.max(3, orig.h + dhCells);
+        const collides = dashHasCollision({ x: entry.x, y: entry.y, w: candW, h: candH }, id);
         tileEl.classList.toggle('dash-tile-invalid', collides);
-        if (!collides) {
-          entry.w = candW; entry.h = candH;
-          tileEl.style.gridColumn = `${entry.x + 1} / span ${candW}`;
-          tileEl.style.gridRow = `${entry.y + 1} / span ${candH}`;
-        }
+        tileEl.style.gridColumn = `${entry.x + 1} / span ${candW}`;
+        tileEl.style.gridRow = `${entry.y + 1} / span ${candH}`;
       };
       const onUp = () => {
         tileEl.classList.remove('dash-tile-resizing', 'dash-tile-invalid');
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
         document.removeEventListener('pointercancel', onUp);
+        const collides = dashHasCollision({ x: entry.x, y: entry.y, w: candW, h: candH }, id);
+        if (collides) {
+          // Snap back — that size would overlap another tile.
+          tileEl.style.gridColumn = `${entry.x + 1} / span ${orig.w}`;
+          tileEl.style.gridRow = `${entry.y + 1} / span ${orig.h}`;
+        } else {
+          entry.w = candW; entry.h = candH;
+        }
         saveDashboardLayoutToFirebase(dashboardLayout);
         if (id === 'secured-hourly' && window._dashSecuredListCache) renderSecuredHourlyChart(window._dashSecuredListCache);
       };
