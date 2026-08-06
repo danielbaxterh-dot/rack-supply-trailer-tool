@@ -2673,10 +2673,15 @@ function getDashboardData(dateKey) {
   const shuttleSecuredCount = countSecured('Shuttle');
   const shuttleReleasedCount = countReleased('Shuttle');
 
+  // Anything released from Door 1 specifically (matches whatever door label
+  // is on the history record — usually the door number as typed/configured).
+  const door1ReleasedCount = releasedList.filter(r => String(r.door || r.doorId || '') === '1').length;
+
   return {
     securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier,
     unexpectedCount, dnrCount,
-    binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount
+    binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
+    door1ReleasedCount
   };
 }
 
@@ -2874,14 +2879,6 @@ const DASH_GRID_COLS = 48;
 // IDs as before — so renderDashboard() (all the Secured/Released/dwell/DNR/
 // Bin Freight/Shuttle calculations) needed ZERO changes to keep working.
 const DASHBOARD_TILE_REGISTRY = {
-  'stat-secured': {
-    title: 'Trailers Secured', defaultW: 8, defaultH: 6, stat: true,
-    bodyHTML: `<div class="dash-stat-val" id="dash-stat-secured">0</div><div class="dash-stat-label">Trailers Secured</div>`
-  },
-  'stat-released': {
-    title: 'Trailers Released', defaultW: 8, defaultH: 6, stat: true,
-    bodyHTML: `<div class="dash-stat-val" id="dash-stat-released">0</div><div class="dash-stat-label">Trailers Released</div>`
-  },
   'stat-trend': {
     title: 'Trailers Released — by Day Secured', defaultW: 16, defaultH: 11,
     bodyHTML: `<div id="dash-chart-released-trend"></div>`
@@ -2892,11 +2889,15 @@ const DASHBOARD_TILE_REGISTRY = {
   },
   'secured-carrier': {
     title: 'Trailers Secured by Carrier', defaultW: 16, defaultH: 11,
-    bodyHTML: `<div id="dash-chart-secured"></div>`
+    bodyHTML: `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;"><span id="dash-stat-secured-carrier-total" style="font-size:20px;font-weight:800;color:#1a4731;">0</span><span style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Total Secured</span></div><div id="dash-chart-secured"></div>`
   },
   'released-carrier': {
     title: 'Trailers Released by Carrier', defaultW: 16, defaultH: 11,
-    bodyHTML: `<div id="dash-chart-released"></div>`
+    bodyHTML: `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;"><span id="dash-stat-released-carrier-total" style="font-size:20px;font-weight:800;color:#1a4731;">0</span><span style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Total Released</span></div><div id="dash-chart-released"></div>`
+  },
+  'door1-interactions': {
+    title: 'Door 1 Interactions', defaultW: 8, defaultH: 6, stat: true,
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-door1-released">0</div><div class="dash-stat-label">Released from Door 1</div>`
   },
   'released-pie': {
     title: 'Released Share by Carrier', defaultW: 16, defaultH: 11,
@@ -3281,11 +3282,12 @@ async function renderDashboard() {
   const {
     securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier,
     unexpectedCount, dnrCount,
-    binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount
+    binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
+    door1ReleasedCount
   } = getDashboardData(dateKey);
 
-  dashSetText('dash-stat-secured', securedList.length);
-  dashSetText('dash-stat-released', releasedList.length);
+  dashSetText('dash-stat-secured-carrier-total', securedList.length);
+  dashSetText('dash-stat-released-carrier-total', releasedList.length);
   dashSetText('dash-stat-avgdwell', avgDwellMin !== null ? minsToHM(avgDwellMin) : '—');
   dashSetText('dash-stat-unexpected', unexpectedCount);
   dashSetText('dash-stat-dnr', dnrCount);
@@ -3293,6 +3295,7 @@ async function renderDashboard() {
   dashSetText('dash-stat-binfreight-released', binFreightReleasedCount);
   dashSetText('dash-stat-shuttle-secured', shuttleSecuredCount);
   dashSetText('dash-stat-shuttle-released', shuttleReleasedCount);
+  dashSetText('dash-stat-door1-released', door1ReleasedCount);
 
   dashSetHTML('dash-chart-secured', svgBarChart(securedByCarrier, { color: 'var(--teal)' }));
   dashSetHTML('dash-chart-released', svgBarChart(releasedByCarrier, { color: 'var(--blue)' }));
