@@ -2421,7 +2421,15 @@ async function loadStateFromFirebase() {
     if (settingsSnap.exists()) state.settings = Object.assign({}, defaultSettings, settingsSnap.data());
     else state.settings = defaultSettings;
 
-    // TODAY'S FORECAST — load or seed defaults
+    // TODAY'S FORECAST — load, or seed a blank one in memory only (never
+    // auto-saved from here). A single getDoc() at boot can return a false
+    // "doesn't exist" on a device reconnecting with a stale/incomplete local
+    // cache — if that ever happened and this then wrote the blank object
+    // back with a full setDoc(), it would wipe out everyone's real Expected
+    // Trailers for the day the moment the write synced. Every other spot in
+    // the app seeds forecast data the same safe way: in memory only, saved
+    // for real the first time someone actually adds/edits something (via the
+    // partial-field save, not a full-document overwrite).
     const forecastSnap = await getDoc(doc(db, 'forecast', today));
     if (forecastSnap.exists()) {
       state.forecast[today] = forecastSnap.data();
@@ -2431,7 +2439,6 @@ async function loadStateFromFirebase() {
         schedule: JSON.parse(JSON.stringify(DEFAULT_FC_SCHEDULE)),
         carriedIn: 0, capacity: 0, notes: '', ltl: []
       };
-      await saveForecastToFirebase(today);
     }
 
     // FUTURE-DATED FORECASTS (Future Deliveries) — load any docs dated after today
@@ -3621,7 +3628,17 @@ async function saveForecastToFirebase(dateKey) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
   const fd = state.forecast[dateKey];
   if (!fd) return;
-  try { await fb().setDoc(fb().doc(getDb(), 'forecast', dateKey), fd); } catch(e) { console.error(e); }
+  // Expected Trailers (ltl) is deliberately stripped out and NEVER written by
+  // this function, no matter which call site invokes it or how stale this
+  // device's local copy is. It has its own dedicated, safe partial-save path
+  // everywhere it's actually modified (saveForecastFieldsToFirebase with just
+  // { ltl: [...] }) — this generic "save everything" function is for the rest
+  // of the day's forecast fields (carriers, notes, carryover, etc.). This is
+  // what actually fixes a device reopening/reconnecting (e.g. a phone that
+  // was backgrounded overnight) from being able to silently wipe out
+  // everyone's Expected Trailers the instant it saves anything.
+  const { ltl, ...rest } = fd;
+  try { await fb().setDoc(fb().doc(getDb(), 'forecast', dateKey), rest, { merge: true }); } catch(e) { console.error(e); }
 }
 // Partial-field forecast save — writes only the given field(s) (e.g. just
 // { ltl: [...] }) instead of overwriting the whole day's forecast document.
@@ -7049,6 +7066,11 @@ function loadForecastToExpected() {
   fd.capacity = +(document.getElementById('fc-capacity').value || 0);
   syncForecastToLTL(fd, dateKey);
   saveState();
+  // saveState()'s generic forecast save deliberately never writes ltl (that's
+  // what stops a stale device from wiping out Expected Trailers on reconnect)
+  // — so the new placeholder rows this just added need their own explicit
+  // safe save, same as every other place that touches ltl.
+  saveForecastFieldsToFirebase(dateKey, { ltl: fd.ltl, carriedIn: fd.carriedIn, capacity: fd.capacity });
   renderExpectedTrailers();
   const [dky, dkm, dkd] = dateKey.split('-').map(Number);
   const dateLabel = new Date(dky, dkm - 1, dkd).toLocaleDateString('en-US', {month:'short', day:'numeric'});
