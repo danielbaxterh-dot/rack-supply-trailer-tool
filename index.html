@@ -384,6 +384,20 @@
     border-bottom: 3px solid #0d6e38;
   }
   .btn-green:active { border-bottom-width: 1px !important; }
+  /* Webhook buttons — forest green matching the modal header, so any button
+     that fires a Slack webhook is instantly recognizable. Uses !important and
+     the doubled .btn.btn-hook selector so it beats the app-wide "uniform grey"
+     button rule above (which is !important and would otherwise force grey). */
+  .btn.btn-hook {
+    background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%) !important;
+    color: #fff !important;
+    border-bottom: 3px solid #0d3b28 !important;
+    border-color: #0d3b28 !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.45) !important;
+    letter-spacing: 0.3px;
+  }
+  .btn.btn-hook:hover { filter: brightness(1.12); }
+  .btn.btn-hook:active { border-bottom-width: 1px !important; }
   .btn-blue {
     background: linear-gradient(180deg,#5599ff 0%,#2266ee 50%,#1144cc 100%);
     color: #fff;
@@ -1195,7 +1209,7 @@
           <button onclick="resetZoom()" title="Reset zoom" style="border:none;background:#fff;border-radius:15px;padding:3px 10px;cursor:pointer;font-weight:700;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.25);">Reset</button>
         </div>
         <button onclick="openAutoReadyModal()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Auto Trailer Ready</button>
-        <button onclick="sendCFFYardStorageUpdate()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">CFF Yard Storage Update</button>
+        <button class="btn btn-hook" onclick="sendCFFYardStorageUpdate()" style="font-size:10px;padding:4px 8px;min-width:160px;border-radius:6px;">CFF Yard Storage Update</button>
         <span class="edit-mode-badge" id="edit-mode-badge" style="display:none;">EDIT MODE</span>
       </div>
 
@@ -2017,7 +2031,7 @@
     <h2 id="release-confirm-title">Release Trailer</h2>
     <p class="modal-xl-summary" style="font-size:13px;color:#000;margin-bottom:16px;" id="release-confirm-summary"></p>
     <div class="modal-actions" style="flex-direction:column;gap:8px;">
-      <button class="btn btn-green" onclick="releaseConfirmChoice(true)" style="width:100%;">CONFIRM | REQUEST MOVE</button>
+      <button class="btn btn-hook" onclick="releaseConfirmChoice(true)" style="width:100%;">CONFIRM | REQUEST MOVE</button>
       <button class="btn btn-gray" onclick="releaseConfirmChoice(false)" style="width:100%;">CONFIRM | NO REQUEST</button>
       <button class="btn btn-gray btn-cancel" onclick="closeModal('modal-release-confirm')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;font-size:12px;padding:4px;">Cancel</button>
     </div>
@@ -2174,7 +2188,7 @@
       <input type="text" autocomplete="off" id="js-trailer-num" placeholder="#—">
     </div>
     <div class="modal-actions" style="flex-direction:column;gap:12px;">
-      <button class="btn btn-teal" onclick="confirmJunkSkidsReset()" style="color:#000;width:100%;">Send move request & reset age timer</button>
+      <button class="btn btn-hook" onclick="confirmJunkSkidsReset()" style="width:100%;">Send move request & reset age timer</button>
       <button class="btn btn-gray" onclick="saveJunkSkidsTrailerNum()" style="width:100%;">Save</button>
       <button class="btn btn-gray" onclick="closeModal('modal-junk-skids')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;">Cancel</button>
     </div>
@@ -2207,7 +2221,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-auto-ready')">Cancel</button>
-      <button class="btn btn-green" onclick="sendAutoReadyMessage()">Confirm | Send Request</button>
+      <button class="btn btn-hook" onclick="sendAutoReadyMessage()">Confirm | Send Request</button>
     </div>
   </div>
 </div>
@@ -2516,6 +2530,22 @@ async function loadStateFromFirebase() {
     renderExpectedTrailers();
   });
 
+  // Date-bound live listeners (today's completed/history + sales-side). These
+  // live in their own function so the midnight rollover can rebind them to the
+  // new date — otherwise a device left open across midnight keeps listening on
+  // yesterday's date and silently stops syncing today's data.
+  subscribeDateBoundListeners();
+
+}
+
+// Rebinds the two live listeners whose Firestore query is tied to a specific
+// date, so they always point at the current day. Safe to call repeatedly — it
+// tears down any existing subscription first. Called once on initial load and
+// again at each day rollover (see checkDayRollover).
+function subscribeDateBoundListeners() {
+  const db = getDb();
+  if (!window._fbReady || !db) return;
+
   // Real-time listener for today's completed trailers — keeps the Completed
   // Trailers panel in sync across devices without needing a manual refresh.
   if (_unsubHistory) _unsubHistory();
@@ -2549,7 +2579,6 @@ async function loadStateFromFirebase() {
     }
     renderSalesSideTable();
   });
-
 }
 
 let _fullHistoryLoaded = false;
@@ -8488,8 +8517,15 @@ function checkDayRollover() {
   if (today !== _lastKnownDate) {
     _lastKnownDate = today;
     state.completedToday = [];
-    state.trailers = {};
     state.history = [];
+    // NOTE: we intentionally do NOT clear state.trailers here. A trailer sitting
+    // on a door at 11:59pm is still physically on that door at 12:01am, and the
+    // trailers listener isn't date-bound, so it stays authoritative across the
+    // rollover. Blanking it here just made the grid look empty until the next
+    // trailer action re-fired the listener.
+    // Re-point the date-bound listeners (completed/history + sales-side) at the
+    // new day so they keep syncing on devices left open across midnight.
+    subscribeDateBoundListeners();
     // Init fresh forecast for new day if not already saved — reuse getForecastData's
     // seeding logic so removed carriers stay removed and custom carriers still show up
     // (this used to build its own carrier list straight from the raw template, which
