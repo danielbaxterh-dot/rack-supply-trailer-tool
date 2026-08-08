@@ -1985,7 +1985,7 @@
     </div>
 
     <div class="sidebar-panel audit-section">
-      <div class="sidebar-panel-header"><span class="sidebar-panel-title">Main Yard Empties</span></div>
+      <div class="sidebar-panel-header"><span class="sidebar-panel-title">Main Yard Empties / Unexpected Trailers</span></div>
       <div class="sidebar-panel-body">
         <div id="audit-mainyard-empties"></div>
         <div class="audit-addrow-wrap"><button class="btn audit-add-btn" onclick="addAuditEmptyRow('mainYard')">+ Add Row</button></div>
@@ -2002,7 +2002,6 @@
 
     <div class="audit-finalize-bar" id="audit-finalize-bar"></div>
   </div>
-  <datalist id="audit-carrier-list"></datalist>
 </div>
 
 <!-- REPORT TAB -->
@@ -2435,7 +2434,7 @@ let _unsubSalesSide = null;
 let _unsubAudit = null;
 // Trailer Audit — the manually-entered yard "empties" tables, persisted per date.
 // Door/carrier listings on the audit tab are always derived live from state.
-let auditState = { mainYard: [], culdesac: [], doors: null, checked: {}, finalized: false, finalizedAt: '', finalizedBy: '', reopenedAt: '', reopenedBy: '', updatedAt: '', updatedBy: '' };
+let auditState = { mainYard: [], culdesac: [], openDoors: {}, doors: null, checked: {}, finalized: false, finalizedAt: '', finalizedBy: '', reopenedAt: '', reopenedBy: '', updatedAt: '', updatedBy: '' };
 // Which date the audit tab is currently showing (defaults to today). Past dates
 // are read from their saved audit doc, including the door snapshot stored with it.
 let auditViewDate = todayStr();
@@ -4937,11 +4936,11 @@ function isAuditToday() { return auditViewDate === todayStr(); }
 function isAuditLocked() { return !!auditState.finalized; }
 
 function blankAuditState() {
-  return { mainYard: [], culdesac: [], doors: null, checked: {}, finalized: false, finalizedAt: '', finalizedBy: '', reopenedAt: '', reopenedBy: '', updatedAt: '', updatedBy: '' };
+  return { mainYard: [], culdesac: [], openDoors: {}, doors: null, checked: {}, finalized: false, finalizedAt: '', finalizedBy: '', reopenedAt: '', reopenedBy: '', updatedAt: '', updatedBy: '' };
 }
 function auditStateFromDoc(d) {
   return {
-    mainYard: d.mainYard || [], culdesac: d.culdesac || [], doors: d.doors || null, checked: d.checked || {},
+    mainYard: d.mainYard || [], culdesac: d.culdesac || [], openDoors: d.openDoors || {}, doors: d.doors || null, checked: d.checked || {},
     finalized: !!d.finalized, finalizedAt: d.finalizedAt || '', finalizedBy: d.finalizedBy || '',
     reopenedAt: d.reopenedAt || '', reopenedBy: d.reopenedBy || '',
     updatedAt: d.updatedAt || '', updatedBy: d.updatedBy || ''
@@ -4965,7 +4964,6 @@ function renderAuditTab() {
   if (todayBtn) todayBtn.style.display = isAuditToday() ? 'none' : '';
   renderAuditDoors();
   renderAuditEmpties();
-  refreshAuditCarrierDatalist();
   renderAuditFinalizeBar();
   document.querySelectorAll('.audit-addrow-wrap').forEach(el => { el.style.display = isAuditLocked() ? 'none' : ''; });
   updateAuditSub();
@@ -5011,26 +5009,48 @@ function updateAuditSub() {
 function auditDoorTableHTML(arr, emptyMsg) {
   if (!arr.length) return '<div class="audit-empty-msg">' + emptyMsg + '</div>';
   const checked = auditState.checked || {};
+  const openDoors = auditState.openDoors || {};
   const locked = isAuditLocked();
   const rows = arr.map(x => {
     const on = !!checked[x.id];
-    const carrier = x.occupied ? escHtml(x.carrier) : '—';
-    const trailer = x.occupied ? escHtml(x.trailer) : '<span class="audit-empty-tag">Empty</span>';
+    let carrierCell, trailerCell;
+    if (x.occupied) {
+      carrierCell = `<td>${escHtml(x.carrier)}</td>`;
+      trailerCell = `<td>${escHtml(x.trailer)}</td>`;
+    } else {
+      // Open (empty) door — let the auditor type in what's actually there.
+      const oe = openDoors[x.id] || {};
+      if (locked) {
+        carrierCell = `<td>${oe.carrier ? escHtml(oe.carrier) : '—'}</td>`;
+        trailerCell = `<td>${oe.trailerNum ? escHtml(oe.trailerNum) : '<span class="audit-empty-tag">Empty</span>'}</td>`;
+      } else {
+        carrierCell = `<td><input class="audit-inp" value="${escHtml(oe.carrier || '')}" placeholder="—" onchange="updateAuditOpenDoor('${escHtml(x.id)}','carrier',this.value)"></td>`;
+        trailerCell = `<td><input class="audit-inp" value="${escHtml(oe.trailerNum || '')}" placeholder="Empty" onchange="updateAuditOpenDoor('${escHtml(x.id)}','trailerNum',this.value)"></td>`;
+      }
+    }
     const checkCell = locked
       ? `<td class="audit-check-cell locked"><span class="audit-check ${on ? 'on' : ''}">${on ? '✓' : ''}</span></td>`
       : `<td class="audit-check-cell" onclick="toggleAuditCheck('${escHtml(x.id)}')" title="Mark as verified"><span class="audit-check ${on ? 'on' : ''}">${on ? '✓' : ''}</span></td>`;
     return `<tr class="${x.occupied ? '' : 'audit-row-empty'}">` +
       `<td style="font-weight:700;white-space:nowrap;">${escHtml(x.label)}</td>` +
-      `<td>${carrier}</td>` +
-      `<td>${trailer}</td>` +
-      checkCell +
+      carrierCell + trailerCell + checkCell +
       `</tr>`;
   }).join('');
   return `<table class="audit-table"><thead><tr><th>Door</th><th>Carrier</th><th>Trailer #</th><th class="audit-check-th">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
+// True when the user is typing in a door-table input, so live re-renders can
+// hold off and not wipe what they're entering.
+function auditDoorInputFocused() {
+  const ae = document.activeElement;
+  if (!ae || !ae.classList || !ae.classList.contains('audit-inp')) return false;
+  return ['audit-standard-occupied', 'audit-mainyard-occupied', 'audit-cffyard-occupied']
+    .some(id => { const el = document.getElementById(id); return el && el.contains(ae); });
+}
+
 function renderAuditDoors() {
   if (!document.getElementById('audit-standard-occupied')) return;
+  if (auditDoorInputFocused()) return; // don't clobber an in-progress open-door entry
   const g = getAuditGroups();
   if (!g) {
     // Past date with no saved door snapshot.
@@ -5045,6 +5065,16 @@ function renderAuditDoors() {
   document.getElementById('audit-cffyard-occupied').innerHTML = auditDoorTableHTML(g.cff || [], 'No trailers currently in CFF yard.');
 }
 
+function updateAuditOpenDoor(doorId, field, val) {
+  if (isAuditLocked()) return;
+  auditState.openDoors = auditState.openDoors || {};
+  auditState.openDoors[doorId] = auditState.openDoors[doorId] || {};
+  auditState.openDoors[doorId][field] = val.trim();
+  const e = auditState.openDoors[doorId];
+  if (!e.carrier && !e.trailerNum) delete auditState.openDoors[doorId];
+  saveAuditToFirebase();
+}
+
 function toggleAuditCheck(doorId) {
   if (isAuditLocked()) return;
   auditState.checked = auditState.checked || {};
@@ -5052,12 +5082,6 @@ function toggleAuditCheck(doorId) {
   else auditState.checked[doorId] = true;
   renderAuditDoors();
   saveAuditToFirebase();
-}
-
-function refreshAuditCarrierDatalist() {
-  const dl = document.getElementById('audit-carrier-list');
-  if (!dl) return;
-  dl.innerHTML = (state.carriers || []).map(c => `<option value="${escHtml(c.name)}"></option>`).join('');
 }
 
 function renderAuditEmpties() {
@@ -5082,7 +5106,7 @@ function renderAuditEmptyTable(key, containerId) {
   } else {
     rows.forEach((r, i) => {
       html += `<tr>
-        <td><input class="audit-inp" list="audit-carrier-list" value="${escHtml(r.carrier || '')}" placeholder="Carrier" onchange="updateAuditEmpty('${key}',${i},'carrier',this.value)"></td>
+        <td><input class="audit-inp" value="${escHtml(r.carrier || '')}" placeholder="Carrier" onchange="updateAuditEmpty('${key}',${i},'carrier',this.value)"></td>
         <td><input class="audit-inp" value="${escHtml(r.trailerNum || '')}" placeholder="Trailer #" onchange="updateAuditEmpty('${key}',${i},'trailerNum',this.value)"></td>
         <td style="text-align:center;"><button class="btn audit-del" onclick="removeAuditEmpty('${key}',${i})" title="Remove row">×</button></td>
       </tr>`;
@@ -5163,6 +5187,7 @@ async function saveAuditToFirebase() {
     await fb().setDoc(fb().doc(getDb(), 'audit', auditViewDate), {
       mainYard: auditState.mainYard,
       culdesac: auditState.culdesac,
+      openDoors: auditState.openDoors || {},
       doors: doorsSnapshot,
       checked: auditState.checked || {},
       finalized: !!auditState.finalized,
@@ -5232,10 +5257,12 @@ function printAuditSheet() {
 
   const occ = (arr, label) => {
     if (!arr.length) return `<p class="none">No doors to show for ${label}.</p>`;
+    const openDoors = auditState.openDoors || {};
     return `<table><thead><tr><th style="width:20%">Door</th><th style="width:38%">Carrier</th><th>Trailer #</th><th style="width:40px" class="ck">✓</th></tr></thead><tbody>` +
       arr.map(x => {
-        const carrier = x.occupied ? escHtml(x.carrier) : '—';
-        const trailer = x.occupied ? escHtml(x.trailer) : '<i>Empty</i>';
+        const oe = openDoors[x.id] || {};
+        const carrier = x.occupied ? escHtml(x.carrier) : (oe.carrier ? escHtml(oe.carrier) : '—');
+        const trailer = x.occupied ? escHtml(x.trailer) : (oe.trailerNum ? escHtml(oe.trailerNum) : '<i>Empty</i>');
         return `<tr><td>${escHtml(x.label)}</td><td>${carrier}</td><td>${trailer}</td><td class="ck">☐</td></tr>`;
       }).join('') +
       `</tbody></table>`;
@@ -5269,7 +5296,7 @@ function printAuditSheet() {
   <h2>Standard Doors</h2>${g ? occ(gg.standard, 'standard') : noSnap}
   <h2>Main Yard — Occupied</h2>${g ? occ(gg.main, 'main yard') : noSnap}
   <h2>CFF Yard — Occupied</h2>${g ? occ(gg.cff, 'CFF yard') : noSnap}
-  <h2>Main Yard Empties</h2>${emptyTbl(auditState.mainYard)}
+  <h2>Main Yard Empties / Unexpected Trailers</h2>${emptyTbl(auditState.mainYard)}
   <h2>Culdesac Empties</h2>${emptyTbl(auditState.culdesac)}
   <div class="sig"><span>Audited by: __________________________</span><span>Time: ______________</span></div>
 </body></html>`;
