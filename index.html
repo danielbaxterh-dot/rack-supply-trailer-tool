@@ -553,6 +553,15 @@
   .fc-tbl-input:focus { border-color: #27b589; background: #f0faf5; }
   .fc-tbl-input.fc-calc { color: #1a4731; font-weight: 700; pointer-events: none; }
   .fc-tbl-input.fc-total-calc { color: #1a4731; font-weight: 800; pointer-events: none; font-size: 20px; }
+  /* A bare <input> has a fairly wide default browser intrinsic size, which
+     forces its column wide in an auto-layout table even with width:100% on
+     the input itself — capping it here (scoped to just this table) is what
+     actually lets the numeric columns shrink down to fit a couple of digits
+     instead of stretching to fill available space. */
+  #fc-carrier-table .fc-tbl-input { max-width: 60px; }
+  #fc-carrier-table th, #fc-carrier-table td { padding: 4px 6px; white-space: nowrap; }
+  #fc-carrier-table th { white-space: normal; }
+  #fc-carrier-table select.fc-tbl-input { max-width: 140px; }
   #opu-trailer-wrap td, #opu-trailer-wrap .fc-tbl-input,
   #opu-floor-wrap td, #opu-floor-wrap .fc-tbl-input,
   #opu-grandtotal-wrap td, #opu-grandtotal-wrap .fc-tbl-input {
@@ -1641,7 +1650,7 @@
     <div style="min-width:0;">
       <!-- Main Carrier Forecast Table -->
       <div class="panel" style="padding:0;overflow-x:auto;margin-bottom:12px;background:#fff;border:1px solid #c8ddd4;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.9);border-radius:10px;">
-        <table id="fc-carrier-table" style="width:100%;font-size:10px;background:#fff;border-radius:8px;overflow:hidden;">
+        <table id="fc-carrier-table" style="width:auto;font-size:10px;background:#fff;border-radius:8px;overflow:hidden;">
           <thead><tr>
             <th style="min-width:100px;font-size:10px;background:#bfbfbf;color:#000;">Carrier</th>
             <th style="min-width:38px;text-align:center;font-size:10px;background:#bfbfbf;color:#000;" title="Historical average rack lines per trailer">Rack Lines per Trailer</th>
