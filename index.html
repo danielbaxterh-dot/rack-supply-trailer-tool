@@ -384,20 +384,6 @@
     border-bottom: 3px solid #0d6e38;
   }
   .btn-green:active { border-bottom-width: 1px !important; }
-  /* Webhook buttons — forest green matching the modal header, so any button
-     that fires a Slack webhook is instantly recognizable. Uses !important and
-     the doubled .btn.btn-hook selector so it beats the app-wide "uniform grey"
-     button rule above (which is !important and would otherwise force grey). */
-  .btn.btn-hook {
-    background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%) !important;
-    color: #fff !important;
-    border-bottom: 3px solid #0d3b28 !important;
-    border-color: #0d3b28 !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.45) !important;
-    letter-spacing: 0.3px;
-  }
-  .btn.btn-hook:hover { filter: brightness(1.12); }
-  .btn.btn-hook:active { border-bottom-width: 1px !important; }
   .btn-blue {
     background: linear-gradient(180deg,#5599ff 0%,#2266ee 50%,#1144cc 100%);
     color: #fff;
@@ -477,52 +463,6 @@
   td { padding: 5px 7px; border-bottom: 1px solid #e0eeea; vertical-align: middle; background: #fff; color: #1a4731; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #f0faf5; }
-
-  /* ===== TRAILER AUDIT TAB (mobile-friendly) ===== */
-  .audit-wrap { max-width: 780px; margin: 0 auto; }
-  .audit-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-  .audit-title { font-size: 22px; font-weight: 800; color: #163a27; letter-spacing: 0.3px; }
-  .audit-sub { font-size: 12px; color: #33604a; font-weight: 600; margin-top: 3px; }
-  .audit-datebar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-  .audit-date-input { flex: 1; min-width: 0; border: 1px solid #cdddd4; border-radius: 6px; padding: 9px 10px; font-size: 16px; color: #1a4731; background: #fff; outline: none; }
-  .audit-date-input:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(39,181,137,0.2); }
-  button.audit-datenav { width: 42px; height: 42px; font-size: 22px; font-weight: 800; line-height: 1; padding: 0 !important; border-radius: 6px; cursor: pointer; flex: 0 0 auto; }
-  .audit-today-btn { font-size: 14px !important; padding: 10px 14px !important; flex: 0 0 auto; }
-  .audit-pastbanner { background: linear-gradient(180deg,#fff3cd 0%,#ffe9a8 100%); color: #6b5300; border: 1px solid #e0c060; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-bottom: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-  .audit-section { margin-bottom: 14px; }
-  /* Tables sit flush inside the white sidebar-panel body (the panel provides the
-     rounding + shadow), so the table itself is plain — like Future Deliveries. */
-  .audit-table { width: 100%; border-collapse: collapse; }
-  .audit-table th { font-size: 11px; padding: 8px 9px; }
-  .audit-table td { font-size: 15px; padding: 9px 9px; color: #1a4731; }
-  .audit-empty-msg { color: #6a8579; font-size: 13px; padding: 12px; font-style: italic; background: #fff; }
-  .audit-empty-tag { color: #8a9e94; font-style: italic; }
-  .audit-row-empty td { background: #f6faf8; }
-  .audit-check-th { width: 46px; text-align: center !important; }
-  .audit-check-cell { width: 46px; text-align: center; cursor: pointer; }
-  .audit-check { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 2px solid #c3d5cb; border-radius: 6px; background: #fff; color: transparent; font-size: 17px; font-weight: 900; line-height: 1; transition: all 0.1s; }
-  .audit-check.on { background: linear-gradient(180deg,#2ecc8f 0%,#22a86f 100%); border-color: #1d8f6b; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3); }
-  .audit-check-cell:hover .audit-check { border-color: var(--teal); }
-  .audit-inp { width: 100%; border: 1px solid #cdddd4; border-radius: 6px; padding: 9px 8px; font-size: 16px; color: #1a4731; background: #fff; outline: none; }
-  .audit-inp:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(39,181,137,0.2); }
-  .audit-addrow-wrap { padding: 10px 12px; }
-  .audit-add-btn { font-size: 14px !important; padding: 10px 16px !important; }
-  .audit-print-btn { font-size: 14px !important; padding: 11px 18px !important; }
-  button.audit-del { width: 38px; height: 38px; font-size: 18px; font-weight: 800; line-height: 1; border-radius: 6px; cursor: pointer; padding: 0 !important; }
-  .audit-check-cell.locked { cursor: default; }
-  .audit-check-cell.locked .audit-check { opacity: 0.85; }
-  .audit-finalize-bar { background: #fff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.35), 0 10px 24px rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.15); padding: 14px; margin: 4px 0 22px; text-align: center; }
-  .audit-save-hint { font-size: 13px; color: #5a7365; margin-bottom: 10px; }
-  .btn.audit-save-btn { background: linear-gradient(180deg,#2ecc8f 0%,#22a86f 50%,#1a8f5c 100%) !important; color: #fff !important; border-color: #146b46 !important; border-bottom: 3px solid #146b46 !important; text-shadow: 0 1px 1px rgba(0,0,0,0.3); font-size: 16px !important; padding: 13px 20px !important; width: 100%; letter-spacing: 0.3px; }
-  .btn.audit-save-btn:hover { filter: brightness(1.08); }
-  .btn.audit-save-btn:active { border-bottom-width: 1px !important; }
-  .audit-locked-note { background: linear-gradient(180deg,#d8f3e5 0%,#bfe9d3 100%); color: #12613f; border: 1px solid #7cc9a3; border-radius: 8px; padding: 11px 12px; font-size: 13px; font-weight: 700; margin-bottom: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
-  .audit-reopen-btn { font-size: 14px !important; padding: 11px 18px !important; }
-  @media (max-width: 560px) {
-    .audit-title { font-size: 20px; }
-    .audit-print-btn { width: 100%; }
-    .audit-table td, .audit-table th { padding: 8px 6px; }
-  }
 
   /* FORECAST TOOL */
   .fc-sm-input {
@@ -1235,8 +1175,7 @@
   <button class="tab-btn" data-tab="carriers" onclick="switchTab('carriers')">Carriers</button>
   <button class="tab-btn" data-tab="history" onclick="switchTab('history')">History</button>
   <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-  <button class="tab-btn" data-tab="opupdates" onclick="switchTab('opupdates')">Operational Updates</button>
-  <button class="tab-btn" data-tab="audit" onclick="switchTab('audit')">Trailer Audit</button>
+  <button class="tab-btn" data-tab="opupdates" onclick="switchTab('opupdates')">🚧 Operational Updates</button>
 </div>
 <div class="tabs-toolbar">
   <span class="tabs-toolbar-hint" id="tab-reorder-hint">Drag tabs to reorder — saves for everyone</span>
@@ -1256,7 +1195,7 @@
           <button onclick="resetZoom()" title="Reset zoom" style="border:none;background:#fff;border-radius:15px;padding:3px 10px;cursor:pointer;font-weight:700;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.25);">Reset</button>
         </div>
         <button onclick="openAutoReadyModal()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Auto Trailer Ready</button>
-        <button class="btn btn-hook" onclick="sendCFFYardStorageUpdate()" style="font-size:10px;padding:4px 8px;min-width:160px;border-radius:6px;">CFF Yard Storage Update</button>
+        <button onclick="sendCFFYardStorageUpdate()" style="font-size:10px;font-weight:700;padding:4px 8px;min-width:160px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">CFF Yard Storage Update</button>
         <span class="edit-mode-badge" id="edit-mode-badge" style="display:none;">EDIT MODE</span>
       </div>
 
@@ -1827,8 +1766,8 @@
 <!-- OPERATIONAL UPDATES TAB -->
 <div id="tab-opupdates" class="tab-content">
   <div style="margin-bottom:4px;display:flex;align-items:center;gap:12px;">
-    <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Operational Updates</span>
-    <button class="btn btn-teal btn-sm" onclick="printOpUpdatesWalkSheet()">Print Walk Sheet</button>
+    <span style="color:#000;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;">🚧 Operational Updates</span>
+    <button class="btn btn-teal btn-sm" onclick="printOpUpdatesWalkSheet()">🖨 Print Walk Sheet</button>
     <button class="btn btn-red btn-sm" onclick="resetOpUpdatesFields()">↻ Reset Fields</button>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;">
@@ -1946,62 +1885,6 @@
     <button class="btn btn-blue" onclick="mergeDefaultCarriers()">↻ Sync Default List</button>
   </div>
   <div class="carriers-grid" id="carriers-grid"></div>
-</div>
-
-<!-- TRAILER AUDIT TAB -->
-<div id="tab-audit" class="tab-content">
-  <div class="audit-wrap">
-    <div class="audit-topbar">
-      <div>
-        <div class="audit-title">Trailer Audit</div>
-        <div class="audit-sub" id="audit-datesub"></div>
-      </div>
-      <button class="btn audit-print-btn" onclick="printAuditSheet()">Print Audit Sheet</button>
-    </div>
-
-    <div class="audit-datebar">
-      <button class="btn audit-datenav" onclick="auditDateStep(-1)" title="Previous day">‹</button>
-      <input type="date" id="audit-date-input" class="audit-date-input" onchange="changeAuditDate(this.value)">
-      <button class="btn audit-datenav" onclick="auditDateStep(1)" title="Next day">›</button>
-      <button class="btn audit-today-btn" id="audit-today-btn" onclick="auditGoToday()">Today</button>
-    </div>
-    <div class="audit-pastbanner" id="audit-pastbanner" style="display:none;">
-      Viewing a past audit — <span id="audit-pastbanner-date"></span>. Door listings show the snapshot saved that day.
-    </div>
-
-    <div class="sidebar-panel audit-section">
-      <div class="sidebar-panel-header"><span class="sidebar-panel-title">Standard Doors</span></div>
-      <div class="sidebar-panel-body" id="audit-standard-occupied"></div>
-    </div>
-
-    <div class="sidebar-panel audit-section">
-      <div class="sidebar-panel-header"><span class="sidebar-panel-title">Main Yard — Occupied</span></div>
-      <div class="sidebar-panel-body" id="audit-mainyard-occupied"></div>
-    </div>
-
-    <div class="sidebar-panel audit-section">
-      <div class="sidebar-panel-header"><span class="sidebar-panel-title">CFF Yard — Occupied</span></div>
-      <div class="sidebar-panel-body" id="audit-cffyard-occupied"></div>
-    </div>
-
-    <div class="sidebar-panel audit-section">
-      <div class="sidebar-panel-header"><span class="sidebar-panel-title">Main Yard Empties / Unexpected Trailers</span></div>
-      <div class="sidebar-panel-body">
-        <div id="audit-mainyard-empties"></div>
-        <div class="audit-addrow-wrap"><button class="btn audit-add-btn" onclick="addAuditEmptyRow('mainYard')">+ Add Row</button></div>
-      </div>
-    </div>
-
-    <div class="sidebar-panel audit-section">
-      <div class="sidebar-panel-header"><span class="sidebar-panel-title">Culdesac Empties</span></div>
-      <div class="sidebar-panel-body">
-        <div id="audit-culdesac-empties"></div>
-        <div class="audit-addrow-wrap"><button class="btn audit-add-btn" onclick="addAuditEmptyRow('culdesac')">+ Add Row</button></div>
-      </div>
-    </div>
-
-    <div class="audit-finalize-bar" id="audit-finalize-bar"></div>
-  </div>
 </div>
 
 <!-- REPORT TAB -->
@@ -2134,7 +2017,7 @@
     <h2 id="release-confirm-title">Release Trailer</h2>
     <p class="modal-xl-summary" style="font-size:13px;color:#000;margin-bottom:16px;" id="release-confirm-summary"></p>
     <div class="modal-actions" style="flex-direction:column;gap:8px;">
-      <button class="btn btn-hook" onclick="releaseConfirmChoice(true)" style="width:100%;">CONFIRM | REQUEST MOVE</button>
+      <button class="btn btn-green" onclick="releaseConfirmChoice(true)" style="width:100%;">CONFIRM | REQUEST MOVE</button>
       <button class="btn btn-gray" onclick="releaseConfirmChoice(false)" style="width:100%;">CONFIRM | NO REQUEST</button>
       <button class="btn btn-gray btn-cancel" onclick="closeModal('modal-release-confirm')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;font-size:12px;padding:4px;">Cancel</button>
     </div>
@@ -2291,7 +2174,7 @@
       <input type="text" autocomplete="off" id="js-trailer-num" placeholder="#—">
     </div>
     <div class="modal-actions" style="flex-direction:column;gap:12px;">
-      <button class="btn btn-hook" onclick="confirmJunkSkidsReset()" style="width:100%;">Send move request & reset age timer</button>
+      <button class="btn btn-teal" onclick="confirmJunkSkidsReset()" style="color:#000;width:100%;">Send move request & reset age timer</button>
       <button class="btn btn-gray" onclick="saveJunkSkidsTrailerNum()" style="width:100%;">Save</button>
       <button class="btn btn-gray" onclick="closeModal('modal-junk-skids')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;">Cancel</button>
     </div>
@@ -2324,7 +2207,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-auto-ready')">Cancel</button>
-      <button class="btn btn-hook" onclick="sendAutoReadyMessage()">Confirm | Send Request</button>
+      <button class="btn btn-green" onclick="sendAutoReadyMessage()">Confirm | Send Request</button>
     </div>
   </div>
 </div>
@@ -2390,6 +2273,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-door-edit')">Cancel</button>
+      <button class="btn btn-red" onclick="releaseDoorFromEditModal()">Release</button>
       <button class="btn btn-teal" onclick="saveDoorEdit()">Save</button>
     </div>
   </div>
@@ -2431,13 +2315,6 @@ let _unsubTrailers = null;
 let _unsubForecast = null;
 let _unsubHistory = null;
 let _unsubSalesSide = null;
-let _unsubAudit = null;
-// Trailer Audit — the manually-entered yard "empties" tables, persisted per date.
-// Door/carrier listings on the audit tab are always derived live from state.
-let auditState = { mainYard: [], culdesac: [], openDoors: {}, doors: null, checked: {}, finalized: false, finalizedAt: '', finalizedBy: '', reopenedAt: '', reopenedBy: '', updatedAt: '', updatedBy: '' };
-// Which date the audit tab is currently showing (defaults to today). Past dates
-// are read from their saved audit doc, including the door snapshot stored with it.
-let auditViewDate = todayStr();
 let _unsubTabOrder = null;
 let _tabReorderMode = false;
 // Default tab button order, used until Firebase's config/tabOrder doc says otherwise
@@ -2626,7 +2503,6 @@ async function loadStateFromFirebase() {
     renderExpectedTrailers();
     renderCompletedTable();
     if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
-    if (document.getElementById('tab-audit') && document.getElementById('tab-audit').classList.contains('active')) renderAuditDoors();
   });
 
   // Real-time listener for forecast / future deliveries — keeps the Expected
@@ -2640,22 +2516,6 @@ async function loadStateFromFirebase() {
     window._forecastSynced = true;
     renderExpectedTrailers();
   });
-
-  // Date-bound live listeners (today's completed/history + sales-side). These
-  // live in their own function so the midnight rollover can rebind them to the
-  // new date — otherwise a device left open across midnight keeps listening on
-  // yesterday's date and silently stops syncing today's data.
-  subscribeDateBoundListeners();
-
-}
-
-// Rebinds the two live listeners whose Firestore query is tied to a specific
-// date, so they always point at the current day. Safe to call repeatedly — it
-// tears down any existing subscription first. Called once on initial load and
-// again at each day rollover (see checkDayRollover).
-function subscribeDateBoundListeners() {
-  const db = getDb();
-  if (!window._fbReady || !db) return;
 
   // Real-time listener for today's completed trailers — keeps the Completed
   // Trailers panel in sync across devices without needing a manual refresh.
@@ -2691,28 +2551,6 @@ function subscribeDateBoundListeners() {
     renderSalesSideTable();
   });
 
-  // Real-time listener for today's Trailer Audit empties tables — keeps the
-  // Main Yard / Culdesac empties in sync across devices. While someone on THIS
-  // device is actively typing in an audit field, we skip the incoming update so
-  // we don't yank the text out from under them (their edit saves on blur and
-  // wins, last-write-wins like the rest of the app).
-  if (_unsubAudit) _unsubAudit();
-  _unsubAudit = fb().onSnapshot(fb().doc(db, 'audit', todayStr()), snap => {
-    if (window._sandboxMode) return;
-    // This listener only tracks TODAY. If the user is looking back at a past
-    // date, leave their view alone.
-    if (auditViewDate !== todayStr()) return;
-    const ae = document.activeElement;
-    const editing = ae && document.getElementById('tab-audit') && document.getElementById('tab-audit').contains(ae) && ae.tagName === 'INPUT';
-    if (editing) return;
-    if (snap.exists()) {
-      auditState = auditStateFromDoc(snap.data());
-    } else {
-      auditState = blankAuditState();
-    }
-    if (document.getElementById('tab-audit') && document.getElementById('tab-audit').classList.contains('active')) renderAuditTab();
-    updateAuditSub();
-  });
 }
 
 let _fullHistoryLoaded = false;
@@ -4033,7 +3871,6 @@ function switchTab(name) {
     renderForecastTab();
   }
   if (name === 'opupdates') renderOpUpdates();
-  if (name === 'audit') renderAuditTab();
 }
 function setConnectionStatus(state) {
   const dot = document.querySelector('#connection-status div');
@@ -4343,6 +4180,18 @@ function openDoorEditModal(doorId) {
   }
   document.getElementById('de-unexpected').checked = !!(t && t.unexpected);
   document.getElementById('modal-door-edit').classList.add('open');
+}
+
+// Lets any carrier routed to the standard Door Edit modal be released from
+// there directly — needed because OTHER-type carriers (e.g. Supplier Loads)
+// get "Move" + "Reset Age" on the door card instead of "Move" + "Release",
+// so this modal was previously the only way to touch that trailer at all and
+// had no way to release it. Closes the edit modal first, then reuses the
+// exact same confirmation flow the card's Release button already uses.
+function releaseDoorFromEditModal() {
+  const doorId = document.getElementById('modal-door-edit').dataset.doorid;
+  closeModal('modal-door-edit');
+  confirmRelease(doorId);
 }
 
 function saveDoorEdit() {
@@ -4878,435 +4727,6 @@ function resetSalesSideForNewDay() {
   salesSideState = JSON.parse(JSON.stringify(SALES_SIDE_SLOTS));
   renderSalesSideTable();
   saveSalesSideToFirebase();
-}
-
-// ===================== TRAILER AUDIT =====================
-// Groups every active door into standard / main-yard / cff-yard, splitting out
-// occupied doors (with their carrier + trailer #) from open (empty) standard
-// doors. Yard empties are NOT tracked here — those are entered by hand in the
-// two empties tables below. Used by both the on-screen tab and the print sheet.
-function auditNumFromDoor(d) {
-  const m = String(d.num || '').match(/\d+/);
-  return m ? parseInt(m[0], 10) : 9999;
-}
-function auditDoorArea(door) {
-  if (door.type === 'cff_yard' || /CFF/i.test(door.num || '') || (door.name && /CFF/i.test(door.name))) return 'cff';
-  if (door.type === 'yard' || String(door.id).startsWith('YD')) return 'main';
-  return 'standard';
-}
-function auditDoorLabel(d, area) {
-  if (area === 'standard') return 'Door ' + d.num;
-  return d.name ? d.name : String(d.num); // yard/cff show their own label, e.g. "YD 1"
-}
-function auditGroupedDoors() {
-  const res = { standard: [], main: [], cff: [] };
-  const doors = (state.doors || []).filter(d => d.active);
-  doors.sort((a, b) => auditNumFromDoor(a) - auditNumFromDoor(b) || String(a.num).localeCompare(String(b.num)));
-  doors.forEach(d => {
-    const area = auditDoorArea(d);
-    const t = state.trailers[d.id];
-    if (area === 'standard') {
-      // Standard table lists every standard door — occupied and empty — but not
-      // blocked/unavailable ones with no trailer.
-      if (d.unavailable && !t) return;
-      res.standard.push({ id: d.id, label: auditDoorLabel(d, 'standard'), occupied: !!t, carrier: t ? (t.carrier || '') : '', trailer: t ? (t.trailerNum || '—') : '' });
-    } else if (t) {
-      // Yard/CFF: occupied doors only (empty yard spots aren't tracked here).
-      res[area].push({ id: d.id, label: auditDoorLabel(d, area), occupied: true, carrier: t.carrier || '', trailer: t.trailerNum || '—' });
-    }
-  });
-  return res;
-}
-
-// Returns the door groups to display: live dock state when viewing today, or
-// the snapshot that was saved with a past date's audit. Returns null for a past
-// date that has no saved snapshot (e.g. an audit recorded before snapshots
-// existed, or a day where no audit was done).
-function getAuditGroups() {
-  // Finalized audits (any date) always show the frozen snapshot that was saved.
-  if (auditState.finalized) return auditState.doors || null;
-  // Not finalized: today shows the live dock, past shows the last saved snapshot.
-  if (auditViewDate === todayStr()) return auditGroupedDoors();
-  return (auditState && auditState.doors) ? auditState.doors : null;
-}
-function captureDoorSnapshot() {
-  return auditGroupedDoors();
-}
-function isAuditToday() { return auditViewDate === todayStr(); }
-function isAuditLocked() { return !!auditState.finalized; }
-
-function blankAuditState() {
-  return { mainYard: [], culdesac: [], openDoors: {}, doors: null, checked: {}, finalized: false, finalizedAt: '', finalizedBy: '', reopenedAt: '', reopenedBy: '', updatedAt: '', updatedBy: '' };
-}
-function auditStateFromDoc(d) {
-  return {
-    mainYard: d.mainYard || [], culdesac: d.culdesac || [], openDoors: d.openDoors || {}, doors: d.doors || null, checked: d.checked || {},
-    finalized: !!d.finalized, finalizedAt: d.finalizedAt || '', finalizedBy: d.finalizedBy || '',
-    reopenedAt: d.reopenedAt || '', reopenedBy: d.reopenedBy || '',
-    updatedAt: d.updatedAt || '', updatedBy: d.updatedBy || ''
-  };
-}
-
-function renderAuditTab() {
-  const inp = document.getElementById('audit-date-input');
-  if (inp) { inp.value = auditViewDate; inp.max = todayStr(); }
-  const banner = document.getElementById('audit-pastbanner');
-  const todayBtn = document.getElementById('audit-today-btn');
-  if (banner) {
-    if (isAuditToday()) {
-      banner.style.display = 'none';
-    } else {
-      banner.style.display = 'block';
-      const ds = document.getElementById('audit-pastbanner-date');
-      if (ds) ds.textContent = auditDateLabel(auditViewDate);
-    }
-  }
-  if (todayBtn) todayBtn.style.display = isAuditToday() ? 'none' : '';
-  renderAuditDoors();
-  renderAuditEmpties();
-  renderAuditFinalizeBar();
-  document.querySelectorAll('.audit-addrow-wrap').forEach(el => { el.style.display = isAuditLocked() ? 'none' : ''; });
-  updateAuditSub();
-}
-
-function renderAuditFinalizeBar() {
-  const bar = document.getElementById('audit-finalize-bar');
-  if (!bar) return;
-  if (isAuditLocked()) {
-    const who = auditState.finalizedBy ? ' by ' + auditState.finalizedBy : '';
-    const when = auditState.finalizedAt ? ' at ' + fmtTime(auditState.finalizedAt) : '';
-    bar.innerHTML =
-      `<div class="audit-locked-note">Audit finalized${who}${when}. Everything on this tab is locked for the day.</div>` +
-      `<button class="btn audit-reopen-btn" onclick="reopenAudit()">Reopen Audit</button>`;
-  } else {
-    bar.innerHTML =
-      `<div class="audit-save-hint">When the walk is done, save the audit to lock it in for the day.</div>` +
-      `<button class="btn audit-save-btn" onclick="finalizeAudit()">Save Audit</button>`;
-  }
-}
-
-// Parse a YYYY-MM-DD string as a LOCAL date (not UTC) for display.
-function auditDateLabel(dateStr) {
-  const parts = String(dateStr).split('-').map(Number);
-  const d = (parts.length === 3) ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dateStr);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-function updateAuditSub() {
-  const el = document.getElementById('audit-datesub');
-  if (!el) return;
-  let txt = auditDateLabel(auditViewDate);
-  if (isAuditLocked()) {
-    txt += ' • Finalized' + (auditState.finalizedBy ? ' by ' + auditState.finalizedBy : '') + (auditState.finalizedAt ? ' at ' + fmtTime(auditState.finalizedAt) : '');
-  } else if (auditState.updatedAt) {
-    txt += ' • Last saved ' + fmtTime(auditState.updatedAt) + (auditState.updatedBy ? ' by ' + auditState.updatedBy : '');
-  } else {
-    txt += isAuditToday() ? ' • Fresh audit slate' : ' • No audit recorded for this day';
-  }
-  el.textContent = txt;
-}
-
-function auditDoorTableHTML(arr, emptyMsg) {
-  if (!arr.length) return '<div class="audit-empty-msg">' + emptyMsg + '</div>';
-  const checked = auditState.checked || {};
-  const openDoors = auditState.openDoors || {};
-  const locked = isAuditLocked();
-  const rows = arr.map(x => {
-    const on = !!checked[x.id];
-    let carrierCell, trailerCell;
-    if (x.occupied) {
-      carrierCell = `<td>${escHtml(x.carrier)}</td>`;
-      trailerCell = `<td>${escHtml(x.trailer)}</td>`;
-    } else {
-      // Open (empty) door — let the auditor type in what's actually there.
-      const oe = openDoors[x.id] || {};
-      if (locked) {
-        carrierCell = `<td>${oe.carrier ? escHtml(oe.carrier) : '—'}</td>`;
-        trailerCell = `<td>${oe.trailerNum ? escHtml(oe.trailerNum) : '<span class="audit-empty-tag">Empty</span>'}</td>`;
-      } else {
-        carrierCell = `<td><input class="audit-inp" value="${escHtml(oe.carrier || '')}" placeholder="—" onchange="updateAuditOpenDoor('${escHtml(x.id)}','carrier',this.value)"></td>`;
-        trailerCell = `<td><input class="audit-inp" value="${escHtml(oe.trailerNum || '')}" placeholder="Empty" onchange="updateAuditOpenDoor('${escHtml(x.id)}','trailerNum',this.value)"></td>`;
-      }
-    }
-    const checkCell = locked
-      ? `<td class="audit-check-cell locked"><span class="audit-check ${on ? 'on' : ''}">${on ? '✓' : ''}</span></td>`
-      : `<td class="audit-check-cell" onclick="toggleAuditCheck('${escHtml(x.id)}')" title="Mark as verified"><span class="audit-check ${on ? 'on' : ''}">${on ? '✓' : ''}</span></td>`;
-    return `<tr class="${x.occupied ? '' : 'audit-row-empty'}">` +
-      `<td style="font-weight:700;white-space:nowrap;">${escHtml(x.label)}</td>` +
-      carrierCell + trailerCell + checkCell +
-      `</tr>`;
-  }).join('');
-  return `<table class="audit-table"><thead><tr><th>Door</th><th>Carrier</th><th>Trailer #</th><th class="audit-check-th">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-// True when the user is typing in a door-table input, so live re-renders can
-// hold off and not wipe what they're entering.
-function auditDoorInputFocused() {
-  const ae = document.activeElement;
-  if (!ae || !ae.classList || !ae.classList.contains('audit-inp')) return false;
-  return ['audit-standard-occupied', 'audit-mainyard-occupied', 'audit-cffyard-occupied']
-    .some(id => { const el = document.getElementById(id); return el && el.contains(ae); });
-}
-
-function renderAuditDoors() {
-  if (!document.getElementById('audit-standard-occupied')) return;
-  if (auditDoorInputFocused()) return; // don't clobber an in-progress open-door entry
-  const g = getAuditGroups();
-  if (!g) {
-    // Past date with no saved door snapshot.
-    const note = '<div class="audit-empty-msg">No door snapshot was saved for this date.</div>';
-    document.getElementById('audit-standard-occupied').innerHTML = note;
-    document.getElementById('audit-mainyard-occupied').innerHTML = note;
-    document.getElementById('audit-cffyard-occupied').innerHTML = note;
-    return;
-  }
-  document.getElementById('audit-standard-occupied').innerHTML = auditDoorTableHTML(g.standard || [], 'No standard doors to show.');
-  document.getElementById('audit-mainyard-occupied').innerHTML = auditDoorTableHTML(g.main || [], 'No trailers currently in main yard.');
-  document.getElementById('audit-cffyard-occupied').innerHTML = auditDoorTableHTML(g.cff || [], 'No trailers currently in CFF yard.');
-}
-
-function updateAuditOpenDoor(doorId, field, val) {
-  if (isAuditLocked()) return;
-  auditState.openDoors = auditState.openDoors || {};
-  auditState.openDoors[doorId] = auditState.openDoors[doorId] || {};
-  auditState.openDoors[doorId][field] = val.trim();
-  const e = auditState.openDoors[doorId];
-  if (!e.carrier && !e.trailerNum) delete auditState.openDoors[doorId];
-  saveAuditToFirebase();
-}
-
-function toggleAuditCheck(doorId) {
-  if (isAuditLocked()) return;
-  auditState.checked = auditState.checked || {};
-  if (auditState.checked[doorId]) delete auditState.checked[doorId];
-  else auditState.checked[doorId] = true;
-  renderAuditDoors();
-  saveAuditToFirebase();
-}
-
-function renderAuditEmpties() {
-  renderAuditEmptyTable('mainYard', 'audit-mainyard-empties');
-  renderAuditEmptyTable('culdesac', 'audit-culdesac-empties');
-}
-
-function renderAuditEmptyTable(key, containerId) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const rows = auditState[key] || [];
-  const locked = isAuditLocked();
-  const cols = locked ? 2 : 3;
-  let html = '<table class="audit-table"><thead><tr><th>Carrier</th><th>Trailer #</th>' + (locked ? '' : '<th style="width:44px;"></th>') + '</tr></thead><tbody>';
-  if (!rows.length) {
-    html += `<tr><td colspan="${cols}" class="audit-empty-msg" style="background:#fff;">` +
-      (locked ? 'No empties were recorded.' : 'No empties recorded yet — tap “+ Add Row”.') + '</td></tr>';
-  } else if (locked) {
-    rows.forEach(r => {
-      html += `<tr><td>${escHtml(r.carrier || '—')}</td><td>${escHtml(r.trailerNum || '—')}</td></tr>`;
-    });
-  } else {
-    rows.forEach((r, i) => {
-      html += `<tr>
-        <td><input class="audit-inp" value="${escHtml(r.carrier || '')}" placeholder="Carrier" onchange="updateAuditEmpty('${key}',${i},'carrier',this.value)"></td>
-        <td><input class="audit-inp" value="${escHtml(r.trailerNum || '')}" placeholder="Trailer #" onchange="updateAuditEmpty('${key}',${i},'trailerNum',this.value)"></td>
-        <td style="text-align:center;"><button class="btn audit-del" onclick="removeAuditEmpty('${key}',${i})" title="Remove row">×</button></td>
-      </tr>`;
-    });
-  }
-  html += '</tbody></table>';
-  el.innerHTML = html;
-}
-
-function updateAuditEmpty(key, idx, field, val) {
-  if (isAuditLocked()) return;
-  if (!auditState[key] || !auditState[key][idx]) return;
-  auditState[key][idx][field] = val.trim();
-  saveAuditToFirebase();
-}
-
-function addAuditEmptyRow(key) {
-  if (isAuditLocked()) return;
-  auditState[key] = auditState[key] || [];
-  auditState[key].push({ carrier: '', trailerNum: '' });
-  renderAuditEmpties();
-  saveAuditToFirebase();
-  // Focus the carrier input of the row we just added
-  const containerId = key === 'mainYard' ? 'audit-mainyard-empties' : 'audit-culdesac-empties';
-  const inputs = document.getElementById(containerId).querySelectorAll('.audit-inp');
-  if (inputs.length >= 2) inputs[inputs.length - 2].focus();
-}
-
-function removeAuditEmpty(key, idx) {
-  if (isAuditLocked()) return;
-  if (!auditState[key]) return;
-  auditState[key].splice(idx, 1);
-  renderAuditEmpties();
-  saveAuditToFirebase();
-}
-
-// Finalize: freeze the door snapshot as of now, lock the whole tab for the day,
-// and stamp who saved it. We won't do two audits a day, so this is the record.
-async function finalizeAudit() {
-  if (isAuditLocked()) return;
-  if (isAuditToday()) auditState.doors = captureDoorSnapshot();
-  auditState.finalized = true;
-  auditState.finalizedAt = new Date().toISOString();
-  auditState.finalizedBy = (window._currentUser || '').toUpperCase();
-  await saveAuditToFirebase();
-  renderAuditTab();
-  toast('Audit finalized & locked ✓');
-}
-
-// Reopen: unlock for corrections and record who reopened it. Anyone can do this
-// (with a confirm) since floor reality means a fix is sometimes needed.
-function reopenAudit() {
-  if (!isAuditLocked()) return;
-  if (!confirm('Reopen this audit for corrections? It will be editable again until you save it.')) return;
-  auditState.finalized = false;
-  auditState.reopenedAt = new Date().toISOString();
-  auditState.reopenedBy = (window._currentUser || '').toUpperCase();
-  saveAuditToFirebase();
-  renderAuditTab();
-  toast('Audit reopened for edits');
-}
-
-async function saveAuditToFirebase() {
-  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
-  auditState.updatedAt = new Date().toISOString();
-  auditState.updatedBy = (window._currentUser || '').toUpperCase();
-  // Door snapshot rules:
-  //  - Finalized: keep the frozen snapshot exactly as saved (never overwrite).
-  //  - Today (draft): capture a rolling snapshot so a look-back still shows doors
-  //    even if the day ends without anyone hitting Save Audit.
-  //  - Past (draft): preserve whatever snapshot is already stored.
-  let doorsSnapshot;
-  if (auditState.finalized) doorsSnapshot = auditState.doors || null;
-  else if (isAuditToday()) doorsSnapshot = captureDoorSnapshot();
-  else doorsSnapshot = auditState.doors || null;
-  auditState.doors = doorsSnapshot;
-  try {
-    await fb().setDoc(fb().doc(getDb(), 'audit', auditViewDate), {
-      mainYard: auditState.mainYard,
-      culdesac: auditState.culdesac,
-      openDoors: auditState.openDoors || {},
-      doors: doorsSnapshot,
-      checked: auditState.checked || {},
-      finalized: !!auditState.finalized,
-      finalizedAt: auditState.finalizedAt || '',
-      finalizedBy: auditState.finalizedBy || '',
-      reopenedAt: auditState.reopenedAt || '',
-      reopenedBy: auditState.reopenedBy || '',
-      date: auditViewDate,
-      updatedAt: auditState.updatedAt,
-      updatedBy: auditState.updatedBy
-    });
-  } catch (e) { console.error('audit save failed', e); }
-  updateAuditSub();
-}
-
-// Loads the audit for a specific date into view. For today, the live listener
-// then keeps it fresh; for past dates it's a one-time read of the saved record.
-async function loadAuditForDate(dateStr) {
-  auditViewDate = dateStr;
-  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) {
-    // Offline / not ready — show today's in-memory state for today, empty otherwise.
-    if (!isAuditToday()) auditState = blankAuditState();
-    renderAuditTab();
-    return;
-  }
-  try {
-    const snap = await fb().getDoc(fb().doc(getDb(), 'audit', dateStr));
-    auditState = snap.exists() ? auditStateFromDoc(snap.data()) : blankAuditState();
-  } catch (e) {
-    console.error('audit load failed', e);
-    auditState = blankAuditState();
-  }
-  renderAuditTab();
-}
-
-function changeAuditDate(dateStr) {
-  if (!dateStr) return;
-  if (dateStr > todayStr()) { dateStr = todayStr(); toast('Cannot view a future audit', 'error'); }
-  loadAuditForDate(dateStr);
-}
-
-function auditDateStep(delta) {
-  const parts = auditViewDate.split('-').map(Number);
-  const d = new Date(parts[0], parts[1] - 1, parts[2]);
-  d.setDate(d.getDate() + delta);
-  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
-  const next = `${y}-${m}-${day}`;
-  if (next > todayStr()) { toast('Cannot view a future audit', 'error'); return; }
-  loadAuditForDate(next);
-}
-
-function auditGoToday() { loadAuditForDate(todayStr()); }
-
-// Fresh slate at midnight. We only clear it in memory — a blank doc is never
-// written for the new day (the first hand-entered row saves it for real), which
-// avoids overwriting anything and matches how forecast data is seeded. Also snap
-// the view back to the new "today" so anyone left on the tab rolls over cleanly.
-function resetAuditForNewDay() {
-  auditViewDate = todayStr();
-  auditState = blankAuditState();
-  if (document.getElementById('tab-audit') && document.getElementById('tab-audit').classList.contains('active')) renderAuditTab();
-}
-
-function printAuditSheet() {
-  const g = getAuditGroups();
-  const dateLabel = auditDateLabel(auditViewDate);
-
-  const occ = (arr, label) => {
-    if (!arr.length) return `<p class="none">No doors to show for ${label}.</p>`;
-    const openDoors = auditState.openDoors || {};
-    return `<table><thead><tr><th style="width:20%">Door</th><th style="width:38%">Carrier</th><th>Trailer #</th><th style="width:40px" class="ck">✓</th></tr></thead><tbody>` +
-      arr.map(x => {
-        const oe = openDoors[x.id] || {};
-        const carrier = x.occupied ? escHtml(x.carrier) : (oe.carrier ? escHtml(oe.carrier) : '—');
-        const trailer = x.occupied ? escHtml(x.trailer) : (oe.trailerNum ? escHtml(oe.trailerNum) : '<i>Empty</i>');
-        return `<tr><td>${escHtml(x.label)}</td><td>${carrier}</td><td>${trailer}</td><td class="ck">☐</td></tr>`;
-      }).join('') +
-      `</tbody></table>`;
-  };
-  const emptyTbl = (rows) => {
-    let body = (rows || []).map(r => `<tr><td>${escHtml(r.carrier || '')}</td><td>${escHtml(r.trailerNum || '')}</td></tr>`).join('');
-    for (let i = 0; i < 10; i++) body += '<tr><td>&nbsp;</td><td>&nbsp;</td></tr>'; // blank lines for handwriting
-    return `<table><thead><tr><th style="width:55%">Carrier</th><th>Trailer #</th></tr></thead><tbody>${body}</tbody></table>`;
-  };
-  const gg = g || { standard: [], main: [], cff: [] };
-  const noSnap = !g ? '<p class="none">No door snapshot was saved for this date.</p>' : '';
-
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Trailer Audit — ${dateLabel}</title>
-<style>
-  * { box-sizing: border-box; }
-  body { font-family: Arial, "Segoe UI", sans-serif; color: #111; margin: 24px; }
-  h1 { font-size: 22px; margin: 0 0 2px; }
-  .date { font-size: 13px; color: #444; margin-bottom: 14px; }
-  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 6px; border-bottom: 2px solid #1a4731; padding-bottom: 3px; color: #1a4731; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-  th { background: #1a4731; color: #fff; font-size: 11px; text-align: left; padding: 5px 7px; text-transform: uppercase; }
-  td { border: 1px solid #999; padding: 6px 7px; font-size: 13px; height: 24px; }
-  td.ck, th.ck { text-align: center; font-size: 15px; }
-  .none { font-size: 12px; color: #666; font-style: italic; margin: 4px 0 8px; }
-  .sig { margin-top: 22px; font-size: 13px; }
-  .sig span { display: inline-block; margin-right: 40px; }
-  @media print { body { margin: 12px; } h2 { break-after: avoid; } table { break-inside: auto; } tr { break-inside: avoid; } }
-</style></head><body>
-  <h1>Trailer Audit</h1>
-  <div class="date">${dateLabel}</div>
-  <h2>Standard Doors</h2>${g ? occ(gg.standard, 'standard') : noSnap}
-  <h2>Main Yard — Occupied</h2>${g ? occ(gg.main, 'main yard') : noSnap}
-  <h2>CFF Yard — Occupied</h2>${g ? occ(gg.cff, 'CFF yard') : noSnap}
-  <h2>Main Yard Empties / Unexpected Trailers</h2>${emptyTbl(auditState.mainYard)}
-  <h2>Culdesac Empties</h2>${emptyTbl(auditState.culdesac)}
-  <div class="sig"><span>Audited by: __________________________</span><span>Time: ______________</span></div>
-</body></html>`;
-
-  const w = window.open('', '_blank');
-  if (!w) { toast('Allow pop-ups to print the audit sheet', 'error'); return; }
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => { try { w.print(); } catch (e) {} }, 350);
 }
 
 // ===================== TAB ORDER (shared, drag to reorder) =====================
@@ -9081,15 +8501,8 @@ function checkDayRollover() {
   if (today !== _lastKnownDate) {
     _lastKnownDate = today;
     state.completedToday = [];
+    state.trailers = {};
     state.history = [];
-    // NOTE: we intentionally do NOT clear state.trailers here. A trailer sitting
-    // on a door at 11:59pm is still physically on that door at 12:01am, and the
-    // trailers listener isn't date-bound, so it stays authoritative across the
-    // rollover. Blanking it here just made the grid look empty until the next
-    // trailer action re-fired the listener.
-    // Re-point the date-bound listeners (completed/history + sales-side) at the
-    // new day so they keep syncing on devices left open across midnight.
-    subscribeDateBoundListeners();
     // Init fresh forecast for new day if not already saved — reuse getForecastData's
     // seeding logic so removed carriers stay removed and custom carriers still show up
     // (this used to build its own carrier list straight from the raw template, which
@@ -9111,7 +8524,6 @@ function checkDayRollover() {
     document.getElementById('forecast-date').value = today;
     autoLoadExpectedBySchedule();
     resetSalesSideForNewDay();
-    resetAuditForNewDay();
     saveState();
     renderDoors();
     renderExpectedTrailers();
