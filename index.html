@@ -2649,6 +2649,7 @@ async function loadStateFromFirebase() {
   }
 
   _safeToSyncToFirebase = true;
+  rolloverStaleExpectedTrailers().catch(e => console.error('Expected Trailers rollover failed:', e));
 
   // Real-time listener for active trailers
   if (_unsubTrailers) _unsubTrailers();
@@ -7705,7 +7706,11 @@ function syncForecastToLTL(fd, dateKey) {
     if (EXCLUDE_FROM_EXPECTED.has(c.name)) return;
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
-    const existingCount = fd.ltl.filter(r => r.carrier === c.name).length;
+    // Rolled-over rows (leftover from a prior day, never slotted or marked DNR)
+    // are deliberately excluded here — they still belong to the day they were
+    // originally expected, not today's forecast, so they must never count
+    // against today's genuine Load to Expected placeholder total.
+    const existingCount = fd.ltl.filter(r => r.carrier === c.name && !r.rolledOverFrom).length;
     const alreadyAccountedFor = existingCount + (arrivedCounts[c.name] || 0);
     for (let i = alreadyAccountedFor; i < adjTrailers; i++) {
       fd.ltl.push({ carrier: c.name, time: '', trailerNum: '', notes: '', addedBy: `Load to Expected (${(window._currentUser || 'unknown').toUpperCase()})` });
@@ -8175,6 +8180,65 @@ function resetTodayForecast() {
 // "trailers already on a door today" count used elsewhere — which is what
 // makes it safe to simply ADD those two counts together without risk of
 // double-counting the same physical trailer in both places.
+// Rolls forward any Expected Trailers row that's still sitting unresolved on
+// a PAST date — never slotted (which would have removed it via
+// consumeExpectedRow) and never marked Did Not Receive — into today's list,
+// so it keeps showing up as still expected instead of silently vanishing the
+// moment the calendar date moves on. Runs once at boot, after
+// _safeToSyncToFirebase is set, using whatever state.forecast already has
+// loaded (the boot sequence already pulls every forecast doc, past and
+// future) — but re-fetches each stale day fresh from Firestore right before
+// touching it, so two devices opening the app at the same moment can't both
+// roll the same row forward and duplicate it.
+//
+// Rolled-over rows are tagged with rolledOverFrom = the date they were
+// ORIGINALLY expected (never today's date) and keep that value through
+// however many days they keep rolling. This is what lets
+// syncForecastToLTL's existingCount check (Load to Expected) tell a rolled-
+// over leftover apart from a row genuinely expected today — without that
+// tag, an old unresolved row would wrongly suppress today's real Load to
+// Expected placeholder count for that carrier.
+async function rolloverStaleExpectedTrailers() {
+  if (!window._fbReady || !getDb() || window._sandboxMode) return;
+  const today = todayStr();
+  const staleDates = Object.keys(state.forecast).filter(d => d < today);
+  if (!staleDates.length) return;
+
+  const todayFd = getForecastData(today);
+  if (!todayFd.ltl) todayFd.ltl = [];
+  let rolledAny = false;
+
+  for (const dateKey of staleDates) {
+    let freshLtl;
+    try {
+      const snap = await fb().getDoc(fb().doc(getDb(), 'forecast', dateKey));
+      freshLtl = (snap.exists() && Array.isArray(snap.data().ltl)) ? snap.data().ltl : [];
+    } catch (e) { continue; } // leave this date alone if it can't be read right now
+    if (state.forecast[dateKey]) state.forecast[dateKey].ltl = freshLtl;
+    if (!freshLtl.length) continue;
+
+    freshLtl.forEach(row => {
+      todayFd.ltl.push({
+        ...row,
+        time: '',
+        rolledOverFrom: row.rolledOverFrom || dateKey, // preserve the ORIGINAL expected date across multiple rollovers
+        notes: row.notes ? row.notes : '',
+      });
+    });
+    state.forecast[dateKey].ltl = [];
+    rolledAny = true;
+    await saveForecastFieldsToFirebase(dateKey, { ltl: [] });
+  }
+
+  if (rolledAny) {
+    await saveForecastFieldsToFirebase(today, { ltl: todayFd.ltl });
+    renderExpectedTrailers();
+    const fcDateInp = document.getElementById('forecast-date');
+    if (fcDateInp && fcDateInp.value === today) renderForecastTab();
+  }
+}
+
+
 function consumeExpectedRow(carrierName) {
   if (!carrierName) return;
   const fd = state.forecast[todayStr()];
@@ -8234,9 +8298,12 @@ function renderExpectedTrailers() {
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.title = 'Double-click to slot this trailer';
+    const timeCell = r.rolledOverFrom
+      ? `<span style="color:#b06a2a;font-weight:700;font-size:11px;" title="Originally expected ${fmtDate(r.rolledOverFrom + 'T12:00:00')} — never slotted or marked Did Not Receive">⟳ ${fmtDate(r.rolledOverFrom + 'T12:00:00')}</span>`
+      : (r.time || '—');
     tr.innerHTML = `
       <td style="color:#000;font-weight:600;">${r.carrier}</td>
-      <td style="color:#000">${r.time || '—'}</td>
+      <td style="color:#000">${timeCell}</td>
       <td style="color:#000">${r.trailerNum || '—'}</td>
       <td style="color:#000;font-style:italic;">${r.notes || '—'}</td>
     `;
