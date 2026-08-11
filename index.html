@@ -209,6 +209,14 @@
   .door-card:hover { border-color: var(--teal); box-shadow: 0 4px 12px rgba(39,181,137,0.25), 0 0 0 1px var(--teal); }
   .door-card.active-trailer { border-color: var(--green); box-shadow: 0 2px 8px rgba(76,175,125,0.2), 0 1px 2px rgba(0,0,0,0.1); }
   .door-card.door-unavailable { opacity: 0.5; border-color: var(--red); }
+  /* Grayscale tint per door type, set from the Edit Layout panel. Falls back
+     to today's exact gradient via the var() default whenever a shade hasn't
+     been customized (--door-color-* is simply never set in that case) — so
+     this can never change anyone's existing look until they deliberately
+     move a slider. */
+  .door-card { background: var(--door-color-standard, linear-gradient(180deg, #ececec 0%, #dcdcdc 100%)); }
+  .door-card.door-card-yard { background: var(--door-color-yard, linear-gradient(180deg, #ececec 0%, #dcdcdc 100%)); }
+  .door-card.door-card-cff { background: var(--door-color-cff, linear-gradient(180deg, #ececec 0%, #dcdcdc 100%)); }
   /* Two-column body layout */
   .door-body {
     display: flex;
@@ -1307,6 +1315,21 @@
             <label>Age Badges Shown</label>
             <input type="range" min="0" max="15" value="5" id="et-agebadges" oninput="applyEditSlider()">
             <input type="number" min="0" max="15" value="5" id="et-agebadges-val" class="et-num-input" onchange="applyEditNumber('et-agebadges', this.value)">
+          </div>
+          <div class="edit-slider-row">
+            <label>Standard Door Shade</label>
+            <input type="range" min="50" max="100" value="100" id="et-color-standard" oninput="applyEditSlider()">
+            <input type="number" min="50" max="100" value="100" id="et-color-standard-val" class="et-num-input" onchange="applyEditNumber('et-color-standard', this.value)">
+          </div>
+          <div class="edit-slider-row">
+            <label>Main Yard Door Shade</label>
+            <input type="range" min="50" max="100" value="100" id="et-color-yard" oninput="applyEditSlider()">
+            <input type="number" min="50" max="100" value="100" id="et-color-yard-val" class="et-num-input" onchange="applyEditNumber('et-color-yard', this.value)">
+          </div>
+          <div class="edit-slider-row">
+            <label>CFF Yard Door Shade</label>
+            <input type="range" min="50" max="100" value="100" id="et-color-cff" oninput="applyEditSlider()">
+            <input type="number" min="50" max="100" value="100" id="et-color-cff-val" class="et-num-input" onchange="applyEditNumber('et-color-cff', this.value)">
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-left:16px;">
@@ -4158,10 +4181,32 @@ function assignMissingSlots(totalSlots) {
 }
 
 // ===================== DOORS =====================
+// Applies the saved grayscale door-type shading as CSS custom properties.
+// Called from renderDoors() (so it's always in sync — on boot, after a
+// Firestore settings update from any device, after switching tabs — not just
+// while the Edit Layout panel happens to be open) and from applyEditSlider()
+// for live preview while dragging. 100 = off, removes the property entirely
+// so the door falls back to its original default gradient exactly.
+function applyDoorTypeColors(s) {
+  const dtc = (s && s.doorTypeColors) || {};
+  const set = (settingsKey, cssVar) => {
+    const val = dtc[settingsKey];
+    if (val === undefined || val >= 100) {
+      document.documentElement.style.removeProperty(cssVar);
+    } else {
+      document.documentElement.style.setProperty(cssVar, `hsl(0, 0%, ${val}%)`);
+    }
+  };
+  set('standard', '--door-color-standard');
+  set('yard', '--door-color-yard');
+  set('cff_yard', '--door-color-cff');
+}
+
 function renderDoors() {
   const grid = document.getElementById('door-grid');
   grid.innerHTML = '';
   const s = state.settings;
+  applyDoorTypeColors(s);
   const cols = s.columns || 6;
   const rows = s.rows || 8;
   const totalSlots = cols * rows;
@@ -8583,6 +8628,10 @@ function toggleEditMode() {
     setSlider('et-rows', s.rows || 8);
     setSlider('et-sidebar', s.sidebar);
     setSlider('et-agebadges', s.doorAgeBadgeCount !== undefined ? s.doorAgeBadgeCount : 5);
+    const dtc = s.doorTypeColors || {};
+    setSlider('et-color-standard', dtc.standard !== undefined ? dtc.standard : 100);
+    setSlider('et-color-yard', dtc.yard !== undefined ? dtc.yard : 100);
+    setSlider('et-color-cff', dtc.cff_yard !== undefined ? dtc.cff_yard : 100);
   } else {
     // Exiting edit mode — this is the one point where the layout gets pushed to Firebase
     saveSettingsToFirebase();
@@ -8615,6 +8664,23 @@ function applyEditSlider() {
   document.getElementById('et-rows-val').value       = s.rows;
   document.getElementById('et-sidebar-val').value    = s.sidebar;
   document.getElementById('et-agebadges-val').value  = s.doorAgeBadgeCount;
+
+  // Grayscale door-type shading. 100 = "off" (use today's default gradient —
+  // the CSS variable is removed entirely, not set to a color) so a device
+  // that's never touched these sliders is guaranteed to render identically
+  // to before this feature existed. Below 100, applies a flat gray at that
+  // lightness — kept at a 50% floor (set by the slider's min) so the
+  // existing dark text/badges on every card stay readable no matter what's
+  // picked.
+  if (!s.doorTypeColors) s.doorTypeColors = {};
+  s.doorTypeColors.standard = +document.getElementById('et-color-standard').value;
+  s.doorTypeColors.yard = +document.getElementById('et-color-yard').value;
+  s.doorTypeColors.cff_yard = +document.getElementById('et-color-cff').value;
+  document.getElementById('et-color-standard-val').value = s.doorTypeColors.standard;
+  document.getElementById('et-color-yard-val').value = s.doorTypeColors.yard;
+  document.getElementById('et-color-cff-val').value = s.doorTypeColors.cff_yard;
+  applyDoorTypeColors(s);
+
   document.querySelector('.home-layout').style.gridTemplateColumns = `1fr ${s.sidebar}px`;
   saveState();
   renderDoors();
