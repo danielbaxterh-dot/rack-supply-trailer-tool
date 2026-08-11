@@ -8181,15 +8181,15 @@ function resetTodayForecast() {
 // makes it safe to simply ADD those two counts together without risk of
 // double-counting the same physical trailer in both places.
 // Rolls forward any Expected Trailers row that's still sitting unresolved on
-// a PAST date — never slotted (which would have removed it via
+// YESTERDAY — never slotted (which would have removed it via
 // consumeExpectedRow) and never marked Did Not Receive — into today's list,
 // so it keeps showing up as still expected instead of silently vanishing the
-// moment the calendar date moves on. Runs once at boot, after
-// _safeToSyncToFirebase is set, using whatever state.forecast already has
-// loaded (the boot sequence already pulls every forecast doc, past and
-// future) — but re-fetches each stale day fresh from Firestore right before
-// touching it, so two devices opening the app at the same moment can't both
-// roll the same row forward and duplicate it.
+// moment the calendar date moves on. Only ever looks at yesterday, never
+// further back — this rule applies going forward from whenever it was
+// turned on, not retroactively to old forecast history. Runs once at boot,
+// after _safeToSyncToFirebase is set, re-fetching yesterday fresh from
+// Firestore right before touching it so two devices opening the app at the
+// same moment can't both roll the same row forward and duplicate it.
 //
 // Rolled-over rows are tagged with rolledOverFrom = the date they were
 // ORIGINALLY expected (never today's date) and keep that value through
@@ -8197,40 +8197,59 @@ function resetTodayForecast() {
 // syncForecastToLTL's existingCount check (Load to Expected) tell a rolled-
 // over leftover apart from a row genuinely expected today — without that
 // tag, an old unresolved row would wrongly suppress today's real Load to
-// Expected placeholder count for that carrier.
+// Expected placeholder count for that carrier. It's also what the one-time
+// cleanup at the top of this function uses to strip out the batch of old
+// rows an earlier version of this feature mistakenly swept in from as far
+// back as June on its first run.
 async function rolloverStaleExpectedTrailers() {
   if (!window._fbReady || !getDb() || window._sandboxMode) return;
   const today = todayStr();
-  const staleDates = Object.keys(state.forecast).filter(d => d < today);
-  if (!staleDates.length) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const pad = n => String(n).padStart(2, '0');
+  const yesterday = `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
 
   const todayFd = getForecastData(today);
   if (!todayFd.ltl) todayFd.ltl = [];
-  let rolledAny = false;
+  let changed = false;
 
-  for (const dateKey of staleDates) {
+  // One-time cleanup: an earlier version of this feature swept in EVERY
+  // unresolved row from any past date the first time it ran (going back to
+  // whenever this forecast doc history started, e.g. June) — this rule is
+  // only meant to apply going forward from today, so strip out anything that
+  // got rolled in from further back than yesterday. They're just removed
+  // from today's list, not restored to their original date.
+  const before = todayFd.ltl.length;
+  todayFd.ltl = todayFd.ltl.filter(r => !r.rolledOverFrom || r.rolledOverFrom >= yesterday);
+  if (todayFd.ltl.length !== before) changed = true;
+
+  // Going forward, only ever roll yesterday's leftovers into today — anything
+  // older than that would already have been carried forward incrementally by
+  // yesterday's own rollover, once this has been running for more than a day.
+  if (state.forecast[yesterday]) {
     let freshLtl;
     try {
-      const snap = await fb().getDoc(fb().doc(getDb(), 'forecast', dateKey));
+      const snap = await fb().getDoc(fb().doc(getDb(), 'forecast', yesterday));
       freshLtl = (snap.exists() && Array.isArray(snap.data().ltl)) ? snap.data().ltl : [];
-    } catch (e) { continue; } // leave this date alone if it can't be read right now
-    if (state.forecast[dateKey]) state.forecast[dateKey].ltl = freshLtl;
-    if (!freshLtl.length) continue;
-
-    freshLtl.forEach(row => {
-      todayFd.ltl.push({
-        ...row,
-        time: '',
-        rolledOverFrom: row.rolledOverFrom || dateKey, // preserve the ORIGINAL expected date across multiple rollovers
-        notes: row.notes ? row.notes : '',
-      });
-    });
-    state.forecast[dateKey].ltl = [];
-    rolledAny = true;
-    await saveForecastFieldsToFirebase(dateKey, { ltl: [] });
+    } catch (e) { freshLtl = null; } // leave yesterday alone if it can't be read right now
+    if (freshLtl) {
+      state.forecast[yesterday].ltl = freshLtl;
+      if (freshLtl.length) {
+        freshLtl.forEach(row => {
+          todayFd.ltl.push({
+            ...row,
+            time: '',
+            rolledOverFrom: row.rolledOverFrom || yesterday, // preserve the ORIGINAL expected date across multiple rollovers
+            notes: row.notes ? row.notes : '',
+          });
+        });
+        state.forecast[yesterday].ltl = [];
+        changed = true;
+        await saveForecastFieldsToFirebase(yesterday, { ltl: [] });
+      }
+    }
   }
 
-  if (rolledAny) {
+  if (changed) {
     await saveForecastFieldsToFirebase(today, { ltl: todayFd.ltl });
     renderExpectedTrailers();
     const fcDateInp = document.getElementById('forecast-date');
