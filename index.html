@@ -4684,15 +4684,16 @@ function yardLabelFor(door) {
 }
 
 function sendMoveSlackNotification(t, fromDoor, toDoor) {
-  if (!SLACK_RELEASE_WEBHOOK_URL) return null;
+  const wh = getTrailerMoveWebhook();
+  if (!wh.url) return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
   const fromLabel = yardLabelFor(fromDoor) || `Door ${fromDoor ? fromDoor.num : '?'}`;
   const toLabel = yardLabelFor(toDoor) || `Door ${toDoor ? toDoor.num : '?'}`;
   const message = ['Move', carrier, t.trailerNum || '', 'in', fromLabel, 'to', toLabel].filter(Boolean).join(' ');
-  return fetch(SLACK_RELEASE_WEBHOOK_URL, {
+  return fetch(wh.url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
+    body: JSON.stringify({ [wh.key]: escapeSlackText(message) })
   }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
 }
 
@@ -4757,13 +4758,16 @@ function confirmJunkSkidsReset() {
   renderDoors();
   renderExpectedTrailers();
 
-  if (SLACK_RELEASE_WEBHOOK_URL && state.settings.slackReleaseEnabled !== false) {
-    const message = ['RCS', newTrailerNum || '', `in Door ${door?.num || doorId} is ready to be swapped with an empty RCS trailer from the yard. Please reply with new RCS trailer #.`].filter(Boolean).join(' ');
-    fetch(SLACK_RELEASE_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
-    }).catch(err => console.error('Slack webhook failed:', err));
+  if (state.settings.slackReleaseEnabled !== false) {
+    const wh = getTrailerMoveWebhook();
+    if (wh.url) {
+      const message = ['RCS', newTrailerNum || '', `in Door ${door?.num || doorId} is ready to be swapped with an empty RCS trailer from the yard. Please reply with new RCS trailer #.`].filter(Boolean).join(' ');
+      fetch(wh.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ [wh.key]: escapeSlackText(message) })
+      }).catch(err => console.error('Slack webhook failed:', err));
+    }
   }
   toast('Timer reset & message sent ✓');
 }
@@ -5623,6 +5627,20 @@ function releaseTrailer(doorId, sendSlack = true) {
 // Slack workflow webhook for door releases.
 const SLACK_RELEASE_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
 
+// Dedicated webhook for testing in Sandbox Mode, so a tester clicking around
+// never posts real move/release notifications into the actual production
+// Slack channel. Every trailer-move-style send (release, move, junk skids
+// swap request, auto trailer ready) goes through getTrailerMoveWebhook()
+// below instead of hardcoding SLACK_RELEASE_WEBHOOK_URL directly, so sandbox
+// mode transparently redirects all of them to this one webhook.
+const SANDBOX_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
+const SANDBOX_WEBHOOK_PAYLOAD_KEY = 'Sandbox_trailer_moves';
+
+function getTrailerMoveWebhook() {
+  if (window._sandboxMode) return { url: SANDBOX_WEBHOOK_URL, key: SANDBOX_WEBHOOK_PAYLOAD_KEY };
+  return { url: SLACK_RELEASE_WEBHOOK_URL, key: 'Rack_supply_trailer_move' };
+}
+
 // Slack's Block Kit requires &, <, and > to be HTML-entity-escaped in message
 // text — an unescaped one can make the whole block invalid and get the
 // message rejected with "invalid_blocks". Carrier names, trailer numbers,
@@ -5679,7 +5697,8 @@ const WEBHOOK_CARRIER_ALIAS = {
 };
 
 function sendReleaseSlackNotification(rec, salesSlot) {
-  if (!SLACK_RELEASE_WEBHOOK_URL) return null;
+  const wh = getTrailerMoveWebhook();
+  if (!wh.url) return null;
   if (state.settings.slackReleaseEnabled === false) return null;
   if (rec.type !== 'DROP') return null;
   // Also check carrier type — only fire for DROP (or DROP-eligible BOTH) carriers
@@ -5703,10 +5722,10 @@ function sendReleaseSlackNotification(rec, salesSlot) {
     message = [carrier, rec.trailerNum || '', 'in', `Door ${door}`, tail].filter(Boolean).join(' ');
   }
 
-  return fetch(SLACK_RELEASE_WEBHOOK_URL, {
+  return fetch(wh.url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
+    body: JSON.stringify({ [wh.key]: escapeSlackText(message) })
   }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
 }
 function completeTrailer(doorId) {
@@ -8764,12 +8783,13 @@ function sendAutoReadyMessage() {
   const door = document.getElementById('ar-door').value.trim();
   const trailerNum = document.getElementById('ar-trailer').value.trim();
   if (!door) { toast('Enter a door number ✗'); return; }
-  if (SLACK_RELEASE_WEBHOOK_URL) {
+  const wh = getTrailerMoveWebhook();
+  if (wh.url) {
     const message = ['Craig', trailerNum || '', `in Door ${door} is ready for the yard.`].filter(Boolean).join(' ');
-    fetch(SLACK_RELEASE_WEBHOOK_URL, {
+    fetch(wh.url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ Rack_supply_trailer_move: escapeSlackText(message) })
+      body: JSON.stringify({ [wh.key]: escapeSlackText(message) })
     }).catch(err => console.error('Slack webhook failed:', err));
   }
   closeModal('modal-auto-ready');
