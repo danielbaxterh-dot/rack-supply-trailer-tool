@@ -207,7 +207,7 @@
     overflow: hidden;
   }
   .door-card:hover { border-color: var(--teal); box-shadow: 0 4px 12px rgba(39,181,137,0.25), 0 0 0 1px var(--teal); }
-  .door-card.active-trailer { border-color: var(--green); box-shadow: 0 2px 8px rgba(76,175,125,0.2), 0 1px 2px rgba(0,0,0,0.1); }
+  .door-card.active-trailer {}
   .door-card.door-unavailable { opacity: 0.5; border-color: var(--red); }
   /* Grayscale tint per door type, set from the Edit Layout panel. Falls back
      to today's exact gradient via the var() default whenever a shade hasn't
@@ -1264,15 +1264,15 @@
 <div id="tab-home" class="tab-content active">
   <div class="home-layout">
     <div class="home-main">
-      <div class="flex-row" style="margin-bottom:10px;">
+      <div class="flex-row" id="doors-toolbar-row" style="margin-bottom:10px;">
         <button onclick="openAutoReadyModal()" style="font-size:13px;font-weight:700;padding:0 8px;min-width:160px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Auto Trailer Ready</button>
         <button class="btn btn-hook" onclick="sendCFFYardStorageUpdate()" style="font-size:13px;padding:0 8px;min-width:160px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;">CFF Yard Storage Update</button>
         <span class="edit-mode-badge" id="edit-mode-badge" style="display:none;">EDIT MODE</span>
         <div style="flex:1;"></div>
         <div id="zoom-controls" style="display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#ffffff 0%,#f0f0f0 100%);border:1px solid #d5d5d5;border-radius:26px;padding:5px 10px;font-size:14px;font-weight:700;color:#555;font-family:Roboto,sans-serif;box-shadow:0 4px 10px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.9);">
-          <button onclick="adjustZoom(-10)" style="border:none;background:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 2px 4px rgba(0,0,0,0.25);">−</button>
+          <button onclick="adjustZoom(-1)" style="border:none;background:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 2px 4px rgba(0,0,0,0.25);">−</button>
           <span id="zoom-label" style="min-width:49px;text-align:center;">90%</span>
-          <button onclick="adjustZoom(10)" style="border:none;background:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 2px 4px rgba(0,0,0,0.25);">+</button>
+          <button onclick="adjustZoom(1)" style="border:none;background:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:900;line-height:1;box-shadow:0 2px 4px rgba(0,0,0,0.25);">+</button>
           <button onclick="resetZoom()" title="Reset zoom" style="border:none;background:#fff;border-radius:15px;padding:3px 10px;cursor:pointer;font-weight:700;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.25);">Reset</button>
         </div>
         <button id="edit-mode-btn" onclick="toggleEditMode()" style="font-size:13px;font-weight:700;padding:0 8px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Edit Layout</button>
@@ -1664,7 +1664,7 @@
   </div>
 
 
-  <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;">
+  <div style="display:grid;grid-template-columns:auto 320px;justify-content:start;gap:14px;">
     <!-- LEFT: Summary + Main Table. min-width:0 keeps this column from forcing
          the whole grid (and the Carrier Schedule column with it) to overflow —
          without it, a 1fr grid track won't shrink below its content's natural
@@ -1672,7 +1672,7 @@
          the whole page sideways just to reach it. -->
     <div style="min-width:0;">
       <!-- Main Carrier Forecast Table -->
-      <div class="panel" style="padding:0;overflow-x:auto;margin-bottom:12px;background:#fff;border:1px solid #c8ddd4;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.9);border-radius:10px;">
+      <div class="panel" style="display:inline-block;padding:0;overflow-x:auto;margin-bottom:12px;background:#fff;border:1px solid #c8ddd4;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.9);border-radius:10px;max-width:100%;">
         <table id="fc-carrier-table" style="width:auto;font-size:10px;background:#fff;border-radius:8px;overflow:hidden;">
           <thead><tr>
             <th style="min-width:100px;font-size:10px;background:#bfbfbf;color:#000;">Carrier</th>
@@ -1768,15 +1768,15 @@
         <h3 style="font-size:12px;color:#1a4731;border-bottom-color:#c8ddd4;">Carrier Schedule</h3>
         <div style="font-size:10px;color:#4a7a5a;font-style:italic;padding:0 2px 6px;">Defaults to Assumptions' Active Days. Check/uncheck a box to override just today's date — highlighted cells are overridden; ↺ resets a carrier back to the default.</div>
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <table style="width:100%;font-size:11px;min-width:260px;">
+        <table style="width:100%;font-size:11px;min-width:290px;">
           <thead><tr>
             <th style="width:16px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);"></th>
-            <th style="min-width:90px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">M</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">T</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">W</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">Th</th>
-            <th style="text-align:center;width:28px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">F</th>
+            <th style="min-width:100px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;padding:7px 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 4px rgba(0,0,0,0.3);text-shadow:0 1px 2px rgba(0,0,0,0.4);">Carrier</th>
+            <th style="text-align:center;width:34px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">M</th>
+            <th style="text-align:center;width:34px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">T</th>
+            <th style="text-align:center;width:34px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">W</th>
+            <th style="text-align:center;width:34px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">Th</th>
+            <th style="text-align:center;width:34px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">F</th>
           </tr></thead>
           <tbody id="fc-schedule-tbody"></tbody>
         </table>
@@ -3891,6 +3891,25 @@ function applyZoom(pct) {
   const label = document.getElementById('zoom-label');
   if (label) label.textContent = pct + '%';
   localStorage.setItem('dockManagerZoom', String(pct));
+  // Zoom is scoped to the whole page, so the grid and the toolbar should
+  // scale in lockstep on their own — this is just a safety net in case the
+  // browser needs a reflow tick before the grid's measured width is accurate.
+  requestAnimationFrame(syncDoorsToolbarWidth);
+}
+
+// Keeps the Doors tab toolbar's width locked to the door grid's actual
+// rendered width (using scrollWidth, not offsetWidth, so it's measuring the
+// grid's true full content width even if it's currently overflowing/
+// scrolled) — so the zoom controls and Edit Layout button always land flush
+// with the right edge of the last door column, regardless of column count,
+// door width, zoom level, or viewport size. Called after every door render
+// and after every zoom change.
+function syncDoorsToolbarWidth() {
+  const grid = document.getElementById('door-grid');
+  const toolbar = document.getElementById('doors-toolbar-row');
+  if (!grid || !toolbar) return;
+  const w = grid.scrollWidth;
+  if (w > 0) toolbar.style.width = w + 'px';
 }
 
 function adjustZoom(delta) {
@@ -4366,6 +4385,7 @@ function renderDoors() {
   renderCompletedTable();
   renderExpectedTrailers();
   initDragDrop();
+  syncDoorsToolbarWidth();
 }
 setInterval(() => { if (document.getElementById('tab-home').classList.contains('active')) renderDoors(); }, 30000);
 
