@@ -4210,7 +4210,12 @@ function applyDoorTypeColors(s) {
   const dtc = (s && s.doorTypeColors) || {};
   const set = (settingsKey, cssVar) => {
     const val = dtc[settingsKey];
-    if (val === undefined || val >= 100) {
+    // Only a carrier/type that's never been touched (no stored value at all)
+    // falls back to the original default gradient. Any value the slider has
+    // actually been set to — including 100 — applies as a real flat color,
+    // so dragging all the way to 100 gives true white instead of silently
+    // doing nothing.
+    if (val === undefined) {
       document.documentElement.style.removeProperty(cssVar);
     } else {
       document.documentElement.style.setProperty(cssVar, `hsl(0, 0%, ${val}%)`);
@@ -8685,13 +8690,13 @@ function applyEditSlider() {
   document.getElementById('et-sidebar-val').value    = s.sidebar;
   document.getElementById('et-agebadges-val').value  = s.doorAgeBadgeCount;
 
-  // Grayscale door-type shading. 100 = "off" (use today's default gradient —
-  // the CSS variable is removed entirely, not set to a color) so a device
-  // that's never touched these sliders is guaranteed to render identically
-  // to before this feature existed. Below 100, applies a flat gray at that
-  // lightness — kept at a 50% floor (set by the slider's min) so the
-  // existing dark text/badges on every card stay readable no matter what's
-  // picked.
+  // Grayscale door-type shading, 100 (white) down to 50 (medium gray). A
+  // carrier/type that's never had its slider touched at all still falls back
+  // to today's original default gradient (handled in applyDoorTypeColors) —
+  // but the moment a slider is moved, every value including 100 applies as
+  // an explicit flat color, so dragging all the way over gives true white
+  // instead of silently doing nothing. Floored at 50 so the existing dark
+  // text/badges on every card stay readable no matter what's picked.
   if (!s.doorTypeColors) s.doorTypeColors = {};
   s.doorTypeColors.standard = +document.getElementById('et-color-standard').value;
   s.doorTypeColors.yard = +document.getElementById('et-color-yard').value;
