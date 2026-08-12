@@ -4418,19 +4418,23 @@ function openDoorEditModal(doorId) {
   } else {
     arrivalRow.style.display = 'none';
   }
-  const securedByRow = document.getElementById('de-secured-by-row');
-  if (t && t.slottedBy) {
-    securedByRow.textContent = `Secured by ${t.slottedBy}${t.arrival ? ' on ' + fmtDateTime(t.arrival) : ''}`;
-    securedByRow.style.display = '';
-  } else {
-    securedByRow.style.display = 'none';
-  }
+  // Received and Secured are two separate real-world moments — a trailer
+  // slotted into a yard door is only Received; it isn't Secured until it's
+  // later moved onto a Standard door. Each row only shows when that moment
+  // has actually happened, so neither implies the other.
   const receivedRow = document.getElementById('de-received-row');
   if (t && t.receivedAt) {
-    receivedRow.textContent = `Received on ${fmtDateTime(t.receivedAt)}`;
+    receivedRow.textContent = `Received by ${t.slottedBy || 'unknown'} on ${fmtDateTime(t.receivedAt)}`;
     receivedRow.style.display = '';
   } else {
     receivedRow.style.display = 'none';
+  }
+  const securedByRow = document.getElementById('de-secured-by-row');
+  if (t && t.securedAt) {
+    securedByRow.textContent = `Secured by ${t.securedBy || t.slottedBy || 'unknown'} on ${fmtDateTime(t.securedAt)}`;
+    securedByRow.style.display = '';
+  } else {
+    securedByRow.style.display = 'none';
   }
   document.getElementById('de-unexpected').checked = !!(t && t.unexpected);
   document.getElementById('modal-door-edit').classList.add('open');
@@ -4548,7 +4552,7 @@ function slotTrailer() {
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
   const doorForSlot = state.doors.find(d => d.id === doorId);
   const yardSlot = isYardDoorType(doorForSlot);
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival };
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival, securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase() };
   if (consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
@@ -4680,7 +4684,10 @@ function moveTrailer(from, to, sendSlack = true) {
   // moment it actually lands on a Standard door — captured here rather than
   // at slot time, since this move IS that moment for a yard-first trailer.
   // Once securedAt is set it's never touched again by a later move.
-  if (!t.securedAt && !isYardDoorType(toDoor)) t.securedAt = new Date().toISOString();
+  if (!t.securedAt && !isYardDoorType(toDoor)) {
+    t.securedAt = new Date().toISOString();
+    t.securedBy = (window._currentUser || 'unknown').toUpperCase();
+  }
   state.trailers[to] = t;
   delete state.trailers[from];
   closeModal('modal-move');
@@ -4766,7 +4773,9 @@ function confirmJunkSkidsReset() {
     type: t.type,
     arrival: t.arrival,
     received: t.receivedAt || null,
-    secured: t.securedAt || t.arrival,
+    receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
+    secured: t.securedAt || null,
+    securedBy: t.securedAt ? (t.securedBy || null) : null,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -4843,7 +4852,9 @@ function saveBfNote() {
     type: t.type,
     arrival: t.arrival,
     received: t.receivedAt || null,
-    secured: t.securedAt || t.arrival,
+    receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
+    secured: t.securedAt || null,
+    securedBy: t.securedAt ? (t.securedBy || null) : null,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -4862,6 +4873,7 @@ function saveBfNote() {
   const bfYard = isYardDoorType(door);
   t.receivedAt = bfYard ? now : null;
   t.securedAt = bfYard ? null : now;
+  t.securedBy = bfYard ? null : (window._currentUser || 'unknown').toUpperCase();
 
   closeModal('modal-bf-note');
   saveTrailerToFirebase(doorId);
@@ -4927,7 +4939,7 @@ function slotLTLTrailer() {
   const expected = !unexpected;
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
   const yardSlot = isYardDoorType(door);
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival };
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival, securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase() };
   if (!unexpected && consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
@@ -5579,7 +5591,9 @@ function resetOtherCarrierTimer(doorId) {
     type: t.type,
     arrival: t.arrival,
     received: t.receivedAt || null,
-    secured: t.securedAt || t.arrival,
+    receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
+    secured: t.securedAt || null,
+    securedBy: t.securedAt ? (t.securedBy || null) : null,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -5596,6 +5610,7 @@ function resetOtherCarrierTimer(doorId) {
   const otherYard = isYardDoorType(door);
   t.receivedAt = otherYard ? now : null;
   t.securedAt = otherYard ? null : now;
+  t.securedBy = otherYard ? null : (window._currentUser || 'unknown').toUpperCase();
 
   saveTrailerToFirebase(doorId);
   saveState();
@@ -5645,7 +5660,9 @@ function releaseTrailer(doorId, sendSlack = true) {
     type: t.type,
     arrival: t.arrival,
     received: t.receivedAt || null,
-    secured: t.securedAt || t.arrival,
+    receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
+    secured: t.securedAt || null,
+    securedBy: t.securedAt ? (t.securedBy || null) : null,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -5786,7 +5803,9 @@ function completeTrailer(doorId) {
     type: t.type,
     arrival: t.arrival,
     received: t.receivedAt || null,
-    secured: t.securedAt || t.arrival,
+    receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
+    secured: t.securedAt || null,
+    securedBy: t.securedAt ? (t.securedBy || null) : null,
     released: t.releaseTime,
     completed: now,
     notes: t.notes,
@@ -7882,6 +7901,10 @@ function renderHistoryHeader() {
     });
     tr.appendChild(th);
   });
+  // Static trailing column for the orphaned-record remove action — not sortable.
+  const actionTh = document.createElement('th');
+  actionTh.style.whiteSpace = 'nowrap';
+  tr.appendChild(actionTh);
 }
 
 function populateHistoryFilters() {
@@ -7923,16 +7946,33 @@ function buildLiveHistoryRows() {
       type: t.type,
       arrival: t.arrival,
       received: t.receivedAt || null,
-      secured: t.securedAt || t.arrival,
+      receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
+      secured: t.securedAt || null,
+      securedBy: t.securedAt ? (t.securedBy || null) : null,
       released: null,
       releasedBy: '',
       slottedBy: t.slottedBy || '',
       notes: t.notes || '',
       expected: t.expected,
       unexpected: t.unexpected || false,
-      isLive: true
+      isLive: true,
+      // Door was deleted out from under this trailer, so it can never be
+      // released the normal way — flagged so the History tab can offer a
+      // way to clear it out.
+      orphaned: !door
     };
   });
+}
+
+// Clears a trailer record that's stuck "live" because its door was deleted
+// before the trailer was released. Not offered for normal live rows —
+// only ever called on rows already flagged orphaned.
+function removeOrphanedTrailer(doorId) {
+  if (!confirm('This record\'s door no longer exists, so it can\'t be released normally. Remove it?')) return;
+  delete state.trailers[doorId];
+  deleteTrailerFromFirebase(doorId);
+  saveState(); renderHistory(); renderDoors();
+  toast('Orphaned record removed ✓');
 }
 
 function renderHistory() {
@@ -7986,19 +8026,20 @@ function renderHistory() {
       <td style="color:#1a4731;font-weight:700;">${r.carrier}</td>
       <td style="color:#2d6b4a;">${r.trailerNum||'—'}</td>
       <td><span class="badge ${typeColor}">${r.type||'—'}</span></td>
-      <td style="color:#2d6b4a;font-weight:600;">${r.slottedBy||'—'}</td>
+      <td style="color:#2d6b4a;font-weight:600;">${r.secured ? (r.securedBy||'—') : '—'}</td>
       <td style="color:#2d6b4a;">${r.received ? fmtDateTime(r.received) : '—'}</td>
-      <td style="color:#2d6b4a;">${fmtDateTime(r.secured || r.arrival)}</td>
+      <td style="color:#2d6b4a;">${r.secured ? fmtDateTime(r.secured) : '—'}</td>
       <td style="color:#2d6b4a;">${r.isLive ? '—' : fmtDateTime(r.released)}</td>
       <td style="color:#2d6b4a;font-weight:600;">${r.releasedBy||'—'}</td>
       <td style="color:#2d6b4a;font-style:italic;">${r.notes||'—'}</td>
       <td>${expBadge}</td>
+      <td>${r.orphaned ? `<button class="btn btn-red btn-sm" style="padding:2px 8px;font-size:11px;" title="Door no longer exists — remove this stuck record" onclick="removeOrphanedTrailer('${r.doorId}')">Remove</button>` : ''}</td>
     `;
     frag.appendChild(tr);
   });
   if (overflow > 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="12" style="text-align:center;color:#888;font-size:11px;padding:8px;">… ${overflow.toLocaleString()} more records — use filters to narrow results</td>`;
+    tr.innerHTML = `<td colspan="13" style="text-align:center;color:#888;font-size:11px;padding:8px;">… ${overflow.toLocaleString()} more records — use filters to narrow results</td>`;
     frag.appendChild(tr);
   }
   tbody.appendChild(frag);
@@ -8507,7 +8548,8 @@ function slotFromExpected() {
     slottedFromExpected: true,
     slottedBy: (window._currentUser || 'unknown').toUpperCase(),
     receivedAt: yardSlot ? qsArrival : null,
-    securedAt: yardSlot ? null : qsArrival
+    securedAt: yardSlot ? null : qsArrival,
+    securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase()
   };
   closeModal('modal-quick-slot');
   if (consumeExpectedRow(carrierName)) state.trailers[doorId].fulfilledRollover = true;
