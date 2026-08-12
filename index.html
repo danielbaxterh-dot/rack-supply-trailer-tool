@@ -4537,7 +4537,9 @@ function slotTrailer() {
   if (fd && fd.ltl) expected = fd.ltl.some(r => r.carrier === carrier);
   // datetime-local value is already local time — parse as local, store as ISO
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  const doorForSlot = state.doors.find(d => d.id === doorId);
+  const yardSlot = isYardDoorType(doorForSlot);
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival };
   consumeExpectedRow(carrier);
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
@@ -4665,6 +4667,11 @@ function moveTrailer(from, to, sendSlack = true) {
   const t = state.trailers[from];
   const fromDoor = state.doors.find(d => d.id === from);
   const toDoor = state.doors.find(d => d.id === to);
+  // A trailer that was Received into a yard door only becomes Secured the
+  // moment it actually lands on a Standard door — captured here rather than
+  // at slot time, since this move IS that moment for a yard-first trailer.
+  // Once securedAt is set it's never touched again by a later move.
+  if (!t.securedAt && !isYardDoorType(toDoor)) t.securedAt = new Date().toISOString();
   state.trailers[to] = t;
   delete state.trailers[from];
   closeModal('modal-move');
@@ -4673,6 +4680,17 @@ function moveTrailer(from, to, sendSlack = true) {
   saveState(); renderDoors();
   const moveWebhook = sendSlack ? sendMoveSlackNotification(t, fromDoor, toDoor) : null;
   showMoveBanner(moveWebhook);
+}
+
+// Received vs. Secured: a trailer slotted directly into a Standard door is
+// "Secured" immediately. A trailer slotted into a Main Yard or CFF Yard door
+// is only "Received" at that point — it isn't "Secured" until it's later
+// moved to a Standard door. This distinguishes yard staging time from actual
+// dock processing time, without touching the existing `arrival` field (which
+// stays the true original arrival moment either way, for age/dwell tracking
+// that's meant to be continuous regardless of a yard-to-dock move).
+function isYardDoorType(door) {
+  return !!door && (door.type === 'yard' || door.type === 'cff_yard' || (door.id && door.id.startsWith('YD')));
 }
 
 // Returns 'CFF yard' / 'main yard' if the door is a yard door, or null if it's a regular dock door
@@ -4738,6 +4756,8 @@ function confirmJunkSkidsReset() {
     trailerNum: t.trailerNum,
     type: t.type,
     arrival: t.arrival,
+    received: t.receivedAt || null,
+    secured: t.securedAt || t.arrival,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -4813,6 +4833,8 @@ function saveBfNote() {
     trailerNum: trailerNum,
     type: t.type,
     arrival: t.arrival,
+    received: t.receivedAt || null,
+    secured: t.securedAt || t.arrival,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -4828,6 +4850,9 @@ function saveBfNote() {
   t.trailerNum = trailerNum;
   t.notes = note;
   t.arrival = now;
+  const bfYard = isYardDoorType(door);
+  t.receivedAt = bfYard ? now : null;
+  t.securedAt = bfYard ? null : now;
 
   closeModal('modal-bf-note');
   saveTrailerToFirebase(doorId);
@@ -4892,7 +4917,8 @@ function slotLTLTrailer() {
   if (!doorId || !carrier) { toast('Please enter a valid door and carrier', 'error'); return; }
   const expected = !unexpected;
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase() };
+  const yardSlot = isYardDoorType(door);
+  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival };
   if (!unexpected) consumeExpectedRow(carrier);
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
@@ -5543,6 +5569,8 @@ function resetOtherCarrierTimer(doorId) {
     trailerNum: t.trailerNum || '',
     type: t.type,
     arrival: t.arrival,
+    received: t.receivedAt || null,
+    secured: t.securedAt || t.arrival,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -5556,6 +5584,9 @@ function resetOtherCarrierTimer(doorId) {
 
   // Keep the trailer on the door — just clear the age
   t.arrival = now;
+  const otherYard = isYardDoorType(door);
+  t.receivedAt = otherYard ? now : null;
+  t.securedAt = otherYard ? null : now;
 
   saveTrailerToFirebase(doorId);
   saveState();
@@ -5604,6 +5635,8 @@ function releaseTrailer(doorId, sendSlack = true) {
     trailerNum: t.trailerNum,
     type: t.type,
     arrival: t.arrival,
+    received: t.receivedAt || null,
+    secured: t.securedAt || t.arrival,
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -5743,6 +5776,8 @@ function completeTrailer(doorId) {
     trailerNum: t.trailerNum,
     type: t.type,
     arrival: t.arrival,
+    received: t.receivedAt || null,
+    secured: t.securedAt || t.arrival,
     released: t.releaseTime,
     completed: now,
     notes: t.notes,
@@ -7811,7 +7846,8 @@ const HISTORY_COLS = [
   { key: 'trailerNum',label: 'Trailer #' },
   { key: 'type',      label: 'Type' },
   { key: 'slottedBy', label: 'Secured By' },
-  { key: 'arrival',   label: 'Secure Time' },
+  { key: 'received',  label: 'Received' },
+  { key: 'secured',   label: 'Secure Time' },
   { key: 'released',  label: 'Release Time' },
   { key: 'releasedBy',label: 'Rel. By' },
   { key: 'notes',     label: 'Notes' },
@@ -7904,7 +7940,8 @@ function renderHistory() {
       <td style="color:#2d6b4a;">${r.trailerNum||'—'}</td>
       <td><span class="badge ${typeColor}">${r.type||'—'}</span></td>
       <td style="color:#2d6b4a;font-weight:600;">${r.slottedBy||'—'}</td>
-      <td style="color:#2d6b4a;">${fmtDateTime(r.arrival)}</td>
+      <td style="color:#2d6b4a;">${r.received ? fmtDateTime(r.received) : '—'}</td>
+      <td style="color:#2d6b4a;">${fmtDateTime(r.secured || r.arrival)}</td>
       <td style="color:#2d6b4a;">${fmtDateTime(r.released)}</td>
       <td style="color:#2d6b4a;font-weight:600;">${r.releasedBy||'—'}</td>
       <td style="color:#2d6b4a;font-style:italic;">${r.notes||'—'}</td>
@@ -7914,7 +7951,7 @@ function renderHistory() {
   });
   if (overflow > 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="11" style="text-align:center;color:#888;font-size:11px;padding:8px;">… ${overflow.toLocaleString()} more records — use filters to narrow results</td>`;
+    tr.innerHTML = `<td colspan="12" style="text-align:center;color:#888;font-size:11px;padding:8px;">… ${overflow.toLocaleString()} more records — use filters to narrow results</td>`;
     frag.appendChild(tr);
   }
   tbody.appendChild(frag);
@@ -7933,8 +7970,8 @@ async function clearAllHistory() {
 async function exportHistory() {
   toast('Loading full history for export…');
   await ensureFullHistoryLoaded();
-  const rows = [['Date','Door','Carrier','Trailer#','Type','SlottedBy','Secure Time','Released','ReleasedBy','Notes','Expected']];
-  state.history.forEach(r => rows.push([r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.slottedBy||'', r.arrival||'', r.released||'', r.releasedBy||'', r.notes||'', r.expected?'Y':'N']));
+  const rows = [['Date','Door','Carrier','Trailer#','Type','SlottedBy','Received','Secure Time','Released','ReleasedBy','Notes','Expected']];
+  state.history.forEach(r => rows.push([r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.slottedBy||'', r.received||'', r.secured||r.arrival||'', r.released||'', r.releasedBy||'', r.notes||'', r.expected?'Y':'N']));
   downloadCSV('dock_history.csv', rows);
   toast('History exported ✓');
 }
@@ -7981,7 +8018,8 @@ function importHistoryCSV(input) {
       const carrier    = get('carrier', 'carrier name') || '';
       const trailerNum = get('trailer#', 'trailer #', 'trailer number', 'trailer') || '';
       const type       = get('type') || '';
-      const arrival    = get('secure time', 'secure_time', 'arrival', 'arrived', 'arrival time') || '';
+      const receivedVal= get('received') || '';
+      const securedVal = get('secure time', 'secure_time', 'arrival', 'arrived', 'arrival time') || '';
       const released   = get('released time', 'release time', 'release_time', 'released', 'release') || '';
       const slottedBy  = get('secured by', 'secured_by', 'slottedby', 'slotted by') || '';
       const releasedBy = get('releasedby', 'released by', 'released_by', 'rel. by') || '';
@@ -7992,9 +8030,9 @@ function importHistoryCSV(input) {
       if (!carrier && !door) { skipped++; return; }
 
       // completed must always have a value — Firestore orderBy excludes docs without the field
-      const completed = released || arrival || date;
+      const completed = released || securedVal || date;
       const rec = { id, date, door, doorId: null, carrier, trailerNum, type,
-        arrival, released, completed,
+        arrival: securedVal, received: receivedVal || null, secured: securedVal, released, completed,
         slottedBy, releasedBy,
         notes: get('notes') || '', expected, unexpected, duration, imported: true };
 
@@ -8369,6 +8407,7 @@ function markDidNotReceive() {
     trailerNum: '—',
     type: 'DNR',
     arrival: now,
+    received: null,
     secured: null,
     released: now,
     completed: now,
@@ -8399,17 +8438,21 @@ function slotFromExpected() {
   const notes = document.getElementById('qs-notes').value;
   const unexpected = document.getElementById('qs-unexpected').checked;
   if (!doorId) { toast('Please enter a valid door number', 'error'); return; }
+  const qsArrival = new Date().toISOString();
+  const yardSlot = isYardDoorType(door);
   state.trailers[doorId] = {
     carrier: carrierName,
     trailerNum,
     type,
-    arrival: new Date().toISOString(),
+    arrival: qsArrival,
     secured: false,
     notes,
     expected: !unexpected,
     unexpected,
     slottedFromExpected: true,
-    slottedBy: (window._currentUser || 'unknown').toUpperCase()
+    slottedBy: (window._currentUser || 'unknown').toUpperCase(),
+    receivedAt: yardSlot ? qsArrival : null,
+    securedAt: yardSlot ? null : qsArrival
   };
   closeModal('modal-quick-slot');
   consumeExpectedRow(carrierName);
