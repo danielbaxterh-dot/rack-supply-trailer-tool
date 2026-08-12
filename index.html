@@ -2417,6 +2417,10 @@
       <input type="datetime-local" id="de-arrival">
     </div>
     <div id="de-secured-by-row" style="display:none;font-size:14px;color:#4a7a5a;font-weight:600;margin:0 0 14px;padding-left:2px;"></div>
+    <div id="de-received-secured-row" style="display:none;margin:0 0 14px;padding-left:2px;">
+      <div style="font-size:13px;color:#4a7a5a;font-weight:600;"><span style="display:inline-block;min-width:64px;">Received:</span> <span id="de-received-val">—</span></div>
+      <div style="font-size:13px;color:#4a7a5a;font-weight:600;"><span style="display:inline-block;min-width:64px;">Secured:</span> <span id="de-secured-val">—</span></div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
       <input type="checkbox" id="de-unexpected" style="width:16px;height:16px;cursor:pointer;">
       <label for="de-unexpected" style="font-weight:700;color:#c0392b;cursor:pointer;font-size:13px;">Unexpected Load</label>
@@ -2662,6 +2666,7 @@ async function loadStateFromFirebase() {
     renderCompletedTable();
     if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
     if (document.getElementById('tab-audit') && document.getElementById('tab-audit').classList.contains('active')) renderAuditDoors();
+    if (document.getElementById('tab-history').classList.contains('active')) renderHistory();
   });
 
   // Real-time listener for forecast / future deliveries — keeps the Expected
@@ -4423,6 +4428,14 @@ function openDoorEditModal(doorId) {
   } else {
     securedByRow.style.display = 'none';
   }
+  const receivedSecuredRow = document.getElementById('de-received-secured-row');
+  if (t) {
+    document.getElementById('de-received-val').textContent = t.receivedAt ? fmtDateTime(t.receivedAt) : '— (not received via a yard door)';
+    document.getElementById('de-secured-val').textContent = t.securedAt ? fmtDateTime(t.securedAt) : (t.receivedAt ? '— (not yet moved to a standard door)' : fmtDateTime(t.arrival));
+    receivedSecuredRow.style.display = '';
+  } else {
+    receivedSecuredRow.style.display = 'none';
+  }
   document.getElementById('de-unexpected').checked = !!(t && t.unexpected);
   document.getElementById('modal-door-edit').classList.add('open');
 }
@@ -4540,7 +4553,7 @@ function slotTrailer() {
   const doorForSlot = state.doors.find(d => d.id === doorId);
   const yardSlot = isYardDoorType(doorForSlot);
   state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival };
-  consumeExpectedRow(carrier);
+  if (consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); toast(`Trailer slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -4919,7 +4932,7 @@ function slotLTLTrailer() {
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
   const yardSlot = isYardDoorType(door);
   state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival };
-  if (!unexpected) consumeExpectedRow(carrier);
+  if (!unexpected && consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers(); toast(`${carrier} slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -7876,8 +7889,9 @@ function renderHistoryHeader() {
 }
 
 function populateHistoryFilters() {
-  const carriers = [...new Set(state.history.map(r => r.carrier))].sort();
-  const doors    = [...new Set(state.history.map(r => r.door))].sort();
+  const allRecs = state.history.concat(buildLiveHistoryRows());
+  const carriers = [...new Set(allRecs.map(r => r.carrier))].sort();
+  const doors    = [...new Set(allRecs.map(r => r.door))].sort();
 
   const cs = document.getElementById('history-carrier-filter');
   const drs = document.getElementById('history-door-filter');
@@ -7894,6 +7908,37 @@ function populateHistoryFilters() {
   renderHistoryHeader();
 }
 
+// Represents a trailer that's still on a door (not yet released) as a
+// History-shaped row so it shows up immediately once received, instead of
+// only appearing once its cycle is fully complete. Rebuilt fresh every
+// render — these are never stored anywhere, just a live view over
+// state.trailers merged in alongside the real, permanent state.history
+// records.
+function buildLiveHistoryRows() {
+  return Object.entries(state.trailers).filter(([, t]) => t.carrier).map(([doorId, t]) => {
+    const door = state.doors.find(d => d.id === doorId);
+    return {
+      id: 'live-' + doorId,
+      date: dashDateKey(t.arrival) || todayStr(),
+      door: door?.num || doorId,
+      doorId,
+      carrier: t.carrier,
+      trailerNum: t.trailerNum,
+      type: t.type,
+      arrival: t.arrival,
+      received: t.receivedAt || null,
+      secured: t.securedAt || t.arrival,
+      released: null,
+      releasedBy: '',
+      slottedBy: t.slottedBy || '',
+      notes: t.notes || '',
+      expected: t.expected,
+      unexpected: t.unexpected || false,
+      isLive: true
+    };
+  });
+}
+
 function renderHistory() {
   renderHistoryHeader();
   const search  = (document.getElementById('history-search').value||'').toLowerCase();
@@ -7901,14 +7946,17 @@ function renderHistory() {
   const typeF   = document.getElementById('history-type-filter')?.value || '';
   const doorF   = document.getElementById('history-door-filter')?.value || '';
 
-  let recs = state.history.slice();
+  let recs = state.history.concat(buildLiveHistoryRows());
   if (carrierF) recs = recs.filter(r => r.carrier === carrierF);
   if (typeF)    recs = recs.filter(r => r.type === typeF);
   if (doorF)    recs = recs.filter(r => r.door === doorF);
   if (search)   recs = recs.filter(r => (r.carrier+r.door+r.trailerNum+(r.notes||'')).toLowerCase().includes(search));
 
-  // Sort
+  // Sort — live (still-on-door) rows always float to the top regardless of
+  // the active sort column, so what's currently happening is never buried
+  // under a long completed history.
   recs.sort((a, b) => {
+    if (!!a.isLive !== !!b.isLive) return a.isLive ? -1 : 1;
     let av = a[historySortCol], bv = b[historySortCol];
     if (historySortCol === 'duration') { av = +(av||0); bv = +(bv||0); }
     else if (historySortCol === 'expected') { av = av?1:0; bv = bv?1:0; }
@@ -7931,8 +7979,11 @@ function renderHistory() {
   const frag = document.createDocumentFragment();
   displayed.forEach(r => {
     const tr = document.createElement('tr');
+    if (r.isLive) tr.style.background = '#fff8e6';
     const typeColor = r.type === 'DROP' ? 'badge-blue' : r.type === 'LIVE' ? 'badge-orange' : r.type === 'DNR' ? 'badge-red' : 'badge-purple';
-    const expBadge = (r.expected === null || r.expected === undefined) ? '—' : (r.expected ? '<span class="badge badge-green">EXP</span>' : '<span class="badge badge-yellow">UNEXP</span>') + (r.unexpected ? ' <span class="badge badge-red">UNEXPECTED</span>' : '');
+    const expBadge = r.isLive
+      ? '<span class="badge badge-orange" title="Still on the door — not yet released">● ON DOOR</span>'
+      : (r.expected === null || r.expected === undefined) ? '—' : (r.expected ? '<span class="badge badge-green">EXP</span>' : '<span class="badge badge-yellow">UNEXP</span>') + (r.unexpected ? ' <span class="badge badge-red">UNEXPECTED</span>' : '');
     tr.innerHTML = `
       <td style="color:#1a4731;font-weight:600;">${r.date}</td>
       <td style="color:#2d6b4a;">${r.door}</td>
@@ -7942,7 +7993,7 @@ function renderHistory() {
       <td style="color:#2d6b4a;font-weight:600;">${r.slottedBy||'—'}</td>
       <td style="color:#2d6b4a;">${r.received ? fmtDateTime(r.received) : '—'}</td>
       <td style="color:#2d6b4a;">${fmtDateTime(r.secured || r.arrival)}</td>
-      <td style="color:#2d6b4a;">${fmtDateTime(r.released)}</td>
+      <td style="color:#2d6b4a;">${r.isLive ? '—' : fmtDateTime(r.released)}</td>
       <td style="color:#2d6b4a;font-weight:600;">${r.releasedBy||'—'}</td>
       <td style="color:#2d6b4a;font-style:italic;">${r.notes||'—'}</td>
       <td>${expBadge}</td>
@@ -8297,13 +8348,15 @@ async function rolloverStaleExpectedTrailers() {
 
 
 function consumeExpectedRow(carrierName) {
-  if (!carrierName) return;
+  if (!carrierName) return false;
   const fd = state.forecast[todayStr()];
-  if (!fd || !fd.ltl) return;
+  if (!fd || !fd.ltl) return false;
   const idx = fd.ltl.findIndex(r => r.carrier === carrierName);
-  if (idx === -1) return;
+  if (idx === -1) return false;
+  const wasRolledOver = !!fd.ltl[idx].rolledOverFrom;
   fd.ltl.splice(idx, 1);
   saveForecastFieldsToFirebase(todayStr(), { ltl: fd.ltl });
+  return wasRolledOver;
 }
 
 function getTodayArrivedCounts() {
@@ -8314,6 +8367,12 @@ function getTodayArrivedCounts() {
   });
   Object.values(state.trailers).forEach(t => {
     if (!t.carrier) return;
+    // This arrival resolved a leftover expectation rolled forward from a
+    // PRIOR day (see consumeExpectedRow / rolloverStaleExpectedTrailers) —
+    // it satisfied yesterday's forecast, not today's, so it must not eat
+    // into today's Load to Expected quota even though it physically arrived
+    // today.
+    if (t.fulfilledRollover) return;
     if (!t.arrival) { arrivedCounts[t.carrier] = (arrivedCounts[t.carrier] || 0) + 1; return; }
     const d = parseFlexDate(t.arrival);
     if (d) {
@@ -8455,7 +8514,7 @@ function slotFromExpected() {
     securedAt: yardSlot ? null : qsArrival
   };
   closeModal('modal-quick-slot');
-  consumeExpectedRow(carrierName);
+  if (consumeExpectedRow(carrierName)) state.trailers[doorId].fulfilledRollover = true;
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers();
   toast(`${carrierName} slotted at Door ${state.doors.find(d => d.id === doorId)?.num}`);
