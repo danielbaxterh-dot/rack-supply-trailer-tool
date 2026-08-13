@@ -1809,6 +1809,7 @@
     <button class="btn btn-gray btn-sm" onclick="exportHistory()">Export CSV</button>
     <button class="btn btn-blue btn-sm" onclick="document.getElementById('history-import-input').click()">Import CSV</button>
     <input type="file" id="history-import-input" accept=".csv" style="display:none;" onchange="importHistoryCSV(this)">
+    <button class="btn btn-gray btn-sm" onclick="repairOldHistoryRecords()" title="Fills in Secure Time from the original arrival time on any old record that's missing both Received and Secured">Repair Old Records</button>
     <button class="btn btn-red btn-sm" onclick="clearAllHistory()" style="color:#000;">Clear History</button>
   </div>
   <div style="margin:-6px 0 10px;font-size:11px;color:#000;font-style:italic;" id="history-range-label"></div>
@@ -8036,8 +8037,8 @@ function renderHistory() {
       <td><span class="badge ${typeColor}">${r.type||'—'}</span></td>
       <td style="color:#2d6b4a;font-weight:600;">${r.received ? (r.receivedBy||'—') : '—'}</td>
       <td style="color:#2d6b4a;">${r.received ? fmtDateTime(r.received) : '—'}</td>
-      <td style="color:#2d6b4a;font-weight:600;">${r.secured ? (r.securedBy||'—') : '—'}</td>
-      <td style="color:#2d6b4a;">${r.secured ? fmtDateTime(r.secured) : '—'}</td>
+      <td style="color:#2d6b4a;font-weight:600;">${(r.secured || (!r.isLive && !r.received && r.arrival)) ? (r.securedBy||'—') : '—'}</td>
+      <td style="color:#2d6b4a;">${(r.secured || (!r.isLive && !r.received && r.arrival)) ? fmtDateTime(r.secured || r.arrival) : '—'}</td>
       <td style="color:#2d6b4a;">${r.isLive ? '—' : fmtDateTime(r.released)}</td>
       <td style="color:#2d6b4a;font-weight:600;">${r.releasedBy||'—'}</td>
       <td style="color:#2d6b4a;font-style:italic;">${r.notes||'—'}</td>
@@ -8063,6 +8064,30 @@ async function clearAllHistory() {
   ids.forEach(id => deleteHistoryRecordFromFirebase(id));
   saveState(); renderHistory(); renderCompletedTable();
   toast('History cleared');
+}
+// One-time fix for records saved during a brief window where a legacy
+// trailer (no receivedAt/securedAt of its own) got released and the app
+// had nothing to fall back on for Secure Time, so it saved blank. The
+// original arrival time was never lost — it's still on the record — so
+// this just copies it into `secured` for any record still missing both
+// Received and Secured. Records that are correctly blank (genuinely still
+// unsecured yard trailers) don't apply here, since this only ever touches
+// completed/released history records, not live ones.
+async function repairOldHistoryRecords() {
+  if (!confirm('Scan saved history for old records missing both Received and Secured, and fill in Secure Time from their original arrival time?\n\nThis will load the full history first, and only touches records that are currently blank.')) return;
+  toast('Loading full history to check for broken records…');
+  await ensureFullHistoryLoaded();
+  let fixed = 0;
+  state.history.forEach(rec => {
+    if (!rec.received && !rec.secured && rec.arrival) {
+      rec.secured = rec.arrival;
+      rec.securedBy = rec.securedBy || rec.slottedBy || null;
+      saveHistoryRecordToFirebase(rec);
+      fixed++;
+    }
+  });
+  saveState(); renderHistory();
+  toast(fixed ? `Repaired ${fixed} record${fixed === 1 ? '' : 's'} ✓` : 'No broken records found');
 }
 async function exportHistory() {
   toast('Loading full history for export…');
