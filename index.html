@@ -4430,8 +4430,15 @@ function openDoorEditModal(doorId) {
     receivedRow.style.display = 'none';
   }
   const securedByRow = document.getElementById('de-secured-by-row');
-  if (t && t.securedAt) {
-    securedByRow.textContent = `Secured by ${t.securedBy || t.slottedBy || 'unknown'} on ${fmtDateTime(t.securedAt)}`;
+  // A trailer secured directly to a Standard door has securedAt set right
+  // away, so this fires normally. A trailer still waiting in a yard door
+  // has receivedAt but no securedAt yet — correctly stays hidden until it's
+  // moved. A trailer that predates the Received/Secured split entirely has
+  // neither field, so it falls back to showing its original arrival time
+  // rather than disappearing.
+  const effSecuredAt = t && (t.securedAt || (t.receivedAt ? null : t.arrival));
+  if (effSecuredAt) {
+    securedByRow.textContent = `Secured by ${t.securedBy || t.slottedBy || 'unknown'} on ${fmtDateTime(effSecuredAt)}`;
     securedByRow.style.display = '';
   } else {
     securedByRow.style.display = 'none';
@@ -4774,8 +4781,8 @@ function confirmJunkSkidsReset() {
     arrival: t.arrival,
     received: t.receivedAt || null,
     receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-    secured: t.securedAt || null,
-    securedBy: t.securedAt ? (t.securedBy || null) : null,
+    secured: t.securedAt || (t.receivedAt ? null : t.arrival),
+    securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -4853,8 +4860,8 @@ function saveBfNote() {
     arrival: t.arrival,
     received: t.receivedAt || null,
     receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-    secured: t.securedAt || null,
-    securedBy: t.securedAt ? (t.securedBy || null) : null,
+    secured: t.securedAt || (t.receivedAt ? null : t.arrival),
+    securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -5592,8 +5599,8 @@ function resetOtherCarrierTimer(doorId) {
     arrival: t.arrival,
     received: t.receivedAt || null,
     receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-    secured: t.securedAt || null,
-    securedBy: t.securedAt ? (t.securedBy || null) : null,
+    secured: t.securedAt || (t.receivedAt ? null : t.arrival),
+    securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -5661,8 +5668,8 @@ function releaseTrailer(doorId, sendSlack = true) {
     arrival: t.arrival,
     received: t.receivedAt || null,
     receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-    secured: t.securedAt || null,
-    securedBy: t.securedAt ? (t.securedBy || null) : null,
+    secured: t.securedAt || (t.receivedAt ? null : t.arrival),
+    securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -5804,8 +5811,8 @@ function completeTrailer(doorId) {
     arrival: t.arrival,
     received: t.receivedAt || null,
     receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-    secured: t.securedAt || null,
-    securedBy: t.securedAt ? (t.securedBy || null) : null,
+    secured: t.securedAt || (t.receivedAt ? null : t.arrival),
+    securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
     released: t.releaseTime,
     completed: now,
     notes: t.notes,
@@ -7873,8 +7880,9 @@ const HISTORY_COLS = [
   { key: 'carrier',   label: 'Carrier' },
   { key: 'trailerNum',label: 'Trailer #' },
   { key: 'type',      label: 'Type' },
-  { key: 'slottedBy', label: 'Secured By' },
+  { key: 'receivedBy',label: 'Received By' },
   { key: 'received',  label: 'Received' },
+  { key: 'slottedBy', label: 'Secured By' },
   { key: 'secured',   label: 'Secure Time' },
   { key: 'released',  label: 'Release Time' },
   { key: 'releasedBy',label: 'Rel. By' },
@@ -7947,8 +7955,8 @@ function buildLiveHistoryRows() {
       arrival: t.arrival,
       received: t.receivedAt || null,
       receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-      secured: t.securedAt || null,
-      securedBy: t.securedAt ? (t.securedBy || null) : null,
+      secured: t.securedAt || (t.receivedAt ? null : t.arrival),
+      securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
       released: null,
       releasedBy: '',
       slottedBy: t.slottedBy || '',
@@ -8026,8 +8034,9 @@ function renderHistory() {
       <td style="color:#1a4731;font-weight:700;">${r.carrier}</td>
       <td style="color:#2d6b4a;">${r.trailerNum||'—'}</td>
       <td><span class="badge ${typeColor}">${r.type||'—'}</span></td>
-      <td style="color:#2d6b4a;font-weight:600;">${r.secured ? (r.securedBy||'—') : '—'}</td>
+      <td style="color:#2d6b4a;font-weight:600;">${r.received ? (r.receivedBy||'—') : '—'}</td>
       <td style="color:#2d6b4a;">${r.received ? fmtDateTime(r.received) : '—'}</td>
+      <td style="color:#2d6b4a;font-weight:600;">${r.secured ? (r.securedBy||'—') : '—'}</td>
       <td style="color:#2d6b4a;">${r.secured ? fmtDateTime(r.secured) : '—'}</td>
       <td style="color:#2d6b4a;">${r.isLive ? '—' : fmtDateTime(r.released)}</td>
       <td style="color:#2d6b4a;font-weight:600;">${r.releasedBy||'—'}</td>
@@ -8039,7 +8048,7 @@ function renderHistory() {
   });
   if (overflow > 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="13" style="text-align:center;color:#888;font-size:11px;padding:8px;">… ${overflow.toLocaleString()} more records — use filters to narrow results</td>`;
+    tr.innerHTML = `<td colspan="14" style="text-align:center;color:#888;font-size:11px;padding:8px;">… ${overflow.toLocaleString()} more records — use filters to narrow results</td>`;
     frag.appendChild(tr);
   }
   tbody.appendChild(frag);
@@ -8058,8 +8067,8 @@ async function clearAllHistory() {
 async function exportHistory() {
   toast('Loading full history for export…');
   await ensureFullHistoryLoaded();
-  const rows = [['Date','Door','Carrier','Trailer#','Type','SlottedBy','Received','Secure Time','Released','ReleasedBy','Notes','Expected']];
-  state.history.forEach(r => rows.push([r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.slottedBy||'', r.received||'', r.secured||r.arrival||'', r.released||'', r.releasedBy||'', r.notes||'', r.expected?'Y':'N']));
+  const rows = [['Date','Door','Carrier','Trailer#','Type','ReceivedBy','Received','SecuredBy','Secure Time','Released','ReleasedBy','Notes','Expected']];
+  state.history.forEach(r => rows.push([r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.receivedBy||'', r.received||'', r.securedBy||'', r.secured||'', r.released||'', r.releasedBy||'', r.notes||'', r.expected?'Y':'N']));
   downloadCSV('dock_history.csv', rows);
   toast('History exported ✓');
 }
@@ -8109,7 +8118,8 @@ function importHistoryCSV(input) {
       const receivedVal= get('received') || '';
       const securedVal = get('secure time', 'secure_time', 'arrival', 'arrived', 'arrival time') || '';
       const released   = get('released time', 'release time', 'release_time', 'released', 'release') || '';
-      const slottedBy  = get('secured by', 'secured_by', 'slottedby', 'slotted by') || '';
+      const receivedBy = get('receivedby', 'received by', 'received_by') || '';
+      const slottedBy  = get('securedby', 'secured by', 'secured_by', 'slottedby', 'slotted by') || '';
       const releasedBy = get('releasedby', 'released by', 'released_by', 'rel. by') || '';
       const duration   = 0;
       const expected   = null;
@@ -8121,7 +8131,7 @@ function importHistoryCSV(input) {
       const completed = released || securedVal || date;
       const rec = { id, date, door, doorId: null, carrier, trailerNum, type,
         arrival: securedVal, received: receivedVal || null, secured: securedVal, released, completed,
-        slottedBy, releasedBy,
+        receivedBy, slottedBy, securedBy: slottedBy, releasedBy,
         notes: get('notes') || '', expected, unexpected, duration, imported: true };
 
       state.history.push(rec);
