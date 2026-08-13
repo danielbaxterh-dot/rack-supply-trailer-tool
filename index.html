@@ -4780,10 +4780,10 @@ function confirmJunkSkidsReset() {
     trailerNum: t.trailerNum,
     type: t.type,
     arrival: t.arrival,
-    received: t.receivedAt || null,
-    receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-    secured: t.securedAt || (t.receivedAt ? null : t.arrival),
-    securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
+    received: null,
+    receivedBy: null,
+    secured: t.securedAt || t.arrival,
+    securedBy: t.securedBy || t.slottedBy || (window._currentUser || 'unknown').toUpperCase(),
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -4795,9 +4795,16 @@ function confirmJunkSkidsReset() {
   state.completedToday.push(rec);
   saveHistoryRecordToFirebase(rec);
 
-  // Keep the trailer on the door — reset the timer for the next cycle
+  // Keep the trailer on the door — reset the timer for the next cycle.
+  // Like Bin Freight, this is internal storage tracking rather than real
+  // staged freight, so every reset counts as secured immediately, with
+  // fresh attribution to whoever just did it — not whoever slotted it
+  // originally, possibly a long time ago.
   t.trailerNum = newTrailerNum;
   t.arrival = now;
+  t.receivedAt = null;
+  t.securedAt = now;
+  t.securedBy = (window._currentUser || 'unknown').toUpperCase();
 
   closeModal('modal-junk-skids');
   saveTrailerToFirebase(doorId);
@@ -4859,10 +4866,10 @@ function saveBfNote() {
     trailerNum: trailerNum,
     type: t.type,
     arrival: t.arrival,
-    received: t.receivedAt || null,
-    receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
-    secured: t.securedAt || (t.receivedAt ? null : t.arrival),
-    securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
+    received: null,
+    receivedBy: null,
+    secured: t.securedAt || t.arrival,
+    securedBy: t.securedBy || t.slottedBy || (window._currentUser || 'unknown').toUpperCase(),
     released: now,
     releasedBy: (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
@@ -4875,13 +4882,15 @@ function saveBfNote() {
   saveHistoryRecordToFirebase(rec);
 
   // Keep trailer on door — reset arrival to now for the next cycle
+  // Bin Freight is internal storage tracking, not real staged freight, so it
+  // always counts as secured the moment its note is saved — regardless of
+  // whether the door happens to be categorized as a yard door.
   t.trailerNum = trailerNum;
   t.notes = note;
   t.arrival = now;
-  const bfYard = isYardDoorType(door);
-  t.receivedAt = bfYard ? now : null;
-  t.securedAt = bfYard ? null : now;
-  t.securedBy = bfYard ? null : (window._currentUser || 'unknown').toUpperCase();
+  t.receivedAt = null;
+  t.securedAt = now;
+  t.securedBy = (window._currentUser || 'unknown').toUpperCase();
 
   closeModal('modal-bf-note');
   saveTrailerToFirebase(doorId);
