@@ -4606,6 +4606,7 @@ function slotTrailer() {
   if (consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
+  clearDoorPing(doorId); // a new trailer here means any old ready/empty flag no longer applies
   saveState(); renderDoors(); toast(`Trailer slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
 }
 // Sort doors: standard doors first by ascending number, then YD doors by ascending number
@@ -4744,6 +4745,7 @@ function moveTrailer(from, to, sendSlack = true) {
   saveTrailerToFirebase(to);
   deleteTrailerFromFirebase(from);
   clearDoorPing(from); // source door is empty now — clear any ready/empty flag from Door Status
+  clearDoorPing(to);   // destination may have had a stale flag from before — a newly-arrived trailer means that flag is no longer accurate either
   saveState(); renderDoors();
   const moveWebhook = sendSlack ? sendMoveSlackNotification(t, fromDoor, toDoor) : null;
   showMoveBanner(moveWebhook);
@@ -5003,6 +5005,7 @@ function slotLTLTrailer() {
   if (!unexpected && consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
+  clearDoorPing(doorId); // a new trailer here means any old ready/empty flag no longer applies
   saveState(); renderDoors(); renderExpectedTrailers(); toast(`${carrier} slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
 }
 
