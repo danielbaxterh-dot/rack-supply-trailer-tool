@@ -180,6 +180,13 @@
   /* DOOR GRID */
   .home-main {
     overflow-x: auto;
+    /* Gives the door-ping-ready/empty highlight ring (which extends ~4-8px
+       past each card's own edge via box-shadow) room to render fully on the
+       leftmost and rightmost columns instead of being clipped by this
+       container's own scroll edge. Horizontal only — top/bottom padding
+       would shift .home-main out of vertical alignment with .home-sidebar,
+       which sits beside it in the same grid row. */
+    padding: 0 8px;
   }
   #door-grid {
     --card-scale: 1;
@@ -3975,6 +3982,22 @@ function syncDoorsToolbarWidth() {
   if (!grid || !toolbar) return;
   const w = grid.scrollWidth;
   if (w > 0) toolbar.style.width = w + 'px';
+}
+
+// Belt-and-suspenders on top of the explicit syncDoorsToolbarWidth() calls
+// above: a ResizeObserver watches the grid's own box directly, so the
+// toolbar re-syncs on ANY change to the grid's rendered width — a browser
+// window resize, dragging the Sidebar Width slider in Edit Layout, or a
+// late reflow the explicit call sites don't know to ask for — not just the
+// specific moments this file already calls syncDoorsToolbarWidth() from.
+// This is what makes "always stay flush with the right edge" actually hold
+// under any resize, not just the cases anticipated when it was written.
+let _doorGridResizeObserver = null;
+function watchDoorGridWidth() {
+  const grid = document.getElementById('door-grid');
+  if (!grid || _doorGridResizeObserver || typeof ResizeObserver === 'undefined') return;
+  _doorGridResizeObserver = new ResizeObserver(() => syncDoorsToolbarWidth());
+  _doorGridResizeObserver.observe(grid);
 }
 
 function adjustZoom(delta) {
@@ -9633,6 +9656,7 @@ function autoLogin(tid) {
 
 // Start the app
 initZoom();
+watchDoorGridWidth();
 // Safety: always start with Edit Layout mode fully off, regardless of any
 // stuck state from a previous session.
 editModeActive = false;
