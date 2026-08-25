@@ -1823,12 +1823,33 @@
     <button class="btn btn-red btn-sm" onclick="clearAllHistory()" style="color:#000;">Clear History</button>
   </div>
   <div style="margin:-6px 0 10px;font-size:11px;color:#000;font-style:italic;" id="history-range-label"></div>
-  <div style="background:#fff;border:1px solid #c8ddd4;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 12px rgba(0,0,0,0.15),0 2px 4px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);">
-    <table style="background:#fff;min-width:700px;">
-      <thead><tr id="history-thead-row"></tr></thead>
-      <tbody id="history-tbody"></tbody>
-    </table>
-    <div class="empty-state" id="history-empty" style="color:#4a7a5a;">No history records found.</div>
+
+  <div class="sidebar-panel">
+    <div class="sidebar-panel-header">
+      <span class="sidebar-panel-title">Currently On Door <span id="history-live-count"></span></span>
+      <span style="font-size:10px;color:#000;font-style:italic;">Click a column to sort — Shift+Click to add a secondary sort</span>
+    </div>
+    <div class="sidebar-panel-body" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table style="background:#fff;min-width:700px;">
+        <thead><tr id="history-live-thead-row"></tr></thead>
+        <tbody id="history-live-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="history-live-empty" style="color:#4a7a5a;">No trailers currently on doors.</div>
+    </div>
+  </div>
+
+  <div class="sidebar-panel">
+    <div class="sidebar-panel-header">
+      <span class="sidebar-panel-title">Completed History <span id="history-completed-count"></span></span>
+      <span style="font-size:10px;color:#000;font-style:italic;">Click a column to sort — Shift+Click to add a secondary sort</span>
+    </div>
+    <div class="sidebar-panel-body" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table style="background:#fff;min-width:700px;">
+        <thead><tr id="history-thead-row"></tr></thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="history-empty" style="color:#4a7a5a;">No history records found.</div>
+    </div>
   </div>
 </div>
 
@@ -4603,7 +4624,7 @@ function slotTrailer() {
   const doorForSlot = state.doors.find(d => d.id === doorId);
   const yardSlot = isYardDoorType(doorForSlot);
   state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival, securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase() };
-  if (consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
+  if (consumeExpectedRow(carrier, null, trailerNum)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); toast(`Trailer slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -4999,7 +5020,7 @@ function slotLTLTrailer() {
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
   const yardSlot = isYardDoorType(door);
   state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, unexpected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival, securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase() };
-  if (!unexpected && consumeExpectedRow(carrier)) state.trailers[doorId].fulfilledRollover = true;
+  if (!unexpected && consumeExpectedRow(carrier, null, trailerNum)) state.trailers[doorId].fulfilledRollover = true;
   closeModal('modal-slot-ltl');
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers(); toast(`${carrier} slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -6319,6 +6340,7 @@ function getForecastData(dateKey) {
   const fd = state.forecast[dateKey];
   if (!fd.carriers || fd.carriers.length === 0) fd.carriers = JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS));
   reconcileForecastCarriers(fd);
+  ensureLtlIds(fd);
   return fd;
 }
 
@@ -7837,7 +7859,7 @@ function syncForecastToLTL(fd, dateKey) {
     const existingCount = fd.ltl.filter(r => r.carrier === c.name && !r.rolledOverFrom).length;
     const alreadyAccountedFor = existingCount + (arrivedCounts[c.name] || 0);
     for (let i = alreadyAccountedFor; i < adjTrailers; i++) {
-      fd.ltl.push({ carrier: c.name, time: '', trailerNum: '', notes: '', addedBy: `Load to Expected (${(window._currentUser || 'unknown').toUpperCase()})` });
+      fd.ltl.push({ id: generateLtlId(), carrier: c.name, time: '', trailerNum: '', notes: '', addedBy: `Load to Expected (${(window._currentUser || 'unknown').toUpperCase()})` });
     }
   });
 }
@@ -7925,8 +7947,14 @@ function clearForecast() {
 function addForecastTrailer() { addForecastCarrierRow(); }
 
 // ===================== HISTORY =====================
-let historySortCol = 'date';
-let historySortAsc = false;
+// Each table gets its own independent multi-column sort. A plain click on a
+// column makes it the sole (primary) sort key — same as before. Shift+click
+// adds that column as an additional sort key instead of replacing the list,
+// so you can e.g. sort by Carrier first, then Shift+click Door to refine
+// the order within each carrier group. Clicking a key that's already active
+// (alone) just flips its direction, same as the old behavior.
+let historySortKeys = [{ key: 'date', asc: false }];     // Completed History table
+let liveSortKeys    = [{ key: 'date', asc: false }];     // Currently On Door table
 
 const HISTORY_COLS = [
   { key: 'date',      label: 'Date' },
@@ -7944,29 +7972,68 @@ const HISTORY_COLS = [
   { key: 'expected',  label: 'Status' },
 ];
 
-function renderHistoryHeader() {
-  const tr = document.getElementById('history-thead-row');
+// Adds/updates `key` within a multi-sort array in place. `additive` (shift+click)
+// appends/toggles the key without disturbing the others; a plain click collapses
+// the list down to just that one key (toggling direction if it was already the
+// sole key).
+function toggleHistorySortKey(sortKeys, key, additive) {
+  const idx = sortKeys.findIndex(k => k.key === key);
+  if (additive) {
+    if (idx === -1) sortKeys.push({ key, asc: true });
+    else sortKeys[idx].asc = !sortKeys[idx].asc;
+  } else {
+    if (idx === 0 && sortKeys.length === 1) sortKeys[0].asc = !sortKeys[0].asc;
+    else { sortKeys.length = 0; sortKeys.push({ key, asc: true }); }
+  }
+}
+
+function compareHistoryRecs(a, b, sortKeys) {
+  for (const { key, asc } of sortKeys) {
+    let av = a[key], bv = b[key];
+    if (key === 'duration') { av = +(av || 0); bv = +(bv || 0); }
+    else if (key === 'expected') { av = av ? 1 : 0; bv = bv ? 1 : 0; }
+    else { av = String(av || '').toLowerCase(); bv = String(bv || '').toLowerCase(); }
+    if (av < bv) return asc ? -1 : 1;
+    if (av > bv) return asc ? 1 : -1;
+  }
+  return 0;
+}
+
+function renderSortableHistoryHeader(theadId, sortKeys, onSort) {
+  const tr = document.getElementById(theadId);
   if (!tr) return;
   tr.innerHTML = '';
   HISTORY_COLS.forEach(col => {
     const th = document.createElement('th');
-    const isActive = historySortCol === col.key;
-    const arrow = isActive ? (historySortAsc ? ' ▲' : ' ▼') : ' ⇅';
-    th.innerHTML = col.label + `<span style="opacity:${isActive?1:0.4};font-size:9px;">${arrow}</span>`;
+    const idx = sortKeys.findIndex(k => k.key === col.key);
+    const isActive = idx !== -1;
+    const arrow = isActive ? (sortKeys[idx].asc ? ' ▲' : ' ▼') : ' ⇅';
+    // When more than one sort key is active, a small superscript shows this
+    // column's place in the sort order (1st, 2nd, 3rd...).
+    const orderBadge = (isActive && sortKeys.length > 1) ? `<sup style="font-size:8px;">${idx + 1}</sup>` : '';
+    th.innerHTML = col.label + `<span style="opacity:${isActive?1:0.4};font-size:9px;">${arrow}</span>${orderBadge}`;
     th.style.cursor = 'pointer';
     th.style.userSelect = 'none';
     th.style.whiteSpace = 'nowrap';
-    th.addEventListener('click', () => {
-      if (historySortCol === col.key) historySortAsc = !historySortAsc;
-      else { historySortCol = col.key; historySortAsc = true; }
-      renderHistory();
-    });
+    th.title = 'Click to sort by this column. Shift+Click to add it as a secondary sort.';
+    th.addEventListener('click', (e) => onSort(col.key, e.shiftKey));
     tr.appendChild(th);
   });
   // Static trailing column for the orphaned-record remove action — not sortable.
   const actionTh = document.createElement('th');
   actionTh.style.whiteSpace = 'nowrap';
   tr.appendChild(actionTh);
+}
+
+function renderHistoryHeader() {
+  renderSortableHistoryHeader('history-live-thead-row', liveSortKeys, (key, shift) => {
+    toggleHistorySortKey(liveSortKeys, key, shift);
+    renderHistory();
+  });
+  renderSortableHistoryHeader('history-thead-row', historySortKeys, (key, shift) => {
+    toggleHistorySortKey(historySortKeys, key, shift);
+    renderHistory();
+  });
 }
 
 function populateHistoryFilters() {
@@ -8037,38 +8104,16 @@ function removeOrphanedTrailer(doorId) {
   toast('Orphaned record removed ✓');
 }
 
-function renderHistory() {
-  renderHistoryHeader();
-  const search  = (document.getElementById('history-search').value||'').toLowerCase();
-  const carrierF= document.getElementById('history-carrier-filter').value;
-  const typeF   = document.getElementById('history-type-filter')?.value || '';
-  const doorF   = document.getElementById('history-door-filter')?.value || '';
-
-  let recs = state.history.concat(buildLiveHistoryRows());
-  if (carrierF) recs = recs.filter(r => r.carrier === carrierF);
-  if (typeF)    recs = recs.filter(r => r.type === typeF);
-  if (doorF)    recs = recs.filter(r => r.door === doorF);
-  if (search)   recs = recs.filter(r => (r.carrier+r.door+r.trailerNum+(r.notes||'')).toLowerCase().includes(search));
-
-  // Sort — live (still-on-door) rows always float to the top regardless of
-  // the active sort column, so what's currently happening is never buried
-  // under a long completed history.
-  recs.sort((a, b) => {
-    if (!!a.isLive !== !!b.isLive) return a.isLive ? -1 : 1;
-    let av = a[historySortCol], bv = b[historySortCol];
-    if (historySortCol === 'duration') { av = +(av||0); bv = +(bv||0); }
-    else if (historySortCol === 'expected') { av = av?1:0; bv = bv?1:0; }
-    else { av = String(av||'').toLowerCase(); bv = String(bv||'').toLowerCase(); }
-    if (av < bv) return historySortAsc ? -1 : 1;
-    if (av > bv) return historySortAsc ? 1 : -1;
-    return 0;
-  });
-
-  const tbody = document.getElementById('history-tbody');
-  const empty = document.getElementById('history-empty');
+// Builds and inserts rows for one History table (either the live "Currently
+// On Door" table or the Completed History table). Shared so both tables stay
+// visually and structurally identical aside from which rows they hold.
+function renderHistoryRows(tbodyId, emptyId, recs, emptyMsg) {
+  const tbody = document.getElementById(tbodyId);
+  const empty = document.getElementById(emptyId);
+  if (!tbody) return;
   tbody.innerHTML = '';
-  if (!recs.length) { empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
+  if (!recs.length) { if (empty) { empty.textContent = emptyMsg; empty.style.display = 'block'; } return; }
+  if (empty) empty.style.display = 'none';
 
   const PAGE = 500;
   const displayed = recs.slice(0, PAGE);
@@ -8106,6 +8151,39 @@ function renderHistory() {
     frag.appendChild(tr);
   }
   tbody.appendChild(frag);
+}
+
+function renderHistory() {
+  renderHistoryHeader();
+  const search  = (document.getElementById('history-search').value||'').toLowerCase();
+  const carrierF= document.getElementById('history-carrier-filter').value;
+  const typeF   = document.getElementById('history-type-filter')?.value || '';
+  const doorF   = document.getElementById('history-door-filter')?.value || '';
+
+  const applyFilters = (list) => {
+    let recs = list;
+    if (carrierF) recs = recs.filter(r => r.carrier === carrierF);
+    if (typeF)    recs = recs.filter(r => r.type === typeF);
+    if (doorF)    recs = recs.filter(r => r.door === doorF);
+    if (search)   recs = recs.filter(r => (r.carrier+r.door+r.trailerNum+(r.notes||'')).toLowerCase().includes(search));
+    return recs;
+  };
+
+  // Trailers still on a door get their own table now instead of being mixed
+  // in with (and floated above) completed history rows.
+  const liveRecs = applyFilters(buildLiveHistoryRows());
+  const histRecs = applyFilters(state.history);
+
+  liveRecs.sort((a, b) => compareHistoryRecs(a, b, liveSortKeys));
+  histRecs.sort((a, b) => compareHistoryRecs(a, b, historySortKeys));
+
+  const liveCountEl = document.getElementById('history-live-count');
+  if (liveCountEl) liveCountEl.textContent = liveRecs.length ? `(${liveRecs.length})` : '';
+  const histCountEl = document.getElementById('history-completed-count');
+  if (histCountEl) histCountEl.textContent = histRecs.length ? `(${histRecs.length.toLocaleString()})` : '';
+
+  renderHistoryRows('history-live-tbody', 'history-live-empty', liveRecs, 'No trailers currently on doors.');
+  renderHistoryRows('history-tbody', 'history-empty', histRecs, 'No history records found.');
 }
 async function clearAllHistory() {
   if (!confirm('Delete ALL history records? This will load the full history first to make sure everything is removed. This cannot be undone.')) return;
@@ -8472,11 +8550,46 @@ async function rolloverStaleExpectedTrailers() {
 }
 
 
-function consumeExpectedRow(carrierName) {
+// Every Expected Trailers row (fd.ltl entry) gets one of these the first time
+// it's touched by getForecastData()/ensureLtlIds() — a stable identity that
+// survives edits to carrier/trailerNum/notes, array reordering, and Firestore
+// round-trips. This is what lets consumeExpectedRow() below remove the exact
+// row that was slotted instead of guessing by carrier name alone.
+function generateLtlId() {
+  return 'ltl_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+// Backfills a stable `id` onto any fd.ltl row that doesn't already have one
+// (e.g. rows saved before this field existed). Safe to call repeatedly —
+// rows that already have an id are left untouched. Called from
+// getForecastData() so every day's list is normalized as soon as it's
+// touched, and the ids get persisted the next time that row is saved for
+// any other reason (slotting, editing, rollover, etc.).
+function ensureLtlIds(fd) {
+  if (!fd || !fd.ltl) return;
+  fd.ltl.forEach(r => { if (!r.id) r.id = generateLtlId(); });
+}
+
+// Removes ONE still-pending Expected Trailers row after it's been slotted or
+// marked Did Not Receive. `rowId` identifies the EXACT row that was acted on
+// (captured at the moment it was double-clicked in the Expected Trailers
+// table) — this matters because a carrier can have more than one pending row
+// at once (e.g. two different trailer numbers for the same carrier), and
+// matching by carrier name alone risks removing the wrong one.
+//
+// The regular Slot Trailer and Slot LTL Trailer modals don't originate from
+// a specific row click, so they can't supply a rowId — for those, `trailerNum`
+// lets this at least prefer a row whose trailer number matches what was
+// actually typed in, before falling back to "first pending row for this
+// carrier" as a last resort.
+function consumeExpectedRow(carrierName, rowId, trailerNum) {
   if (!carrierName) return false;
   const fd = state.forecast[todayStr()];
   if (!fd || !fd.ltl) return false;
-  const idx = fd.ltl.findIndex(r => r.carrier === carrierName);
+  let idx = -1;
+  if (rowId) idx = fd.ltl.findIndex(r => r.id === rowId);
+  if (idx === -1 && trailerNum) idx = fd.ltl.findIndex(r => r.carrier === carrierName && r.trailerNum && r.trailerNum === trailerNum);
+  if (idx === -1) idx = fd.ltl.findIndex(r => r.carrier === carrierName);
   if (idx === -1) return false;
   const wasRolledOver = !!fd.ltl[idx].rolledOverFrom;
   fd.ltl.splice(idx, 1);
@@ -8514,6 +8627,10 @@ function renderExpectedTrailers() {
   renderFutureDeliveries();
   const today = todayStr();
   const fd = state.forecast[today] || { ltl: [], carriers: [] };
+  // Backfill stable ids onto any row that doesn't have one yet (e.g. rows
+  // saved before this field existed) — needed so double-clicking a row below
+  // can identify the EXACT row being slotted, not just "a" row for that carrier.
+  ensureLtlIds(fd);
 
   // Name normalization map for display
   const nameNorm = {'T-Force Freight':'TForce','ADP-Craig':'ADP Craig'};
@@ -8548,14 +8665,19 @@ function renderExpectedTrailers() {
       <td style="color:#000">${r.trailerNum || '—'}</td>
       <td style="color:#000;font-style:italic;">${r.notes || '—'}</td>
     `;
-    tr.addEventListener('dblclick', () => openQuickSlotModal(r.carrier, r.trailerNum, r.notes));
+    tr.addEventListener('dblclick', () => openQuickSlotModal(r.carrier, r.trailerNum, r.notes, r.id));
     tbody.appendChild(tr);
   });
 }
 
-function openQuickSlotModal(carrierName, trailerNum, notes) {
+function openQuickSlotModal(carrierName, trailerNum, notes, rowId) {
   document.getElementById('qs-carrier-label').textContent = carrierName;
   document.getElementById('modal-quick-slot').dataset.carrier = carrierName;
+  // Captured now, at the moment this specific row was double-clicked — kept
+  // separate from the editable trailer-number input below so that if the
+  // person corrects/changes the trailer # before confirming, the app still
+  // knows exactly which pending row to remove from Expected Trailers.
+  document.getElementById('modal-quick-slot').dataset.rowId = rowId || '';
   // Populate door select — empty doors only
   const dl = document.getElementById('qs-door');
   dl.innerHTML = '';
@@ -8581,6 +8703,7 @@ function openQuickSlotModal(carrierName, trailerNum, notes) {
 
 function markDidNotReceive() {
   const carrierName = document.getElementById('modal-quick-slot').dataset.carrier;
+  const rowId = document.getElementById('modal-quick-slot').dataset.rowId;
   const now = new Date().toISOString();
   const rec = {
     id: Date.now(),
@@ -8604,7 +8727,7 @@ function markDidNotReceive() {
   state.history.push(rec);
   state.completedToday.push(rec);
   saveHistoryRecordToFirebase(rec);
-  consumeExpectedRow(carrierName);
+  consumeExpectedRow(carrierName, rowId);
   closeModal('modal-quick-slot');
   saveState();
   renderDoors();
@@ -8614,6 +8737,7 @@ function markDidNotReceive() {
 
 function slotFromExpected() {
   const carrierName = document.getElementById('modal-quick-slot').dataset.carrier;
+  const rowId = document.getElementById('modal-quick-slot').dataset.rowId;
   const doorNum = document.getElementById('qs-door').value.trim();
   const door = state.doors.find(d => d.num === doorNum && d.active);
   const doorId = door ? door.id : null;
@@ -8640,7 +8764,7 @@ function slotFromExpected() {
     securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase()
   };
   closeModal('modal-quick-slot');
-  if (consumeExpectedRow(carrierName)) state.trailers[doorId].fulfilledRollover = true;
+  if (consumeExpectedRow(carrierName, rowId)) state.trailers[doorId].fulfilledRollover = true;
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers();
   toast(`${carrierName} slotted at Door ${state.doors.find(d => d.id === doorId)?.num}`);
@@ -8847,7 +8971,7 @@ function addOutlookRowFromForm() {
   const notes = document.getElementById('outlook-form-notes').value;
   if (!carrier) { toast('Please select a carrier'); return; }
   const today = todayStr();
-  const row = { carrier, date, time, trailerNum, notes, addedBy: (window._currentUser || 'unknown').toUpperCase() };
+  const row = { id: generateLtlId(), carrier, date, time, trailerNum, notes, addedBy: (window._currentUser || 'unknown').toUpperCase() };
   if (date > today) {
     window._outlookFutureRows.push(row);
   } else {
@@ -8861,7 +8985,7 @@ function addOutlookRowFromForm() {
 }
 
 function addOutlookRow() {
-  window._outlookRows.push({ carrier: '', time: '', trailerNum: '', type: 'DROP', notes: '', date: todayStr(), addedBy: (window._currentUser || 'unknown').toUpperCase() });
+  window._outlookRows.push({ id: generateLtlId(), carrier: '', time: '', trailerNum: '', type: 'DROP', notes: '', date: todayStr(), addedBy: (window._currentUser || 'unknown').toUpperCase() });
   renderOutlookTables();
 }
 function removeOutlookRow(i) {
