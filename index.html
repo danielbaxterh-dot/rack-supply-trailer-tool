@@ -1806,14 +1806,13 @@
 <!-- HISTORY TAB -->
 <div id="tab-history" class="tab-content">
   <div class="history-filter">
-    <input type="text" autocomplete="off" id="history-search" placeholder="Search carrier, door..." oninput="renderHistory()" style="width:200px;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
+    <input type="text" autocomplete="off" id="history-carrier-search" placeholder="Search carrier..." oninput="renderHistory()" style="width:150px;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
+    <input type="text" autocomplete="off" id="history-trailer-search" placeholder="Search trailer #..." oninput="renderHistory()" style="width:140px;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
+    <input type="text" autocomplete="off" id="history-search" placeholder="Search notes, door..." oninput="renderHistory()" style="width:170px;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
     <span style="font-size:11px;font-weight:700;color:#2d6b4a;">From</span>
     <input type="date" autocomplete="off" id="history-range-start" onchange="applyHistoryRange()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
     <span style="font-size:11px;font-weight:700;color:#2d6b4a;">To</span>
     <input type="date" autocomplete="off" id="history-range-end" onchange="applyHistoryRange()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
-    <select id="history-carrier-filter" onchange="renderHistory()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
-      <option value="">All Carriers</option>
-    </select>
     <select id="history-type-filter" onchange="renderHistory()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
       <option value="">All Types</option>
       <option value="DROP">DROP</option>
@@ -8014,11 +8013,27 @@ function toggleHistorySortKey(sortKeys, key, additive) {
   }
 }
 
+// Columns that hold a point in time — compared as real timestamps (via
+// Date.parse) rather than as strings. This matters because History mixes
+// ISO timestamps written by the app itself with looser formats that can
+// come in through CSV import (e.g. "8/26/2026 2:30 PM"); a plain string
+// compare sorts those alphabetically instead of chronologically, which is
+// why "ascending"/"descending" on these columns could look wrong before.
+// Missing/unparseable values are treated as the oldest possible time either
+// way, so they consistently land at the "empty" end of the sort.
+const HISTORY_DATETIME_KEYS = new Set(['date', 'received', 'secured', 'released']);
+
 function compareHistoryRecs(a, b, sortKeys) {
   for (const { key, asc } of sortKeys) {
     let av = a[key], bv = b[key];
     if (key === 'duration') { av = +(av || 0); bv = +(bv || 0); }
     else if (key === 'expected') { av = av ? 1 : 0; bv = bv ? 1 : 0; }
+    else if (HISTORY_DATETIME_KEYS.has(key)) {
+      const at = av ? Date.parse(av) : NaN;
+      const bt = bv ? Date.parse(bv) : NaN;
+      av = isNaN(at) ? 0 : at;
+      bv = isNaN(bt) ? 0 : bt;
+    }
     else { av = String(av || '').toLowerCase(); bv = String(bv || '').toLowerCase(); }
     if (av < bv) return asc ? -1 : 1;
     if (av > bv) return asc ? 1 : -1;
@@ -8065,15 +8080,10 @@ function renderHistoryHeader() {
 
 function populateHistoryFilters() {
   const allRecs = state.history.concat(buildLiveHistoryRows());
-  const carriers = [...new Set(allRecs.map(r => r.carrier))].sort();
   const doors    = [...new Set(allRecs.map(r => r.door))].sort();
 
-  const cs = document.getElementById('history-carrier-filter');
   const drs = document.getElementById('history-door-filter');
-  const cv = cs.value, drv = drs ? drs.value : '';
-
-  cs.innerHTML = '<option value="">All Carriers</option>';
-  carriers.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; if (c===cv) o.selected=true; cs.appendChild(o); });
+  const drv = drs ? drs.value : '';
 
   if (drs) {
     drs.innerHTML = '<option value="">All Doors</option>';
@@ -8183,17 +8193,19 @@ function renderHistoryRows(tbodyId, emptyId, recs, emptyMsg) {
 
 function renderHistory() {
   renderHistoryHeader();
-  const search  = (document.getElementById('history-search').value||'').toLowerCase();
-  const carrierF= document.getElementById('history-carrier-filter').value;
-  const typeF   = document.getElementById('history-type-filter')?.value || '';
-  const doorF   = document.getElementById('history-door-filter')?.value || '';
+  const search   = (document.getElementById('history-search').value||'').toLowerCase();
+  const carrierQ = (document.getElementById('history-carrier-search')?.value||'').toLowerCase();
+  const trailerQ = (document.getElementById('history-trailer-search')?.value||'').toLowerCase();
+  const typeF    = document.getElementById('history-type-filter')?.value || '';
+  const doorF    = document.getElementById('history-door-filter')?.value || '';
 
   const applyFilters = (list) => {
     let recs = list;
-    if (carrierF) recs = recs.filter(r => r.carrier === carrierF);
+    if (carrierQ) recs = recs.filter(r => (r.carrier||'').toLowerCase().includes(carrierQ));
+    if (trailerQ) recs = recs.filter(r => (r.trailerNum||'').toLowerCase().includes(trailerQ));
     if (typeF)    recs = recs.filter(r => r.type === typeF);
     if (doorF)    recs = recs.filter(r => r.door === doorF);
-    if (search)   recs = recs.filter(r => (r.carrier+r.door+r.trailerNum+(r.notes||'')).toLowerCase().includes(search));
+    if (search)   recs = recs.filter(r => (r.door+(r.notes||'')).toLowerCase().includes(search));
     return recs;
   };
 
