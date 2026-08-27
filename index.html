@@ -451,6 +451,28 @@
   .btn-purple:active { border-bottom-width: 1px !important; }
   .btn-sm { padding: 3px 8px; font-size: 11px; border-bottom-width: 2px; }
 
+  /* Wall Clock / Business Hours toggle on the Avg Secure → Release by
+     Carrier dashboard tile — a small segmented control, not a full .btn,
+     so it reads as a view switch rather than an action button. */
+  .dwell-mode-btn {
+    font-family: 'Roboto Condensed', Roboto, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    border: 1px solid #b0d4c0;
+    background: #f5faf7;
+    color: #2d6b4a;
+    cursor: pointer;
+  }
+  .dwell-mode-btn.active {
+    background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);
+    color: #fff;
+    border-color: #1a4731;
+  }
+
   /* HOME LAYOUT */
   .home-layout { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
   .home-main {}
@@ -2969,6 +2991,28 @@ function dashSecuredTime(r) {
   return r.secured || r.securedAt || r.arrival;
 }
 
+// Elapsed time between two Dates, counting ONLY the minutes that fall inside
+// the working day (7:00a–4:00p) and skipping every overnight/closed gap in
+// between. A trailer secured at 3pm and released 9am the next day comes out
+// to 2 hours here (3-4pm + 7-9am) instead of 18 wall-clock hours, since the
+// building is closed the rest of the time. Walks day-by-day so it handles a
+// trailer that dwells across several overnight gaps the same way.
+function businessMinutesBetween(start, end, workStartHour = 7, workEndHour = 16) {
+  if (!start || !end || end <= start) return 0;
+  let totalMs = 0;
+  let dayCursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const lastDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  while (dayCursor <= lastDay) {
+    const workStart = new Date(dayCursor); workStart.setHours(workStartHour, 0, 0, 0);
+    const workEnd = new Date(dayCursor); workEnd.setHours(workEndHour, 0, 0, 0);
+    const overlapStart = start > workStart ? start : workStart;
+    const overlapEnd = end < workEnd ? end : workEnd;
+    if (overlapEnd > overlapStart) totalMs += (overlapEnd - overlapStart);
+    dayCursor = new Date(dayCursor.getFullYear(), dayCursor.getMonth(), dayCursor.getDate() + 1);
+  }
+  return Math.max(0, Math.round(totalMs / 60000));
+}
+
 function getDashboardData(dateKey) {
   // Secured on dateKey = trailers actually secured (landed on a standard
   // door) that day — using the real secure moment (dashSecuredTime), not
@@ -3001,12 +3045,6 @@ function getDashboardData(dateKey) {
   const dwellReleasedList = rawReleasedList.filter(r => isCarrierIncludedInTable('dwell', r.carrier));
   const pieReleasedList = rawReleasedList.filter(r => isCarrierIncludedInTable('pie', r.carrier));
 
-  const dwellMinsList = dwellReleasedList.map(r => {
-    const sec = parseFlexDate(dashSecuredTime(r)), rel = parseFlexDate(r.released || r.completed);
-    return (sec && rel) ? Math.max(0, Math.round((rel - sec) / 60000)) : null;
-  }).filter(m => m !== null);
-  const avgDwellMin = dwellMinsList.length ? Math.round(dwellMinsList.reduce((s, m) => s + m, 0) / dwellMinsList.length) : null;
-
   // NEW: Received → Secure — how long a yard-received trailer sat before it
   // was actually moved to a standard door and secured. Only meaningful for
   // trailers that went through a distinct Received step first; a trailer
@@ -3029,6 +3067,7 @@ function getDashboardData(dateKey) {
   pieReleasedList.forEach(r => { const c = r.carrier || 'Unknown'; pieByCarrier[c] = (pieByCarrier[c] || 0) + 1; });
 
   const dwellSumByCarrier = {}, dwellCountByCarrier = {};
+  const dwellBizSumByCarrier = {}, dwellBizCountByCarrier = {};
   dwellReleasedList.forEach(r => {
     const sec = parseFlexDate(dashSecuredTime(r)), rel = parseFlexDate(r.released || r.completed);
     if (!sec || !rel) return;
@@ -3036,9 +3075,16 @@ function getDashboardData(dateKey) {
     const mins = Math.max(0, Math.round((rel - sec) / 60000));
     dwellSumByCarrier[c] = (dwellSumByCarrier[c] || 0) + mins;
     dwellCountByCarrier[c] = (dwellCountByCarrier[c] || 0) + 1;
+    const bizMins = businessMinutesBetween(sec, rel);
+    dwellBizSumByCarrier[c] = (dwellBizSumByCarrier[c] || 0) + bizMins;
+    dwellBizCountByCarrier[c] = (dwellBizCountByCarrier[c] || 0) + 1;
   });
   const avgDwellByCarrier = {};
   Object.keys(dwellSumByCarrier).forEach(c => { avgDwellByCarrier[c] = Math.round(dwellSumByCarrier[c] / dwellCountByCarrier[c]); });
+  // Same breakdown, but counting only 7a-4p hours — for the Wall Clock /
+  // Business Hours toggle on the "Avg Secure → Release by Carrier" tile.
+  const avgDwellByCarrierBusiness = {};
+  Object.keys(dwellBizSumByCarrier).forEach(c => { avgDwellByCarrierBusiness[c] = Math.round(dwellBizSumByCarrier[c] / dwellBizCountByCarrier[c]); });
 
   const r2sSumByCarrier = {}, r2sCountByCarrier = {};
   receivedToSecureList.forEach(r => {
@@ -3081,7 +3127,7 @@ function getDashboardData(dateKey) {
   const door1ReleasedCount = rawReleasedList.filter(r => String(r.door || r.doorId || '') === '1').length;
 
   return {
-    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, pieByCarrier,
+    securedList, releasedList, securedByCarrier, releasedByCarrier, avgDwellByCarrier, avgDwellByCarrierBusiness, pieByCarrier,
     avgReceivedToSecureMin, avgReceivedToSecureByCarrier,
     unexpectedCount, dnrCount,
     binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
@@ -3314,10 +3360,6 @@ const DASHBOARD_TILE_REGISTRY = {
     title: 'Trailers Released — by Day Secured', defaultW: 16, defaultH: 11,
     bodyHTML: `<div id="dash-chart-released-trend"></div>`
   },
-  'stat-avgdwell': {
-    title: 'Avg Secure → Release', defaultW: 8, defaultH: 6, stat: true,
-    bodyHTML: `<div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div>`
-  },
   'stat-avgr2s': {
     title: 'Avg Received → Secure', defaultW: 8, defaultH: 6, stat: true,
     bodyHTML: `<div class="dash-stat-val" id="dash-stat-avgr2s" style="font-size:22px;">—</div>`
@@ -3343,8 +3385,12 @@ const DASHBOARD_TILE_REGISTRY = {
     bodyHTML: `<div id="dash-chart-type-pie"></div>`
   },
   'dwell-carrier': {
-    title: 'Avg Secure → Release by Carrier', defaultW: 16, defaultH: 11,
-    bodyHTML: `<div id="dash-chart-dwell"></div>`
+    title: 'Avg Secure → Release by Carrier', defaultW: 16, defaultH: 12,
+    bodyHTML: `<div class="dwell-mode-toggle" style="display:flex;gap:6px;margin-bottom:8px;">
+      <button id="dwell-mode-wall" class="dwell-mode-btn" onclick="setDwellHoursMode('wall')">Wall Clock</button>
+      <button id="dwell-mode-biz" class="dwell-mode-btn" onclick="setDwellHoursMode('business')">Business Hours (7a-4p)</button>
+    </div>
+    <div id="dash-chart-dwell"></div>`
   },
   'r2s-carrier': {
     title: 'Avg Received → Secure by Carrier', defaultW: 16, defaultH: 11,
@@ -3702,6 +3748,29 @@ function renderDashSalesSide(slots) {
 function dashSetText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
 function dashSetHTML(id, val) { const el = document.getElementById(id); if (el) el.innerHTML = val; }
 
+// Wall Clock vs Business Hours toggle for the "Avg Secure → Release by
+// Carrier" tile. Wall Clock is the real elapsed time between securing and
+// release, including nights/off-hours. Business Hours counts only the
+// minutes that fall within the working day (7a-4p), skipping every
+// overnight gap — see businessMinutesBetween(). Persisted per the app (not
+// per-device) the same way other dashboard display settings are.
+function getDwellHoursMode() {
+  return state.settings.dwellHoursMode === 'business' ? 'business' : 'wall';
+}
+function setDwellHoursMode(mode) {
+  state.settings.dwellHoursMode = mode === 'business' ? 'business' : 'wall';
+  saveState();
+  saveSettingsToFirebase();
+  renderDashboard();
+}
+function updateDwellModeToggleUI() {
+  const mode = getDwellHoursMode();
+  const wallBtn = document.getElementById('dwell-mode-wall');
+  const bizBtn = document.getElementById('dwell-mode-biz');
+  if (wallBtn) wallBtn.classList.toggle('active', mode === 'wall');
+  if (bizBtn) bizBtn.classList.toggle('active', mode === 'business');
+}
+
 async function renderDashboard() {
   const dateInp = document.getElementById('dash-date');
   if (!dateInp) return;
@@ -3719,7 +3788,7 @@ async function renderDashboard() {
   if (document.getElementById('dash-date').value !== dateKey) return;
 
   const {
-    securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, pieByCarrier,
+    securedList, releasedList, securedByCarrier, releasedByCarrier, avgDwellByCarrier, avgDwellByCarrierBusiness, pieByCarrier,
     avgReceivedToSecureMin, avgReceivedToSecureByCarrier,
     unexpectedCount, dnrCount,
     binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
@@ -3728,7 +3797,6 @@ async function renderDashboard() {
 
   dashSetText('dash-stat-secured-carrier-total', securedList.length);
   dashSetText('dash-stat-released-carrier-total', releasedList.length);
-  dashSetText('dash-stat-avgdwell', avgDwellMin !== null ? minsToHM(avgDwellMin) : '—');
   dashSetText('dash-stat-avgr2s', avgReceivedToSecureMin !== null ? minsToHM(avgReceivedToSecureMin) : '—');
   dashSetText('dash-stat-unexpected', unexpectedCount);
   dashSetText('dash-stat-dnr', dnrCount);
@@ -3741,7 +3809,8 @@ async function renderDashboard() {
   dashSetHTML('dash-chart-secured', svgBarChart(securedByCarrier, { color: 'var(--teal)' }));
   dashSetHTML('dash-chart-released', svgBarChart(releasedByCarrier, { color: 'var(--blue)' }));
   dashSetHTML('dash-chart-pie', svgPieChart(pieByCarrier));
-  dashSetHTML('dash-chart-dwell', svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) }));
+  dashSetHTML('dash-chart-dwell', svgBarChart(getDwellHoursMode() === 'business' ? avgDwellByCarrierBusiness : avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) }));
+  updateDwellModeToggleUI();
   dashSetHTML('dash-chart-r2s', svgBarChart(avgReceivedToSecureByCarrier, { color: 'var(--purple)', valueFmt: m => minsToHM(m) }));
   dashSetHTML('dash-chart-released-trend', svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey }));
   dashSetHTML('dash-chart-type-pie', svgPieChart(getReleasesByType(releasedList)));
