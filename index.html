@@ -473,6 +473,29 @@
     border-color: #1a4731;
   }
 
+  /* Custom hover tooltip for the Quick Trailer # search box on the Doors
+     tab — a native title="" tooltip is unreliable (slow to appear, and
+     doesn't show at all on touchscreens), so this is a real element shown
+     on :hover instead. It's a hover-only affordance either way — there's no
+     touch equivalent — but at least it's instant and consistent on desktop. */
+  .quick-trailer-tooltip {
+    display: none;
+    position: absolute;
+    top: -32px;
+    left: 0;
+    background: #1a4731;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 9px;
+    border-radius: 5px;
+    white-space: nowrap;
+    z-index: 60;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    pointer-events: none;
+  }
+  .quick-trailer-search-wrap:hover .quick-trailer-tooltip { display: block; }
+
   /* HOME LAYOUT */
   .home-layout { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
   .home-main {}
@@ -1306,6 +1329,11 @@
       <div class="flex-row" id="doors-toolbar-row" style="margin-bottom:10px;">
         <button onclick="openAutoReadyModal()" style="font-size:13px;font-weight:700;padding:0 8px;min-width:160px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Auto Trailer Ready</button>
         <button class="btn btn-hook" onclick="sendCFFYardStorageUpdate()" style="font-size:13px;padding:0 8px;min-width:160px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;">CFF Yard Storage Update</button>
+        <div id="doors-trailer-search-wrap" class="quick-trailer-search-wrap" style="position:relative;">
+          <input type="text" autocomplete="off" id="doors-trailer-search" placeholder="Quick Trailer # search" oninput="renderDoorsTrailerSearch()" onkeydown="if(event.key==='Escape'){this.value='';renderDoorsTrailerSearch();this.blur();}" style="width:210px;height:38px;box-sizing:border-box;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:0 10px;color:#1a4731;font-size:13px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
+          <div class="quick-trailer-tooltip">Searches last 4 weeks</div>
+          <div id="doors-trailer-search-results" style="display:none;position:absolute;top:44px;left:0;min-width:290px;max-width:400px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid #c8ddd4;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.3);z-index:50;"></div>
+        </div>
         <span class="edit-mode-badge" id="edit-mode-badge" style="display:none;">EDIT MODE</span>
         <div style="flex:1;"></div>
         <div id="zoom-controls" style="display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#ffffff 0%,#f0f0f0 100%);border:1px solid #d5d5d5;border-radius:26px;padding:5px 10px;font-size:14px;font-weight:700;color:#555;font-family:Roboto,sans-serif;box-shadow:0 4px 10px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.9);">
@@ -5980,6 +6008,105 @@ function sendCFFYardStorageUpdate() {
     toast('Failed to send CFF Yard update', 'error');
   });
 }
+
+// Quick trailer # lookup on the Doors tab — shows any currently-on-a-door
+// match plus every record from the last 4 weeks for that trailer #, without
+// needing to leave the Doors tab and go dig through History. This runs its
+// own dedicated 28-day Firestore query rather than reading state.history
+// directly, since the History tab's loaded range can be set to something
+// else entirely (a different custom date range, or "full history") — this
+// search should always mean "the last 4 weeks," regardless of that. The
+// result is cached by its date window so retyping/narrowing a search
+// doesn't re-query Firestore on every keystroke, only once per day.
+let _doorsTrailerSearchToken = 0;
+let _doorsTrailerSearchCache = null; // { start, end, records }
+
+async function getLast4WeeksHistoryForSearch() {
+  const pad = n => String(n).padStart(2, '0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const end = fmt(new Date());
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 27); // 28 days inclusive of today
+  const start = fmt(startDate);
+
+  if (_doorsTrailerSearchCache && _doorsTrailerSearchCache.start === start && _doorsTrailerSearchCache.end === end) {
+    return _doorsTrailerSearchCache.records;
+  }
+  if (!window._fbReady || !getDb() || window._sandboxMode) {
+    // Offline/sandbox — best effort from whatever's already local.
+    return state.history.filter(r => r.date >= start && r.date <= end);
+  }
+  try {
+    const { getDocs, collection, query, where } = fb();
+    const snap = await getDocs(query(collection(getDb(), 'history'), where('date', '>=', start), where('date', '<=', end)));
+    const records = [];
+    snap.forEach(d => records.push({ id: d.id, ...d.data() }));
+    _doorsTrailerSearchCache = { start, end, records };
+    return records;
+  } catch (e) {
+    console.error('Trailer search: failed to load last 4 weeks of history', e);
+    return state.history.filter(r => r.date >= start && r.date <= end);
+  }
+}
+
+async function renderDoorsTrailerSearch() {
+  const input = document.getElementById('doors-trailer-search');
+  const box = document.getElementById('doors-trailer-search-results');
+  if (!input || !box) return;
+  const q = input.value.trim().toLowerCase();
+  if (!q) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+  const token = ++_doorsTrailerSearchToken;
+  box.style.display = 'block';
+  box.innerHTML = `<div style="padding:10px 12px;font-size:12px;color:#888;">Searching…</div>`;
+
+  const records = await getLast4WeeksHistoryForSearch();
+  // A newer keystroke fired while that was loading — let that one own the result.
+  if (token !== _doorsTrailerSearchToken) return;
+
+  // Currently on a door right now — shown first since it's the most
+  // actionable hit (no release date yet, it just hasn't happened).
+  const liveMatches = Object.entries(state.trailers)
+    .filter(([, t]) => t.trailerNum && t.trailerNum.toLowerCase().includes(q))
+    .map(([doorId, t]) => {
+      const door = state.doors.find(d => d.id === doorId);
+      return { trailerNum: t.trailerNum, carrier: t.carrier, isLive: true, doorLabel: door?.num || doorId };
+    });
+
+  // Records from the last 4 weeks — most recently released first.
+  const histMatches = records
+    .filter(r => r.trailerNum && r.trailerNum.toLowerCase().includes(q))
+    .map(r => ({ trailerNum: r.trailerNum, carrier: r.carrier, isLive: false, released: r.released || r.completed }))
+    .sort((a, b) => (Date.parse(b.released) || 0) - (Date.parse(a.released) || 0));
+
+  const combined = [...liveMatches, ...histMatches].slice(0, 25);
+  const overflow = (liveMatches.length + histMatches.length) - combined.length;
+
+  if (!combined.length) {
+    box.innerHTML = `<div style="padding:10px 12px;font-size:12px;color:#888;">No records found for "${escHtml(input.value.trim())}" in the last 4 weeks</div>`;
+    return;
+  }
+
+  box.innerHTML = combined.map(r => {
+    const statusLabel = r.isLive
+      ? `<span style="color:#b06a2a;font-weight:700;">Currently on Door ${escHtml(String(r.doorLabel))}</span>`
+      : `Released ${r.released ? fmtDateTime(r.released) : '—'}`;
+    return `<div style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;">
+      <div style="font-weight:700;color:#1a4731;">${escHtml(r.trailerNum)} — ${escHtml(r.carrier || 'Unknown')}</div>
+      <div style="color:#555;margin-top:2px;">${statusLabel}</div>
+    </div>`;
+  }).join('') + (overflow > 0 ? `<div style="padding:6px 12px;font-size:11px;color:#888;text-align:center;">…${overflow} more — narrow your search</div>` : '');
+}
+
+// Dismiss the results dropdown on an outside click, same pattern as other
+// popovers in the app.
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('doors-trailer-search-wrap');
+  const box = document.getElementById('doors-trailer-search-results');
+  if (wrap && box && box.style.display === 'block' && !wrap.contains(e.target)) {
+    box.style.display = 'none';
+  }
+});
 
 // Carrier name overrides for webhook messages — add entries here as needed.
 const WEBHOOK_CARRIER_ALIAS = {
