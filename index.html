@@ -1833,7 +1833,7 @@
   <div class="sidebar-panel">
     <div class="sidebar-panel-header">
       <span class="sidebar-panel-title">Currently On Door <span id="history-live-count"></span></span>
-      <span style="font-size:10px;color:#000;font-style:italic;">Click a column to sort — Shift+Click to add a secondary sort</span>
+      <span style="font-size:10px;color:#c9d6cf;font-style:italic;">Click a column to sort — Shift+Click to add a secondary sort</span>
     </div>
     <div class="sidebar-panel-body" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
       <table style="background:#fff;min-width:700px;">
@@ -1847,7 +1847,7 @@
   <div class="sidebar-panel">
     <div class="sidebar-panel-header">
       <span class="sidebar-panel-title">Completed History <span id="history-completed-count"></span></span>
-      <span style="font-size:10px;color:#000;font-style:italic;">Click a column to sort — Shift+Click to add a secondary sort</span>
+      <span style="font-size:10px;color:#c9d6cf;font-style:italic;">Click a column to sort — Shift+Click to add a secondary sort</span>
     </div>
     <div class="sidebar-panel-body" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
       <table style="background:#fff;min-width:700px;">
@@ -2957,17 +2957,33 @@ function toggleDashCarrierFilter(tableKey, carrierName, checked) {
   if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
 }
 
+// A trailer's effective "secured" moment — the actual point it landed on a
+// standard door, not just when it first arrived (which, for a yard-received
+// trailer, could be well before it was actually secured — see the Received
+// vs Secured distinction near moveTrailer()). Checks both the completed-
+// history field name (secured) and the live in-progress field name
+// (securedAt), since Secured/Trailers-Secured metrics mix both kinds of
+// records; falls back to arrival only for older records that predate the
+// Received/Secured split and never got a distinct secured timestamp.
+function dashSecuredTime(r) {
+  return r.secured || r.securedAt || r.arrival;
+}
+
 function getDashboardData(dateKey) {
-  // Secured on dateKey = completed cycles that arrived that day + trailers still on
-  // a door right now that also arrived that day. "Did Not Receive" records are
-  // excluded here — a DNR carrier never actually arrived, so it shouldn't
-  // inflate Secured, Released, or average dwell time. This raw list is NOT
-  // carrier-filtered — each breakdown below applies its own filter from the
-  // Settings tab, since different charts can now include different carriers.
+  // Secured on dateKey = trailers actually secured (landed on a standard
+  // door) that day — using the real secure moment (dashSecuredTime), not
+  // just whenever they first arrived. A trailer Received into a yard door
+  // that day but not yet moved to a standard door doesn't count as Secured
+  // until that move actually happens, even if it's still sitting there today.
+  // "Did Not Receive" records are excluded here — a DNR carrier never
+  // actually arrived, so it shouldn't inflate Secured, Released, or average
+  // dwell time. This raw list is NOT carrier-filtered — each breakdown below
+  // applies its own filter from the Settings tab, since different charts can
+  // now include different carriers.
   const rawSecuredList = [];
-  state.history.forEach(r => { if (!r.didNotReceive && dashDateKey(r.arrival) === dateKey) rawSecuredList.push({ ...r, _active: false }); });
+  state.history.forEach(r => { if (!r.didNotReceive && dashDateKey(dashSecuredTime(r)) === dateKey) rawSecuredList.push({ ...r, _active: false }); });
   Object.entries(state.trailers).forEach(([doorId, t]) => {
-    if (dashDateKey(t.arrival) === dateKey) {
+    if (t.securedAt && dashDateKey(t.securedAt) === dateKey) {
       const door = state.doors.find(d => d.id === doorId);
       rawSecuredList.push({ ...t, doorId, door: door?.num || doorId, _active: true });
     }
@@ -2986,10 +3002,22 @@ function getDashboardData(dateKey) {
   const pieReleasedList = rawReleasedList.filter(r => isCarrierIncludedInTable('pie', r.carrier));
 
   const dwellMinsList = dwellReleasedList.map(r => {
-    const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
-    return (a && rel) ? Math.max(0, Math.round((rel - a) / 60000)) : null;
+    const sec = parseFlexDate(dashSecuredTime(r)), rel = parseFlexDate(r.released || r.completed);
+    return (sec && rel) ? Math.max(0, Math.round((rel - sec) / 60000)) : null;
   }).filter(m => m !== null);
   const avgDwellMin = dwellMinsList.length ? Math.round(dwellMinsList.reduce((s, m) => s + m, 0) / dwellMinsList.length) : null;
+
+  // NEW: Received → Secure — how long a yard-received trailer sat before it
+  // was actually moved to a standard door and secured. Only meaningful for
+  // trailers that went through a distinct Received step first; a trailer
+  // slotted directly onto a standard door has no `received` timestamp at
+  // all, so it's naturally excluded here rather than showing a false 0.
+  const receivedToSecureList = dwellReleasedList.filter(r => r.received && r.secured);
+  const r2sMinsList = receivedToSecureList.map(r => {
+    const rec = parseFlexDate(r.received), sec = parseFlexDate(r.secured);
+    return (rec && sec) ? Math.max(0, Math.round((sec - rec) / 60000)) : null;
+  }).filter(m => m !== null);
+  const avgReceivedToSecureMin = r2sMinsList.length ? Math.round(r2sMinsList.reduce((s, m) => s + m, 0) / r2sMinsList.length) : null;
 
   const securedByCarrier = {};
   securedList.forEach(r => { const c = r.carrier || 'Unknown'; securedByCarrier[c] = (securedByCarrier[c] || 0) + 1; });
@@ -3002,15 +3030,27 @@ function getDashboardData(dateKey) {
 
   const dwellSumByCarrier = {}, dwellCountByCarrier = {};
   dwellReleasedList.forEach(r => {
-    const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
-    if (!a || !rel) return;
+    const sec = parseFlexDate(dashSecuredTime(r)), rel = parseFlexDate(r.released || r.completed);
+    if (!sec || !rel) return;
     const c = r.carrier || 'Unknown';
-    const mins = Math.max(0, Math.round((rel - a) / 60000));
+    const mins = Math.max(0, Math.round((rel - sec) / 60000));
     dwellSumByCarrier[c] = (dwellSumByCarrier[c] || 0) + mins;
     dwellCountByCarrier[c] = (dwellCountByCarrier[c] || 0) + 1;
   });
   const avgDwellByCarrier = {};
   Object.keys(dwellSumByCarrier).forEach(c => { avgDwellByCarrier[c] = Math.round(dwellSumByCarrier[c] / dwellCountByCarrier[c]); });
+
+  const r2sSumByCarrier = {}, r2sCountByCarrier = {};
+  receivedToSecureList.forEach(r => {
+    const rec = parseFlexDate(r.received), sec = parseFlexDate(r.secured);
+    if (!rec || !sec) return;
+    const c = r.carrier || 'Unknown';
+    const mins = Math.max(0, Math.round((sec - rec) / 60000));
+    r2sSumByCarrier[c] = (r2sSumByCarrier[c] || 0) + mins;
+    r2sCountByCarrier[c] = (r2sCountByCarrier[c] || 0) + 1;
+  });
+  const avgReceivedToSecureByCarrier = {};
+  Object.keys(r2sSumByCarrier).forEach(c => { avgReceivedToSecureByCarrier[c] = Math.round(r2sSumByCarrier[c] / r2sCountByCarrier[c]); });
 
   // Unexpected/DNR stay comprehensive regardless of any chart's carrier
   // filter — they're anomaly counts, not a curated breakdown view.
@@ -3023,8 +3063,8 @@ function getDashboardData(dateKey) {
   // Secured/Released counts but scoped to just that one carrier.
   const countSecured = carrierName => {
     let n = 0;
-    state.history.forEach(r => { if (!r.didNotReceive && r.carrier === carrierName && dashDateKey(r.arrival) === dateKey) n++; });
-    Object.values(state.trailers).forEach(t => { if (t.carrier === carrierName && dashDateKey(t.arrival) === dateKey) n++; });
+    state.history.forEach(r => { if (!r.didNotReceive && r.carrier === carrierName && dashDateKey(dashSecuredTime(r)) === dateKey) n++; });
+    Object.values(state.trailers).forEach(t => { if (t.carrier === carrierName && t.securedAt && dashDateKey(t.securedAt) === dateKey) n++; });
     return n;
   };
   const countReleased = carrierName => state.history.filter(r => !r.didNotReceive && r.carrier === carrierName && dashDateKey(r.released || r.completed) === dateKey).length;
@@ -3042,6 +3082,7 @@ function getDashboardData(dateKey) {
 
   return {
     securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, pieByCarrier,
+    avgReceivedToSecureMin, avgReceivedToSecureByCarrier,
     unexpectedCount, dnrCount,
     binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
     door1ReleasedCount
@@ -3140,7 +3181,7 @@ function svgVerticalBarChart(entries, opts = {}) {
 function getReleasedBySecuredDay(dateKey, releasedList) {
   const counts = {};
   releasedList.forEach(r => {
-    const key = dashDateKey(r.arrival);
+    const key = dashDateKey(dashSecuredTime(r));
     if (!key) return;
     counts[key] = (counts[key] || 0) + 1;
   });
@@ -3177,7 +3218,7 @@ function getSecuredByHalfHourWindow(securedList) {
     }
   }
   securedList.forEach(r => {
-    const d = parseFlexDate(r.arrival);
+    const d = parseFlexDate(dashSecuredTime(r));
     if (!d) return;
     const h = d.getHours(), bucketMin = d.getMinutes() < 30 ? 0 : 30;
     const bucket = buckets.find(b => b.hour === h && b.min === bucketMin);
@@ -3277,6 +3318,10 @@ const DASHBOARD_TILE_REGISTRY = {
     title: 'Avg Secure → Release', defaultW: 8, defaultH: 6, stat: true,
     bodyHTML: `<div class="dash-stat-val" id="dash-stat-avgdwell" style="font-size:22px;">—</div>`
   },
+  'stat-avgr2s': {
+    title: 'Avg Received → Secure', defaultW: 8, defaultH: 6, stat: true,
+    bodyHTML: `<div class="dash-stat-val" id="dash-stat-avgr2s" style="font-size:22px;">—</div>`
+  },
   'secured-carrier': {
     title: 'Trailers Secured by Carrier', defaultW: 16, defaultH: 11,
     bodyHTML: `<div class="dash-tile-total-row"><span id="dash-stat-secured-carrier-total" style="font-size:20px;font-weight:800;color:#1a4731;">0</span><span style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.4px;">Total Secured</span></div><div id="dash-chart-secured"></div>`
@@ -3300,6 +3345,10 @@ const DASHBOARD_TILE_REGISTRY = {
   'dwell-carrier': {
     title: 'Avg Secure → Release by Carrier', defaultW: 16, defaultH: 11,
     bodyHTML: `<div id="dash-chart-dwell"></div>`
+  },
+  'r2s-carrier': {
+    title: 'Avg Received → Secure by Carrier', defaultW: 16, defaultH: 11,
+    bodyHTML: `<div id="dash-chart-r2s"></div>`
   },
   'sales-side': {
     title: 'Sales Side Releases — PITT ×2 / XPO ×1', defaultW: 16, defaultH: 11,
@@ -3671,6 +3720,7 @@ async function renderDashboard() {
 
   const {
     securedList, releasedList, avgDwellMin, securedByCarrier, releasedByCarrier, avgDwellByCarrier, pieByCarrier,
+    avgReceivedToSecureMin, avgReceivedToSecureByCarrier,
     unexpectedCount, dnrCount,
     binFreightSecuredCount, binFreightReleasedCount, shuttleSecuredCount, shuttleReleasedCount,
     door1ReleasedCount
@@ -3679,6 +3729,7 @@ async function renderDashboard() {
   dashSetText('dash-stat-secured-carrier-total', securedList.length);
   dashSetText('dash-stat-released-carrier-total', releasedList.length);
   dashSetText('dash-stat-avgdwell', avgDwellMin !== null ? minsToHM(avgDwellMin) : '—');
+  dashSetText('dash-stat-avgr2s', avgReceivedToSecureMin !== null ? minsToHM(avgReceivedToSecureMin) : '—');
   dashSetText('dash-stat-unexpected', unexpectedCount);
   dashSetText('dash-stat-dnr', dnrCount);
   dashSetText('dash-stat-binfreight-secured', binFreightSecuredCount);
@@ -3691,6 +3742,7 @@ async function renderDashboard() {
   dashSetHTML('dash-chart-released', svgBarChart(releasedByCarrier, { color: 'var(--blue)' }));
   dashSetHTML('dash-chart-pie', svgPieChart(pieByCarrier));
   dashSetHTML('dash-chart-dwell', svgBarChart(avgDwellByCarrier, { color: 'var(--orange)', valueFmt: m => minsToHM(m) }));
+  dashSetHTML('dash-chart-r2s', svgBarChart(avgReceivedToSecureByCarrier, { color: 'var(--purple)', valueFmt: m => minsToHM(m) }));
   dashSetHTML('dash-chart-released-trend', svgVerticalBarChart(getReleasedBySecuredDay(dateKey, releasedList), { color: 'var(--blue)', highlightKey: dateKey }));
   dashSetHTML('dash-chart-type-pie', svgPieChart(getReleasesByType(releasedList)));
   window._dashSecuredListCache = securedList;
@@ -3707,16 +3759,17 @@ async function renderDashboard() {
   } else {
     if (empty) empty.style.display = 'none';
     tbody.innerHTML = releasedList.map(r => {
-      const securedDay = dashDateKey(r.arrival);
-      const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
-      const dwellLabel = (a && rel) ? minsToHM(Math.max(0, Math.round((rel - a) / 60000))) : '—';
+      const securedTime = dashSecuredTime(r);
+      const securedDay = dashDateKey(securedTime);
+      const sec = parseFlexDate(securedTime), rel = parseFlexDate(r.released || r.completed);
+      const dwellLabel = (sec && rel) ? minsToHM(Math.max(0, Math.round((rel - sec) / 60000))) : '—';
       const priorDayTag = securedDay && securedDay !== dateKey ? ` <span style="color:var(--orange);font-weight:700;">(prior day)</span>` : '';
       return `<tr>
         <td>${securedDay ? fmtDate(securedDay + 'T12:00:00') : '—'}${priorDayTag}</td>
         <td>${escHtml(r.carrier || '—')}</td>
         <td>${escHtml(r.door || r.doorId || '—')}</td>
         <td>${escHtml(r.trailerNum || '—')}</td>
-        <td>${fmtTime(r.arrival)}</td>
+        <td>${fmtTime(securedTime)}</td>
         <td>${fmtTime(r.released || r.completed)}</td>
         <td>${dwellLabel}</td>
       </tr>`;
@@ -3742,11 +3795,13 @@ function dashJumpToday() {
 function exportDashboardCSV() {
   const data = window._dashLastData;
   if (!data || !data.releasedList.length) { toast('Nothing to export', 'error'); return; }
-  const rows = [['Secured Day', 'Carrier', 'Door', 'Trailer #', 'Secured Time', 'Released Time', 'Dwell (min)']];
+  const rows = [['Secured Day', 'Carrier', 'Door', 'Trailer #', 'Received Time', 'Secured Time', 'Released Time', 'Received→Secure (min)', 'Secure→Release (min)']];
   data.releasedList.forEach(r => {
-    const a = parseFlexDate(r.arrival), rel = parseFlexDate(r.released || r.completed);
-    const dwellMin = (a && rel) ? Math.max(0, Math.round((rel - a) / 60000)) : '';
-    rows.push([dashDateKey(r.arrival) || '', r.carrier || '', r.door || r.doorId || '', r.trailerNum || '', r.arrival || '', r.released || r.completed || '', dwellMin]);
+    const securedTime = dashSecuredTime(r);
+    const rec = parseFlexDate(r.received), sec = parseFlexDate(securedTime), rel = parseFlexDate(r.released || r.completed);
+    const r2sMin = (rec && sec) ? Math.max(0, Math.round((sec - rec) / 60000)) : '';
+    const s2rMin = (sec && rel) ? Math.max(0, Math.round((rel - sec) / 60000)) : '';
+    rows.push([dashDateKey(securedTime) || '', r.carrier || '', r.door || r.doorId || '', r.trailerNum || '', r.received || '', securedTime || '', r.released || r.completed || '', r2sMin, s2rMin]);
   });
   const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
