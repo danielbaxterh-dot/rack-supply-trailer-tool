@@ -2414,6 +2414,7 @@
     <div class="modal-actions" style="flex-direction:column;gap:12px;">
       <button class="btn btn-hook" onclick="confirmJunkSkidsReset()" style="width:100%;">Send move request & reset age timer</button>
       <button class="btn btn-gray" onclick="saveJunkSkidsTrailerNum()" style="width:100%;">Save</button>
+      <button class="btn btn-red" onclick="releaseFromJunkSkidsModal()" style="width:100%;">Release</button>
       <button class="btn btn-gray" onclick="closeModal('modal-junk-skids')" style="width:100%;background:none;box-shadow:none;border:none;color:#666;">Cancel</button>
     </div>
   </div>
@@ -5000,6 +5001,14 @@ function saveJunkSkidsTrailerNum() {
   saveState();
   renderDoors();
   toast('Trailer number updated ✓');
+}
+
+// Releases the Junk Skids trailer straight off the door — no second
+// confirmation and no Slack request (Junk Skids is internal storage tracking).
+function releaseFromJunkSkidsModal() {
+  const doorId = document.getElementById('modal-junk-skids').dataset.doorid;
+  closeModal('modal-junk-skids');
+  releaseTrailer(doorId, false);
 }
 
 function confirmJunkSkidsReset() {
