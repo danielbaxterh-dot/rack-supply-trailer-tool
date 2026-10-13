@@ -1349,7 +1349,6 @@
   <div class="home-layout">
     <div class="home-main">
       <div class="flex-row" id="doors-toolbar-row" style="margin-bottom:10px;">
-        <button onclick="openAutoReadyModal()" style="font-size:13px;font-weight:700;padding:0 8px;min-width:160px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:2px solid #444;transition:all 0.1s;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.3)';this.style.borderBottom='1px solid #444'" onmouseup="this.style.transform='';this.style.boxShadow='0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)';this.style.borderBottom='2px solid #444'">Auto Trailer Ready</button>
         <button class="btn btn-hook" onclick="sendCFFYardStorageUpdate()" style="font-size:13px;padding:0 8px;min-width:160px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;">CFF Yard Storage Update</button>
         <div id="doors-trailer-search-wrap" class="quick-trailer-search-wrap" style="position:relative;">
           <input type="text" autocomplete="off" id="doors-trailer-search" placeholder="Quick Trailer # search" oninput="renderDoorsTrailerSearch()" onkeydown="if(event.key==='Escape'){this.value='';renderDoorsTrailerSearch();this.blur();}" style="width:210px;height:38px;box-sizing:border-box;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:0 10px;color:#1a4731;font-size:13px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
@@ -1521,8 +1520,31 @@
         <div style="font-size:11px;color:#555;margin-top:2px;">Test freely without touching real data. While ON: nothing saves to Firebase (so other devices never see your test changes) and live updates from other devices stop syncing in. Slack messages still send normally, so you can test those too. A banner will show at the top while active. Turn OFF to go back to live, synced data — this reloads the real state from Firebase.</div>
       </label>
     </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0;padding:12px;background:#fff;border-radius:8px;border:1px solid #ccc;">
+      <div style="color:#000;">
+        <div style="font-weight:700;font-size:13px;">Webhook Message Wording</div>
+        <div style="font-size:11px;color:#555;margin-top:2px;">Change what the Slack messages say (move, release, Junk Skids swap, Auto Ready, CFF Yard update). The Slack links and who receives the messages stay the same.</div>
+      </div>
+      <button class="btn btn-gray" onclick="openWebhookMessagesModal()" style="white-space:nowrap;">Edit Messages</button>
+    </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
       <button onclick="closeModal('modal-app-settings')" style="font-size:13px;font-weight:700;padding:8px 18px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(180deg,#c8c8c8 0%,#a8a8a8 50%,#989898 100%);color:#000;box-shadow:0 3px 5px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);border-bottom:3px solid #707070;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEBHOOK MESSAGE WORDING MODAL -->
+<div class="modal-overlay" id="modal-webhook-messages">
+  <div class="modal" style="width:840px;background:#d0d0d0;">
+    <h2 style="color:#000;">Webhook Message Wording</h2>
+    <div style="margin:12px 0;padding:10px 12px;background:#fff8e6;border-radius:8px;border:1px solid #e0c060;font-size:12px;color:#000;line-height:1.5;">
+      Reword the Slack messages here. Words in curly brackets, like <b>{carrier}</b> or <b>{door}</b>, are <b>tags</b>: the app swaps in the real details when the message is sent. Click a tag to add it, and the preview shows how it will read.
+      Changes save for everyone (others see them after they refresh). If a Slack automation reads these messages to do something, check it still works after you change the wording.
+    </div>
+    <div id="wh-editor"></div>
+    <div style="position:sticky;bottom:0;z-index:2;display:flex;justify-content:flex-end;gap:8px;margin-top:10px;padding:10px 16px;background:#d0d0d0;border-top:1px solid #b8b8b8;">
+      <button class="btn btn-gray" onclick="closeModal('modal-webhook-messages')">Cancel</button>
+      <button class="btn btn-gray" onclick="saveWebhookMessages()">Save</button>
     </div>
   </div>
 </div>
@@ -2511,21 +2533,24 @@
   </div>
 </div>
 
-<!-- AUTO READY MODAL (Craig yard-ready Slack message) -->
-<div class="modal-overlay" id="modal-auto-ready">
+<div class="modal-overlay" id="modal-auto-release">
   <div class="modal">
-    <h2>Auto Ready</h2>
+    <h2>Release Auto Trailer</h2>
+    <div id="auto-rel-summary" style="font-size:14px;font-weight:700;color:#1a4731;margin:4px 0 10px;"></div>
     <div class="form-row">
-      <label>Door Number</label>
-      <input type="text" autocomplete="off" id="ar-door" placeholder="Door number">
+      <label>What door is it in?</label>
+      <input type="text" autocomplete="off" id="auto-rel-door" placeholder="Door number">
     </div>
     <div class="form-row">
-      <label>Trailer Number</label>
-      <input type="text" autocomplete="off" id="ar-trailer" placeholder="Optional">
+      <label>Destination</label>
+      <div style="display:flex;gap:12px;">
+        <label style="display:flex;align-items:center;gap:8px;padding:14px 34px;border:2px solid #b0d4c0;border-radius:10px;background:#f5faf7;font-size:20px !important;font-weight:800;color:#1a4731;cursor:pointer;"><input type="radio" name="auto-rel-dest" value="CFF" style="width:24px;height:24px;cursor:pointer;"> CFF</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:14px 34px;border:2px solid #b0d4c0;border-radius:10px;background:#f5faf7;font-size:20px !important;font-weight:800;color:#1a4731;cursor:pointer;"><input type="radio" name="auto-rel-dest" value="yard" style="width:24px;height:24px;cursor:pointer;"> Yard</label>
+      </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeModal('modal-auto-ready')">Cancel</button>
-      <button class="btn btn-hook" onclick="sendAutoReadyMessage()">Confirm | Send Request</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-auto-release')">Cancel</button>
+      <button class="btn btn-hook" onclick="confirmAutoRelease()">Release | Send Request</button>
     </div>
   </div>
 </div>
@@ -5640,7 +5665,7 @@ function sendMoveSlackNotification(t, fromDoor, toDoor) {
   const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
   const fromLabel = yardLabelFor(fromDoor) || `Door ${fromDoor ? fromDoor.num : '?'}`;
   const toLabel = yardLabelFor(toDoor) || `Door ${toDoor ? toDoor.num : '?'}`;
-  const message = ['Move', carrier, t.trailerNum || '', 'in', fromLabel, 'to', toLabel].filter(Boolean).join(' ');
+  const message = renderWebhookMessage('move', { carrier, trailer: t.trailerNum || '', from: fromLabel, to: toLabel });
   return fetch(wh.url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -5731,7 +5756,7 @@ function confirmJunkSkidsReset() {
   if (state.settings.slackReleaseEnabled !== false) {
     const wh = getTrailerMoveWebhook();
     if (wh.url) {
-      const message = ['RCS', newTrailerNum || '', `in Door ${door?.num || doorId} is ready to be swapped with an empty RCS trailer from the yard. Please reply with new RCS trailer #.`].filter(Boolean).join(' ');
+      const message = renderWebhookMessage('rcs_swap', { trailer: newTrailerNum || '', door: door?.num || doorId });
       fetch(wh.url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
@@ -6553,9 +6578,41 @@ function resetOtherCarrierTimer(doorId) {
   toast('Timer reset ✓');
 }
 
+// The Auto door is a regular door that's simply named "Auto" (door number or door name).
+function isAutoDoor(door) {
+  return !!door && (/\bauto\b/i.test(door.num || '') || /\bauto\b/i.test(door.name || ''));
+}
+
+function openAutoReleaseModal(doorId) {
+  const t = state.trailers[doorId];
+  if (!t) return;
+  window._pendingAutoRelease = { doorId };
+  document.getElementById('auto-rel-summary').textContent = `${t.carrier || 'Trailer'}${t.trailerNum ? ' #' + t.trailerNum : ''}`;
+  document.getElementById('auto-rel-door').value = '';
+  document.querySelectorAll('input[name="auto-rel-dest"]').forEach(r => { r.checked = false; });
+  document.getElementById('modal-auto-release').classList.add('open');
+  setTimeout(() => document.getElementById('auto-rel-door').focus(), 50);
+}
+
+function confirmAutoRelease() {
+  const p = window._pendingAutoRelease;
+  if (!p || !state.trailers[p.doorId]) { closeModal('modal-auto-release'); return; }
+  const doorNum = document.getElementById('auto-rel-door').value.trim();
+  const dest = document.querySelector('input[name="auto-rel-dest"]:checked');
+  if (!doorNum) { toast('Enter the door number ✗'); return; }
+  if (!dest) { toast('Pick CFF or Yard ✗'); return; }
+  closeModal('modal-auto-release');
+  window._pendingAutoRelease = null;
+  releaseTrailer(p.doorId, true, { door: doorNum, destination: dest.value });
+}
+
 function confirmRelease(doorId) {
   const t = state.trailers[doorId];
   if (!t) return;
+  // Trailers on the Auto door ask which door they're in and where they're going
+  // (CFF or yard) instead of the usual confirmation. With Slack messages turned
+  // off in App Settings there's nothing to ask for, so it releases like any other door.
+  if (isAutoDoor(state.doors.find(d => d.id === doorId)) && state.settings.slackReleaseEnabled !== false) { openAutoReleaseModal(doorId); return; }
   if (!isSlackEligible(t)) { proceedWithRelease(doorId, false); return; }
   const door = state.doors.find(d => d.id === doorId);
   const summary = `${t.carrier}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${door?.num || doorId}`;
@@ -6579,7 +6636,7 @@ function confirmBfRelease() {
   if (p) releaseTrailer(p.doorId, p.sendSlack);
 }
 
-function releaseTrailer(doorId, sendSlack = true) {
+function releaseTrailer(doorId, sendSlack = true, autoInfo = null) {
   const t = state.trailers[doorId];
   if (!t) return;
   const door = state.doors.find(d => d.id === doorId);
@@ -6609,12 +6666,12 @@ function releaseTrailer(doorId, sendSlack = true) {
   state.history.push(rec);
   state.completedToday.push(rec);
   delete state.trailers[doorId];
-  const salesSlot = checkSalesSideRelease(t.carrier, now);
+  const salesSlot = autoInfo ? null : checkSalesSideRelease(t.carrier, now);   // Auto door releases have their own destination, so they don't use up a Sales Side spot
   rec.salesSlotId = salesSlot ? salesSlot.id : null;
   saveHistoryRecordToFirebase(rec);
   deleteTrailerFromFirebase(doorId);
   clearDoorPing(doorId); // door is free again — clear any ready/empty flag from Door Status
-  const webhookFired = sendSlack ? sendReleaseSlackNotification(rec, salesSlot) : null;
+  const webhookFired = sendSlack ? (autoInfo ? sendAutoReleaseSlackNotification(rec, autoInfo) : sendReleaseSlackNotification(rec, salesSlot)) : null;
   saveState(); renderDoors(); renderExpectedTrailers();
   showReleaseBanner(webhookFired);
 }
@@ -6625,7 +6682,7 @@ const SLACK_RELEASE_WEBHOOK_URL = 'https://hooks.slack.com/triggers/T03K743FC/11
 // Dedicated webhook for testing in Sandbox Mode, so a tester clicking around
 // never posts real move/release notifications into the actual production
 // Slack channel. Every trailer-move-style send (release, move, junk skids
-// swap request, auto trailer ready) goes through getTrailerMoveWebhook()
+// swap request, Auto door release) goes through getTrailerMoveWebhook()
 // below instead of hardcoding SLACK_RELEASE_WEBHOOK_URL directly, so sandbox
 // mode transparently redirects all of them to this one webhook.
 const SANDBOX_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
@@ -6646,6 +6703,160 @@ function getTrailerMoveWebhook() {
 function escapeSlackText(str) {
   return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+// ===================== WEBHOOK MESSAGE WORDING =====================
+// Every Slack message the app sends is built from a wording template. The
+// defaults below are exactly what the app has always said. Anyone can change
+// them from App Settings → Webhook Message Wording; changes are stored in
+// state.settings.webhookMessages (only the ones that differ from the default),
+// next to the other shared settings. Only the WORDING lives here — the webhook
+// links and who gets the messages are unchanged.
+const WEBHOOK_TAG_HELP = {
+  carrier: 'Carrier name',
+  trailer: 'Trailer number (left out cleanly if there is none)',
+  door: 'Door number',
+  from: 'Where the trailer is coming from, like Door 12 or main yard',
+  to: 'Where the trailer is going, like Door 30 or main yard',
+  destination: 'The Sales Side door the trailer is headed to (like 21)',
+  date: "Today's date",
+  list: 'The list of trailers (each one is written using the trailer line below)'
+};
+const WEBHOOK_MESSAGE_DEFS = [
+  { key: 'move', title: 'Trailer Move', tags: ['carrier', 'trailer', 'from', 'to'],
+    when: 'Sent when a trailer is moved from one door to another and you choose to send the move request.',
+    def: 'Move {carrier} {trailer} in {from} to {to}' },
+  { key: 'release_yard', title: 'Drop Release: Ready for the Yard', tags: ['carrier', 'trailer', 'door'],
+    when: 'Sent when a DROP trailer is released and is ready to go back to the yard (the usual case).',
+    def: '{carrier} {trailer} in Door {door} ready for the yard' },
+  { key: 'release_door', title: 'Drop Release: XPO Ready for Sales Side Door', tags: ['carrier', 'trailer', 'door', 'destination'],
+    when: 'Sent instead of "Ready for the Yard" when an XPO trailer is released and fills its Sales Side spot (XPO has 1 per day, headed to door 21).',
+    def: '{carrier} {trailer} in Door {door} ready for door {destination}' },
+  { key: 'release_pitt', title: 'Drop Release: PITT Ready for 23/24', tags: ['carrier', 'trailer', 'door'],
+    when: 'Sent instead of "Ready for the Yard" when a PITT trailer is released and fills one of its 2 daily Sales Side spots (doors 23 and 24).',
+    def: '{carrier} {trailer} in Door {door} ready for 23/24' },
+  { key: 'rcs_swap', title: 'Junk Skids (RCS) Swap Request', tags: ['trailer', 'door'],
+    when: 'Sent when a Junk Skids (RCS) trailer is released, and when you use "Send move request & reset age timer" in the Junk Skids window.',
+    def: 'RCS {trailer} in Door {door} is ready to be swapped with an empty RCS trailer from the yard. Please reply with new RCS trailer #.' },
+  { key: 'auto_release', title: 'Auto Door Release', tags: ['door', 'carrier', 'trailer', 'destination'],
+    when: 'Sent when a trailer on the Auto door is released, using the door number and destination (CFF or yard) picked in the release window.',
+    tagHelp: { door: 'The door number typed in the release window (the door the trailer is in)', destination: 'Where it is going: CFF or yard, whichever was picked' },
+    sample: { door: '44', destination: 'CFF' },
+    def: 'M{door} Auto {carrier} {trailer} ready for the {destination}' },
+  { key: 'cff_layout', title: 'CFF Yard Storage Update: Message', tags: ['date', 'list'],
+    when: 'Sent by the CFF Yard Storage Update button. Each new line in this box is a new line in Slack.',
+    def: '{date}\n{list}' },
+  { key: 'cff_line', title: 'CFF Yard Storage Update: Each Trailer Line', tags: ['carrier', 'trailer'],
+    when: 'How each trailer in the list is written. If a trailer has no number, the dash is dropped automatically.',
+    def: '{carrier} - {trailer}' },
+  { key: 'cff_empty', title: 'CFF Yard Storage Update: Nothing in the Yard', tags: [],
+    when: 'Used in place of the list when there are no trailers in CFF Yard storage.',
+    def: 'No trailers currently in CFF Yard storage.' }
+];
+const WEBHOOK_SAMPLE = {
+  carrier: 'Ward', trailer: '123456', door: '44', from: 'Door 12', to: 'main yard', destination: '21',
+  get date() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
+  list: 'Ward - 123456\nPITT - 789012'
+};
+
+function webhookDef(key) { return WEBHOOK_MESSAGE_DEFS.find(d => d.key === key); }
+function webhookUnknownTags(key, tpl) {
+  const known = new Set(webhookDef(key).tags);
+  const found = (String(tpl).match(/\{[^{}]*\}/g) || []).map(t => t.slice(1, -1));
+  return [...new Set(found.filter(t => !known.has(t)))];
+}
+// The wording currently in use. A blank box or one with a misspelled / unknown tag
+// quietly falls back to the original wording, so a typo can never stop a message.
+function getWebhookTemplate(key) {
+  const custom = state.settings && state.settings.webhookMessages && state.settings.webhookMessages[key];
+  if (typeof custom !== 'string' || !custom.trim() || webhookUnknownTags(key, custom).length) return webhookDef(key).def;
+  return custom;
+}
+// Fills a template in. Empty values leave no double spaces behind (same as before
+// the wording became editable). tidyEnd also drops a dangling dash/colon at the end.
+function renderWebhookMessage(key, values, tidyEnd, tplOverride) {
+  const tpl = tplOverride != null ? tplOverride : getWebhookTemplate(key);
+  let out = String(tpl).replace(/\{(\w+)\}/g, (m, k) => (values[k] == null ? '' : String(values[k])));
+  out = out.replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+(\r?\n)/g, '$1').replace(/(\r?\n)[ \t]+/g, '$1');
+  if (tidyEnd) out = out.replace(/[\s\-–—:,|]+$/, '');
+  return out.trim();
+}
+
+// ---------- the settings page ----------
+function openWebhookMessagesModal() {
+  const saved = (state.settings && state.settings.webhookMessages) || {};
+  document.getElementById('wh-editor').innerHTML = WEBHOOK_MESSAGE_DEFS.map(d => {
+    const cur = (typeof saved[d.key] === 'string' && saved[d.key].trim()) ? saved[d.key] : d.def;
+    const chips = d.tags.length
+      ? d.tags.map(t => `<button type="button" class="btn btn-gray btn-sm" title="${escHtml((d.tagHelp && d.tagHelp[t]) || WEBHOOK_TAG_HELP[t])}" onclick="whInsertTag('${d.key}','${t}')">{${t}}</button>`).join(' ')
+      : '<span style="font-size:11px;color:#777;">No tags for this one — just type the wording.</span>';
+    return `<div style="margin:12px 0;padding:12px;background:#fff;border-radius:8px;border:1px solid #ccc;color:#000;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="font-weight:700;font-size:13px;">${escHtml(d.title)}</div>
+        <button type="button" class="btn btn-gray btn-sm" onclick="whReset('${d.key}')">Reset to default</button>
+      </div>
+      <div style="font-size:11px;color:#555;margin:2px 0 6px;">${escHtml(d.when)}</div>
+      <textarea id="wh-ta-${d.key}" rows="${d.key === 'cff_layout' ? 2 : 2}" autocomplete="off" spellcheck="false" oninput="whUpdate('${d.key}')" style="width:100%;box-sizing:border-box;padding:7px 9px;font-size:13px;font-family:'Segoe UI',Roboto,sans-serif;border:1px solid #b0b0b0;border-radius:6px;resize:vertical;color:#000;">${escHtml(cur)}</textarea>
+      <div style="margin:5px 0;font-size:11px;color:#555;">${d.tags.length ? 'Click a tag to add it where your cursor is: ' : ''}${chips}</div>
+      <div id="wh-warn-${d.key}" style="display:none;font-size:11px;font-weight:700;color:#c0392b;margin-bottom:4px;"></div>
+      <div style="font-size:10px;font-weight:700;color:#4a7a5a;text-transform:uppercase;letter-spacing:.5px;">Preview (sample details)</div>
+      <div id="wh-prev-${d.key}" style="margin-top:2px;background:#f0faf5;border:1px solid #b0d4c0;border-radius:6px;padding:6px 9px;font-size:12px;white-space:pre-wrap;color:#1a4731;"></div>
+    </div>`;
+  }).join('');
+  WEBHOOK_MESSAGE_DEFS.forEach(d => whUpdate(d.key));
+  closeModal('modal-app-settings');
+  document.getElementById('modal-webhook-messages').classList.add('open');
+}
+
+function whUpdate(key) {
+  const d = webhookDef(key), ta = document.getElementById('wh-ta-' + key);
+  const warn = document.getElementById('wh-warn-' + key), prev = document.getElementById('wh-prev-' + key);
+  const val = ta.value, unknown = webhookUnknownTags(key, val);
+  const sample = Object.assign({}, WEBHOOK_SAMPLE, d.sample || {});
+  if (unknown.length) {
+    warn.style.display = 'block';
+    warn.textContent = `Not a tag I know: ${unknown.map(t => '{' + t + '}').join(', ')}. Use only the tags shown above (curly brackets are only for tags). Until this is fixed, the original wording is used.`;
+    ta.style.borderColor = '#c0392b';
+    prev.textContent = renderWebhookMessage(key, sample, key === 'cff_line', d.def);
+  } else if (!val.trim()) {
+    warn.style.display = 'block';
+    warn.textContent = 'This box is blank, so the original wording will be used.';
+    ta.style.borderColor = '#e0a030';
+    prev.textContent = renderWebhookMessage(key, sample, key === 'cff_line', d.def);
+  } else {
+    warn.style.display = 'none';
+    ta.style.borderColor = '#b0b0b0';
+    prev.textContent = renderWebhookMessage(key, sample, key === 'cff_line', val);
+  }
+}
+function whInsertTag(key, tag) {
+  const ta = document.getElementById('wh-ta-' + key), s = ta.selectionStart == null ? ta.value.length : ta.selectionStart, e = ta.selectionEnd == null ? s : ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + '{' + tag + '}' + ta.value.slice(e);
+  const pos = s + tag.length + 2;
+  ta.focus(); ta.setSelectionRange(pos, pos);
+  whUpdate(key);
+}
+function whReset(key) {
+  document.getElementById('wh-ta-' + key).value = webhookDef(key).def;
+  whUpdate(key);
+}
+function saveWebhookMessages() {
+  const bad = WEBHOOK_MESSAGE_DEFS.find(d => webhookUnknownTags(d.key, document.getElementById('wh-ta-' + d.key).value).length);
+  if (bad) {
+    toast('Fix the highlighted tags first ✗', 'error');
+    document.getElementById('wh-ta-' + bad.key).scrollIntoView({ block: 'center' });
+    return;
+  }
+  const overrides = {};
+  WEBHOOK_MESSAGE_DEFS.forEach(d => {
+    const v = document.getElementById('wh-ta-' + d.key).value.replace(/\r/g, '').trim();
+    if (v && v !== d.def) overrides[d.key] = v;   // only keep what's different from the default
+  });
+  state.settings.webhookMessages = overrides;
+  saveState();
+  saveSettingsToFirebase();
+  closeModal('modal-webhook-messages');
+  toast('Webhook message wording saved ✓');
+}
+
 // Slack workflow webhook for the CFF Yard Storage Update button.
 const CFF_YARD_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
 const CFF_YARD_WEBHOOK_PAYLOAD_KEY = 'CFF_Storage_update';
@@ -6665,13 +6876,10 @@ function sendCFFYardStorageUpdate() {
     .sort((a, b) => a.door.num.localeCompare(b.door.num, undefined, { numeric: true }));
 
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const lines = [dateStr];
-  if (!rows.length) {
-    lines.push('No trailers currently in CFF Yard storage.');
-  } else {
-    rows.forEach(({ t }) => lines.push(`${t.carrier}${t.trailerNum ? ' - ' + t.trailerNum : ''}`));
-  }
-  const message = lines.join('\n');
+  const listText = rows.length
+    ? rows.map(({ t }) => renderWebhookMessage('cff_line', { carrier: t.carrier, trailer: t.trailerNum || '' }, true)).join('\n')
+    : renderWebhookMessage('cff_empty', {});
+  const message = renderWebhookMessage('cff_layout', { date: dateStr, list: listText });
 
   fetch(CFF_YARD_WEBHOOK_URL, {
     method: 'POST',
@@ -6803,17 +7011,13 @@ function sendReleaseSlackNotification(rec, salesSlot) {
 
   let message;
   if (rec.carrier === 'Junk Skids') {
-    message = ['RCS', rec.trailerNum || '', `in Door ${door} is ready to be swapped with an empty RCS trailer from the yard. Please reply with new RCS trailer #.`].filter(Boolean).join(' ');
+    message = renderWebhookMessage('rcs_swap', { trailer: rec.trailerNum || '', door });
+  } else if (salesSlot && rec.carrier === 'PITT') {
+    message = renderWebhookMessage('release_pitt', { carrier, trailer: rec.trailerNum || '', door });
+  } else if (salesSlot) {
+    message = renderWebhookMessage('release_door', { carrier, trailer: rec.trailerNum || '', door, destination: salesSlot.destDoor });
   } else {
-    let tail;
-    if (salesSlot && rec.carrier === 'PITT') {
-      tail = 'ready for 23/24';
-    } else if (salesSlot) {
-      tail = `ready for door ${salesSlot.destDoor}`;
-    } else {
-      tail = 'ready for the yard';
-    }
-    message = [carrier, rec.trailerNum || '', 'in', `Door ${door}`, tail].filter(Boolean).join(' ');
+    message = renderWebhookMessage('release_yard', { carrier, trailer: rec.trailerNum || '', door });
   }
 
   return fetch(wh.url, {
@@ -6822,6 +7026,20 @@ function sendReleaseSlackNotification(rec, salesSlot) {
     body: JSON.stringify({ [wh.key]: escapeSlackText(message) })
   }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
 }
+// Auto door release message — goes out through the same Slack link as every other trailer message.
+function sendAutoReleaseSlackNotification(rec, info) {
+  const wh = getTrailerMoveWebhook();
+  if (!wh.url) return null;
+  if (state.settings.slackReleaseEnabled === false) return null;
+  const carrier = WEBHOOK_CARRIER_ALIAS[rec.carrier] || rec.carrier || 'Trailer';
+  const message = renderWebhookMessage('auto_release', { door: info.door, carrier, trailer: rec.trailerNum || '', destination: info.destination });
+  return fetch(wh.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ [wh.key]: escapeSlackText(message) })
+  }).catch(err => { console.error('Slack webhook failed:', err); throw err; });
+}
+
 function completeTrailer(doorId) {
   const t = state.trailers[doorId];
   if (!t) return;
@@ -10200,29 +10418,6 @@ function buildEditOverlay(doorId) {
       </div>
       <div class="edit-drag-hint">☰ Drag to reorder</div>
     </div>`;
-}
-
-function openAutoReadyModal() {
-  document.getElementById('ar-door').value = '';
-  document.getElementById('ar-trailer').value = '';
-  document.getElementById('modal-auto-ready').classList.add('open');
-}
-
-function sendAutoReadyMessage() {
-  const door = document.getElementById('ar-door').value.trim();
-  const trailerNum = document.getElementById('ar-trailer').value.trim();
-  if (!door) { toast('Enter a door number ✗'); return; }
-  const wh = getTrailerMoveWebhook();
-  if (wh.url) {
-    const message = ['Craig', trailerNum || '', `in Door ${door} is ready for the yard.`].filter(Boolean).join(' ');
-    fetch(wh.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ [wh.key]: escapeSlackText(message) })
-    }).catch(err => console.error('Slack webhook failed:', err));
-  }
-  closeModal('modal-auto-ready');
-  toast('Request sent ✓');
 }
 
 function openDoorLayoutModal(doorId) {
