@@ -1085,6 +1085,28 @@
   .size-slider-row input[type=range] { flex: 1; }
   .size-slider-row span { min-width: 36px; font-size: 12px; color: var(--yellow); font-weight: 700; }
 
+  /* DASHBOARD SUB-TABS + CARRIER STATISTICS CONTROLS
+     (the report itself is styled by CS_REPORT_CSS in the script, so the same
+     styles are used on screen and in the print window) */
+  .dash-subtabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .dash-subtab { font-size: 13px; padding: 7px 18px; letter-spacing: 0.3px; }
+  /* Selected sub-tab / date-range choice — forest green like the Wall Clock toggle and webhook buttons.
+     Needs !important + the doubled selector to beat the app-wide uniform grey button rule. */
+  button.btn.btn-selected { background: linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%) !important; color: #fff !important; border-color: #0d3b28 !important; text-shadow: 0 1px 2px rgba(0,0,0,0.45) !important; }
+  .cs-controls { display: flex; gap: 22px; flex-wrap: wrap; padding: 12px 14px; align-items: flex-start; }
+  .cs-ctl-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .cs-ctl-label { font-size: 11px; font-weight: 700; color: #2d6b4a; text-transform: uppercase; letter-spacing: 0.5px; }
+  .cs-carrier-box { background: #f5faf7; border: 1px solid #b0d4c0; border-radius: 6px; padding: 8px 10px; max-height: 220px; overflow: auto; box-shadow: inset 0 2px 3px rgba(0,0,0,0.06); }
+  .cs-chk { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #1a4731; cursor: pointer; padding: 2px 0; }
+  .cs-chk input { width: 14px; height: 14px; cursor: pointer; }
+  .cs-chk-all { border-bottom: 1px solid #c8ddd4; padding-bottom: 5px; margin-bottom: 4px; font-weight: 800; }
+  .cs-chk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); column-gap: 10px; }
+  .cs-chk-grid.cs-dim { opacity: 0.55; }
+  .cs-chk-group { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; padding: 7px 0 2px; margin-top: 4px; border-bottom: 1px solid #c8ddd4; }
+  .cs-chk-none { font-size: 12px; font-style: italic; color: #4a7a5a; padding: 8px 2px 4px; }
+  .cs-input { background: #f5faf7; border: 1px solid #b0d4c0; border-radius: 6px; padding: 6px 10px; color: #1a4731; font-size: 12px; font-weight: 600; outline: none; box-shadow: inset 0 2px 3px rgba(0,0,0,0.06); }
+  .cs-blank { max-width: 7.7in; margin: 0; background: #fff; border: 1px dashed #9db8a8; border-radius: 10px; padding: 46px 20px; text-align: center; color: #2d6b4a; font-size: 14px; font-weight: 700; line-height: 1.7; }
+
   /* UTILITIES */
   .flex-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .mt8 { margin-top: 8px; }
@@ -1871,8 +1893,8 @@
     <select id="history-door-filter" onchange="renderHistory()" style="background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:6px 10px;color:#1a4731;font-size:12px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
       <option value="">All Doors</option>
     </select>
-    <button class="btn btn-gray btn-sm" onclick="loadEntireHistoryManual()">Load Full History</button>
-    <button class="btn btn-gray btn-sm" onclick="exportHistory()">Export CSV</button>
+    <button class="btn btn-gray btn-sm" onclick="exportHistory()" title="Exports the entire history, ignoring the filters">Export CSV</button>
+    <button class="btn btn-gray btn-sm" onclick="exportFilteredHistory()" title="Exports only the completed history rows currently showing, based on the filters and date range">Export Filtered CSV</button>
     <button class="btn btn-blue btn-sm" onclick="document.getElementById('history-import-input').click()">Import CSV</button>
     <input type="file" id="history-import-input" accept=".csv" style="display:none;" onchange="importHistoryCSV(this)">
     <button class="btn btn-gray btn-sm" onclick="repairOldHistoryRecords()" title="Fills in Secure Time from the original arrival time on any old record that's missing both Received and Secured">Repair Old Records</button>
@@ -1911,6 +1933,13 @@
 
 <!-- DASHBOARD TAB -->
 <div id="tab-dashboard" class="tab-content">
+  <div class="dash-subtabs" id="dash-subtabs">
+    <button class="btn btn-gray dash-subtab btn-selected" data-view="daily" onclick="switchDashView('daily')">Daily Dashboard</button>
+    <button class="btn btn-gray dash-subtab" data-view="carrier" onclick="switchDashView('carrier')">Carrier Statistics</button>
+  </div>
+
+  <!-- DAILY DASHBOARD (the original dashboard view) -->
+  <div id="dash-view-daily">
   <div class="flex-row" style="margin-bottom:6px;justify-content:space-between;">
     <div class="flex-row">
       <button class="btn btn-gray btn-sm" onclick="shiftDashDate(-1)">◀ Prev</button>
@@ -1943,6 +1972,56 @@
     </table>
     <div class="empty-state" id="dash-detail-empty">No trailers released on this day.</div>
   </div>
+  </div><!-- /dash-view-daily -->
+
+  <!-- CARRIER STATISTICS (blank until Pull Data) -->
+  <div id="dash-view-carrier" style="display:none;">
+    <div class="sidebar-panel" style="max-width:7.7in;">
+      <div class="sidebar-panel-header">
+        <span class="sidebar-panel-title">Carrier Statistics</span>
+        <span style="font-size:10px;color:#c9d6cf;font-style:italic;">Nothing loads until you click Pull Data</span>
+      </div>
+      <div class="sidebar-panel-body cs-controls">
+        <div class="cs-ctl-col" style="flex:1 1 300px;">
+          <div class="cs-ctl-label">Carriers <span id="cs-carrier-count" style="text-transform:none;font-weight:600;color:#4a7a5a;margin-left:6px;"></span></div>
+          <input type="search" autocomplete="off" id="cs-carrier-filter" class="cs-input" placeholder="Type to filter carriers..." oninput="csRenderCarrierBox()">
+          <div class="cs-carrier-box" id="cs-carrier-box"></div>
+        </div>
+        <div class="cs-ctl-col" style="flex:1 1 300px;">
+          <div class="cs-ctl-label">Date range</div>
+          <div class="flex-row" id="cs-range-btns" style="gap:6px;">
+            <button class="btn btn-sm btn-gray cs-range-btn btn-selected" data-range="30" onclick="csSetRange('30')">Last 30 Days</button>
+            <button class="btn btn-sm btn-gray cs-range-btn" data-range="60" onclick="csSetRange('60')">Last 60 Days</button>
+            <button class="btn btn-sm btn-gray cs-range-btn" data-range="90" onclick="csSetRange('90')">Last 90 Days</button>
+            <button class="btn btn-sm btn-gray cs-range-btn" data-range="all" onclick="csSetRange('all')">All Records</button>
+            <button class="btn btn-sm btn-gray cs-range-btn" data-range="custom" onclick="csSetRange('custom')">Custom</button>
+          </div>
+          <div class="flex-row" id="cs-custom-range" style="display:none;gap:6px;">
+            <span class="cs-ctl-label">From</span>
+            <input type="date" autocomplete="off" id="cs-from" class="cs-input" onchange="csMarkStale()">
+            <span class="cs-ctl-label">To</span>
+            <input type="date" autocomplete="off" id="cs-to" class="cs-input" onchange="csMarkStale()">
+          </div>
+          <div class="cs-ctl-label" style="margin-top:6px;">Live goal time <span style="text-transform:none;font-weight:600;color:#4a7a5a;">(Live loads only — Drop loads have no goal. Clear it to leave the goal out)</span></div>
+          <input type="time" autocomplete="off" id="cs-goal" class="cs-input" value="11:30" style="width:130px;" onchange="csMarkStale()">
+          <div class="flex-row" style="margin-top:8px;">
+            <button class="btn btn-gray" id="cs-pull-btn" onclick="csPullData()" style="padding:7px 22px;font-size:13px;">Pull Data</button>
+            <button class="btn btn-gray btn-sm" onclick="csClear()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cs-toolbar" class="flex-row" style="display:none;max-width:7.7in;margin:0 0 8px;justify-content:space-between;">
+      <span style="font-size:11px;font-style:italic;color:#000;">Laid out for 8.5 x 11 portrait. The full load lists don't show here, but they are included when you print or save. <span id="cs-stale-note" style="display:none;color:#c0392b;font-weight:700;font-style:normal;">Filters changed — click Pull Data to refresh.</span></span>
+      <div class="flex-row">
+        <button class="btn btn-gray btn-sm" onclick="csOpenPrintWindow('print')">Print</button>
+        <button class="btn btn-gray btn-sm" onclick="csOpenPrintWindow('pdf')">Save as PDF</button>
+      </div>
+    </div>
+
+    <div id="cs-report-wrap"></div>
+  </div><!-- /dash-view-carrier -->
 </div>
 
 <!-- OPERATIONAL UPDATES TAB -->
@@ -3909,6 +3988,600 @@ function exportDashboardCSV() {
   URL.revokeObjectURL(url);
 }
 
+// ===================== CARRIER STATISTICS (Dashboard sub-tab) =====================
+// A second view on the Dashboard tab. It stays blank until the user picks
+// carriers + a date range and clicks Pull Data. It reads history straight from
+// Firestore into its own list (_csData) and never touches state.history, so the
+// History tab and the Daily Dashboard keep whatever range they had loaded.
+let _dashSubView = 'daily';
+let _csRange = '30';
+let _csAllCarriers = true;
+let _csSelected = new Set();
+let _csData = null;
+let _csBusy = false;
+
+const CS_MIN_VALID = 2;           // minutes; shorter secured→released is treated as an entry mistake
+const CS_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CS_DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const CS_DAY = 864e5;
+
+// Styles for the report itself. Used on screen AND inside the print window, so
+// what you see in the tab is what comes out on 8.5 x 11 portrait (7.7in wide
+// once the 0.4in page margins are taken off).
+const CS_REPORT_CSS = `
+.cs-report{max-width:7.7in;margin:0 auto;font-family:Roboto,'Segoe UI',Arial,sans-serif;color:#1a4731;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cs-report.cs-screen{margin:0}
+.cs-report *{box-sizing:border-box}
+.cs-report h1,.cs-report p{margin:0}
+.cs-titlebar{background:linear-gradient(180deg,#c8c8c8 0%,#a8a8a8 50%,#989898 100%);border:1px solid #888;border-bottom:3px solid #27b589;border-radius:8px;padding:8px 12px;margin-bottom:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.6);break-inside:avoid}
+.cs-titlebar h1{font-family:'Roboto Condensed','Arial Narrow',Arial,sans-serif;font-size:22px;color:#1a4731;letter-spacing:.3px}
+.cs-meta{font-size:11px;color:#1f2f24;margin-top:2px;line-height:1.5}
+.cs-meta b{color:#1a4731}
+.cs-kpis{display:grid;gap:8px;margin-bottom:10px}
+.cs-kpi{background:#fff;border:1px solid #c8ddd4;border-left:5px solid #27b589;border-radius:8px;padding:7px 9px;min-width:0;overflow:hidden;break-inside:avoid;box-shadow:0 2px 4px rgba(0,0,0,.18)}
+.cs-kpi.amber{border-left-color:#e0a030}
+.cs-kpi.red{border-left-color:#c0453a}
+.cs-kpi .lbl{font-family:'Roboto Condensed','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#4a7a5a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-kpi .val{font-family:'Roboto Condensed','Arial Narrow',Arial,sans-serif;font-size:22px;font-weight:700;line-height:1.15;color:#1a4731;margin:1px 0;white-space:nowrap}
+.cs-kpi .val.sm{font-size:15px;padding:4px 0}
+.cs-kpi .val small{font-size:12px;font-weight:400}
+.cs-kpi .sub{font-size:9.5px;color:#4a6a58;min-height:2.7em;line-height:1.3}
+.cs-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:10px}
+.cs-grid2 .cs-panel{margin-bottom:0}
+.cs-panel{background:#fff;border-radius:10px;margin-bottom:10px;overflow:hidden;border:1px solid #b0d4c0;box-shadow:0 3px 6px rgba(0,0,0,.28);break-inside:avoid}
+.cs-panel.cs-breakable{break-inside:auto}
+.cs-panel-head{background:linear-gradient(180deg,#3a7a5a 0%,#2a6045 60%,#1a4731 100%);padding:6px 10px;border-bottom:2px solid #27b589;break-after:avoid}
+.cs-panel-title{display:inline-block;font-size:11px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:.8px;background:linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%);padding:3px 9px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.6)}
+.cs-panel-body{padding:8px 10px}
+.cs-keep-next{break-after:avoid}
+/* first carrier follows the summary on page 1; every carrier after that starts a fresh page */
+.cs-carrier-sec + .cs-carrier-sec{break-before:page}
+.cs-screen .cs-carrier-sec{margin-top:22px}
+.cs-carrier-bar{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,#3a7a5a 0%,#2a6045 60%,#1a4731 100%);border-bottom:3px solid #27b589;border-radius:8px;padding:7px 12px;margin-bottom:10px;break-after:avoid;box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.cs-carrier-name{font-family:'Roboto Condensed','Arial Narrow',Arial,sans-serif;font-size:17px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:.8px;background:linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%);padding:3px 12px;border-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.6)}
+.cs-carrier-count{font-size:12px;font-weight:700;color:#e4f3ea}
+.cs-panel-sub{font-size:10.5px;color:#4a6a58;margin:0 0 4px;line-height:1.35;min-height:2.7em}
+.cs-report svg{width:100%;height:auto;display:block}
+.cs-report svg text{font-family:Roboto,'Segoe UI',Arial,sans-serif;fill:#44525b;font-size:12px}
+.cs-report svg.cs-fs13 text{font-size:13px}
+.cs-legend{display:flex;gap:12px;font-size:10px;color:#4a6a58;margin-top:2px;flex-wrap:wrap}
+.cs-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.cs-legend i.ln{border-radius:0;height:3px;width:16px;vertical-align:3px}
+.cs-report table{width:100%;border-collapse:collapse;font-size:11px}
+.cs-report th{position:relative;z-index:0;text-align:left;padding:6px 7px;background:linear-gradient(180deg,#3a7a5a 0%,#2a6045 60%,#1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid #27b589;white-space:nowrap}
+.cs-report th::before{content:'';position:absolute;inset:3px 2px;background:linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.6);z-index:-1}
+.cs-report td{padding:4px 7px;border-bottom:1px solid #e0eeea;background:#fff;color:#1a4731;vertical-align:middle}
+.cs-report tbody tr:nth-child(even) td{background:#f5faf7}
+.cs-report tr:last-child td{border-bottom:none}
+.cs-report thead{display:table-header-group}
+.cs-report tr{break-inside:avoid}
+.cs-report .c{text-align:center}
+.cs-report .cs-late{color:#c0453a;font-weight:700}
+.cs-note{background:#eef5f0;border:1px solid #c8ddd4;border-radius:8px;padding:8px 12px;font-size:9.5px;line-height:1.5;color:#2d4a3a;break-inside:avoid}
+.cs-empty{padding:24px;text-align:center;color:#4a7a5a;font-size:12px;font-weight:600}
+.cs-screen .cs-scroll{max-height:440px;overflow:auto}
+`;
+
+function csInjectStyle() {
+  if (document.getElementById('cs-report-style')) return;
+  const st = document.createElement('style');
+  st.id = 'cs-report-style';
+  st.textContent = CS_REPORT_CSS;
+  document.head.appendChild(st);
+}
+
+// ---------- sub-tab switching ----------
+function switchDashView(view) {
+  _dashSubView = view;
+  document.getElementById('dash-view-daily').style.display = view === 'daily' ? '' : 'none';
+  document.getElementById('dash-view-carrier').style.display = view === 'carrier' ? '' : 'none';
+  document.querySelectorAll('#dash-subtabs .dash-subtab').forEach(b => {
+    const on = b.dataset.view === view;
+    b.classList.toggle('btn-selected', on);
+  });
+  if (view === 'daily') { renderDashboardGrid(); renderDashboard(); }
+  else csInitControls();
+}
+
+// ---------- date helpers (plain local YYYY-MM-DD keys, same as the rest of the app) ----------
+function csAddDays(key, n) {
+  const d = new Date(key + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  const pad = x => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function csKeyToDayMs(key) { const [y, m, d] = key.split('-').map(Number); return Date.UTC(y, m - 1, d); }
+function csDaysBetween(a, b) { return Math.round((csKeyToDayMs(b) - csKeyToDayMs(a)) / CS_DAY); }
+
+// ---------- controls ----------
+function csInitControls() {
+  csInjectStyle();
+  csRenderCarrierBox();
+  const from = document.getElementById('cs-from'), to = document.getElementById('cs-to');
+  if (from && !from.value) from.value = csAddDays(todayStr(), -29);
+  if (to && !to.value) to.value = todayStr();
+  csUpdateRangeButtons();
+  csRenderReport();
+}
+
+// Same grouping the Carriers tab uses: Drop (including LTL), Live, then everything else.
+function csCarrierGroup(c) { return (c.type === 'DROP' || c.type === 'LTL') ? 'drop' : c.type === 'LIVE' ? 'live' : 'other'; }
+
+function csRenderCarrierBox() {
+  const box = document.getElementById('cs-carrier-box');
+  if (!box) return;
+  const q = ((document.getElementById('cs-carrier-filter') || {}).value || '').trim().toLowerCase();
+  const groups = { drop: [], live: [], other: [] }, seen = new Set();
+  state.carriers.forEach(c => { if (c.name && !seen.has(c.name)) { seen.add(c.name); groups[csCarrierGroup(c)].push(c.name); } });
+  _csSelected.forEach(n => { if (!seen.has(n)) _csSelected.delete(n); });
+  let html = `<label class="cs-chk cs-chk-all"><input type="checkbox" ${_csAllCarriers ? 'checked' : ''} onchange="csToggleAll(this.checked)"> All Carriers</label>`;
+  let shown = 0;
+  [['drop', 'Drop Carriers', '#1f5fa8'], ['live', 'Live Carriers', '#b8620f'], ['other', 'Other', '#5a6b62']].forEach(([key, label, color]) => {
+    const list = groups[key].sort((a, b) => a.localeCompare(b)).filter(n => !q || n.toLowerCase().includes(q));
+    if (!list.length) return;
+    shown += list.length;
+    html += `<div class="cs-chk-group" style="color:${color};">${label}</div><div class="cs-chk-grid${_csAllCarriers ? ' cs-dim' : ''}">` +
+      list.map(n => `<label class="cs-chk"><input type="checkbox" data-name="${escHtml(n)}" ${(!_csAllCarriers && _csSelected.has(n)) ? 'checked' : ''} onchange="csToggleCarrier(this)"> ${escHtml(n)}</label>`).join('') + `</div>`;
+  });
+  if (!shown) html += `<div class="cs-chk-none">No carriers match “${escHtml(q)}”.</div>`;
+  box.innerHTML = html;
+  const cnt = document.getElementById('cs-carrier-count');
+  if (cnt) cnt.textContent = _csAllCarriers ? 'All carriers' : (_csSelected.size ? `${_csSelected.size} selected` : 'None selected');
+}
+function csToggleAll(checked) {
+  _csAllCarriers = checked;
+  if (checked) _csSelected.clear();
+  csRenderCarrierBox();
+  csMarkStale();
+}
+function csToggleCarrier(el) {
+  const n = el.dataset.name;
+  if (el.checked) { _csAllCarriers = false; _csSelected.add(n); } else { _csSelected.delete(n); }
+  csRenderCarrierBox();
+  csMarkStale();
+}
+function csSetRange(r) {
+  _csRange = r;
+  csUpdateRangeButtons();
+  csMarkStale();
+}
+function csUpdateRangeButtons() {
+  document.querySelectorAll('#cs-range-btns .cs-range-btn').forEach(b => {
+    const on = b.dataset.range === _csRange;
+    b.classList.toggle('btn-selected', on);
+  });
+  const cust = document.getElementById('cs-custom-range');
+  if (cust) cust.style.display = _csRange === 'custom' ? 'flex' : 'none';
+}
+function csMarkStale() {
+  const el = document.getElementById('cs-stale-note');
+  if (el) el.style.display = _csData ? 'inline' : 'none';
+}
+function csGoalMinutes() {
+  const v = (document.getElementById('cs-goal') || {}).value;
+  if (!v) return null;
+  const [h, m] = v.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function csResolveRange() {
+  if (_csRange === 'all') return { label: 'All Records', start: null, end: null, priorStart: null, priorEnd: null, fetchFrom: null };
+  let start, end, label;
+  if (_csRange === 'custom') {
+    start = document.getElementById('cs-from').value;
+    end = document.getElementById('cs-to').value;
+    if (!start || !end) return { error: 'Pick both a From and a To date' };
+    if (start > end) return { error: 'The From date must be before the To date' };
+    label = 'Custom Range';
+  } else {
+    const n = +_csRange;
+    end = todayStr();
+    start = csAddDays(end, -(n - 1));   // last N days, counting today
+    label = `Last ${n} Days`;
+  }
+  // The "prior period" is the same number of days directly before the range,
+  // used for the up/down comparison lines on the summary cards.
+  const len = csDaysBetween(start, end) + 1;
+  const priorEnd = csAddDays(start, -1), priorStart = csAddDays(start, -len);
+  return { label, start, end, priorStart, priorEnd, fetchFrom: priorStart };
+}
+
+// ---------- pulling the data ----------
+// The history "date" field is the day a trailer was released, and a trailer is
+// always released on/after the day it was secured, so asking Firestore for
+// date >= (start of the period we need) can't miss anything. The exact
+// secured-day filtering happens afterwards in csBuildDataset.
+async function csFetchRecords(fromKey) {
+  if (!window._fbReady || !getDb()) {
+    toast('Not connected — using only the history already loaded on this device', 'error');
+    return state.history.slice();
+  }
+  try {
+    const { getDocs, collection, query, where } = fb();
+    const col = collection(getDb(), 'history');
+    const snap = await getDocs(fromKey ? query(col, where('date', '>=', fromKey)) : col);
+    const out = [];
+    snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+    return out;
+  } catch (e) {
+    console.error('Carrier Statistics fetch failed:', e);
+    toast('Could not load history — try again', 'error');
+    return null;
+  }
+}
+
+function csMakeRow(r, sec, rel) {
+  const mk = d => d ? { ms: d.getTime(), dayMs: Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()), min: d.getHours() * 60 + d.getMinutes() } : null;
+  const s = mk(sec), l = mk(rel);
+  const dur = rel ? (rel - sec) / 60000 : null;
+  const carrierObj = state.carriers.find(c => c.name === r.carrier);
+  const live = (r.type || (carrierObj && carrierObj.type) || '') === 'LIVE';
+  return {
+    live, carrier: r.carrier || '—', door: r.door || r.doorId || '', trailer: r.trailerNum || '', type: r.type || '',
+    ms: s.ms, dayMs: s.dayMs, arrMin: s.min, dayKey: dashDateKey(sec), dow: CS_DOW[sec.getDay()],
+    relDayMs: l ? l.dayMs : null, relMin: l ? l.min : null,
+    dur, valid: dur != null && dur >= CS_MIN_VALID
+  };
+}
+
+function csBuildDataset(recs, carrierNames, range, goal) {
+  const nameSet = carrierNames ? new Set(carrierNames) : null;
+  const all = [];
+  let skipped = 0, noRelease = 0;
+  const today = todayStr();
+  const inRange = r => (!range.start || r.dayKey >= range.start) && (!range.end || r.dayKey <= range.end);
+  recs.forEach(r => {
+    if (r.didNotReceive) return;
+    if (nameSet && !nameSet.has(r.carrier)) return;
+    // A load counts from its Secured time — the moment it went onto an operational
+    // door. A trailer that was only Received (e.g. into a yard door) and never moved
+    // onto one has no Secured time, so it is left out. Older records from before
+    // Received/Secured were split (no Received time at all) use their arrival time.
+    const securedRaw = r.secured || r.securedAt || ((r.received || r.receivedAt) ? null : r.arrival);
+    const sec = parseFlexDate(securedRaw);
+    if (!sec) {
+      // only mention it in the report if it was released inside the range being shown
+      if (!range.start || (r.date >= range.start && r.date <= range.end)) skipped++;
+      return;
+    }
+    const row = csMakeRow(r, sec, parseFlexDate(r.released || r.completed));
+    // No release time on a record from an earlier day = an unfinished leftover record
+    // (most likely from the early days of the tool), not a real load. Today's are kept,
+    // since a trailer may still be sitting on the door.
+    if (row.dur == null && row.dayKey < today) { if (inRange(row)) noRelease++; return; }
+    all.push(row);
+  });
+  const rows = all.filter(inRange).sort((a, b) => a.ms - b.ms);
+  const prior = range.priorStart ? all.filter(r => r.dayKey >= range.priorStart && r.dayKey <= range.priorEnd) : [];
+  return { rows, prior, carriers: carrierNames, range, goal, skipped, noRelease, generated: new Date() };
+}
+
+async function csPullData() {
+  if (_csBusy) return;
+  const carriers = _csAllCarriers ? null : [..._csSelected];
+  if (carriers && !carriers.length) { toast('Pick at least one carrier, or choose All Carriers', 'error'); return; }
+  const range = csResolveRange();
+  if (range.error) { toast(range.error, 'error'); return; }
+  const goal = csGoalMinutes();
+
+  _csBusy = true;
+  const btn = document.getElementById('cs-pull-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  document.getElementById('cs-toolbar').style.display = 'none';
+  document.getElementById('cs-report-wrap').innerHTML = '<div class="cs-blank">Loading history…</div>';
+  try {
+    const recs = await csFetchRecords(range.fetchFrom);
+    if (recs === null) { _csData = null; csRenderReport(); return; }
+    _csData = csBuildDataset(recs, carriers, range, goal);
+    csRenderReport();
+    if (!_csData.rows.length) toast('No loads found for those filters', 'error');
+  } finally {
+    _csBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Pull Data'; }
+  }
+}
+
+function csClear() {
+  _csData = null;
+  csRenderReport();
+}
+
+function csRenderReport() {
+  csInjectStyle();
+  const wrap = document.getElementById('cs-report-wrap');
+  const bar = document.getElementById('cs-toolbar');
+  if (!wrap || !bar) return;
+  if (!_csData) {
+    bar.style.display = 'none';
+    wrap.innerHTML = '<div class="cs-blank">Carrier Statistics is blank until you pull data.<br><span style="font-weight:400;">Choose your carriers and a date range above, then click <b>Pull Data</b>.</span></div>';
+    return;
+  }
+  bar.style.display = _csData.rows.length ? 'flex' : 'none';
+  const stale = document.getElementById('cs-stale-note');
+  if (stale) stale.style.display = 'none';
+  wrap.innerHTML = csBuildReportHtml(_csData, true);
+}
+
+// ---------- small formatters / math ----------
+function csFmtTime(min) { min = Math.round(min); let h = Math.floor(min / 60) % 24; const m = min % 60; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + String(m).padStart(2, '0') + ' ' + ap; }
+function csFmtHour(min) { const h = Math.floor(min / 60) % 24; return ((h % 12) || 12) + ' ' + (h >= 12 ? 'PM' : 'AM'); }
+function csFmtDur(m) {
+  const t = Math.round(m);
+  if (t < 60) return t + ' min';
+  if (t < 48 * 60) return Math.floor(t / 60) + 'h ' + String(t % 60).padStart(2, '0') + 'm';
+  return (m / 1440).toFixed(1) + ' days';
+}
+function csFmtDay(ms, withYear) { const d = new Date(ms); return CS_MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() + (withYear ? ', ' + d.getUTCFullYear() : ''); }
+function csMedian(a) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; }
+function csMin(a) { let m = Infinity; for (const v of a) if (v < m) m = v; return m; }
+function csMax(a) { let m = -Infinity; for (const v of a) if (v > m) m = v; return m; }
+function csNiceStep(max, steps, target = 5) { for (const s of steps) { if (max / s <= target) return s; } return steps[steps.length - 1]; }
+function csStats(rows, goal) {
+  const v = rows.filter(r => r.valid), a = rows.map(r => r.arrMin);
+  return { n: rows.length, arr: csMedian(a), min: csMin(a), max: csMax(a), unl: csMedian(v.map(r => r.dur)), nValid: v.length, nLive: rows.filter(r => r.live).length, late: goal == null ? 0 : rows.filter(r => r.live && r.arrMin > goal).length };
+}
+function csCmpTime(cur, prev) { if (cur == null || prev == null) return ''; const d = Math.round(cur - prev); if (Math.abs(d) < 2) return 'about the same as the prior period'; return Math.abs(d) + ' min ' + (d < 0 ? 'earlier' : 'later') + ' than the prior period'; }
+function csCmpDur(cur, prev) { if (cur == null || prev == null) return ''; const d = cur - prev; if (Math.abs(d) < 2) return 'about the same as the prior period'; return csFmtDur(Math.abs(d)) + ' ' + (d < 0 ? 'faster' : 'slower') + ' than the prior period'; }
+
+// ---------- charts (return SVG strings) ----------
+function csBarChart({ cats, vals, vline, yLabel, W = 480 }) {
+  const H = 250, m = { l: 38, r: 12, t: 42, b: 40 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const maxT = Math.max(1, csMax(vals)), step = csNiceStep(maxT, [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]), yMax = Math.ceil(maxT / step) * step;
+  const bw = iw / cats.length, y = v => m.t + ih - (v / yMax) * ih;
+  let s = `<svg class="cs-fs13" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escHtml(yLabel || 'chart')}">`;
+  for (let v = 0; v <= yMax; v += step) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="#c8ddd4"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  cats.forEach((c, i) => {
+    const v = vals[i];
+    if (v) {
+      s += `<rect x="${m.l + i * bw + bw * .12}" y="${y(v)}" width="${bw * .76}" height="${y(0) - y(v)}" fill="#1d8c6a" rx="2"><title>${escHtml(c.label)}: ${v}</title></rect>`;
+      s += `<text x="${m.l + i * bw + bw / 2}" y="${y(v) - 4}" text-anchor="middle" style="font-weight:700">${v}</text>`;
+    }
+    if (c.show) s += `<text x="${m.l + i * bw}" y="${H - m.b + 16}">${escHtml(c.label)}</text>`;
+  });
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}" stroke="#44525b"/>`;
+  if (vline) {
+    const x = m.l + vline.pos * bw, right = x > W * 0.65;
+    s += `<line x1="${x}" x2="${x}" y1="20" y2="${y(0)}" stroke="#c0453a" stroke-width="2" stroke-dasharray="5 4"/><text x="${right ? x - 5 : x + 5}" y="15" text-anchor="${right ? 'end' : 'start'}" style="fill:#c0453a;font-weight:700">${escHtml(vline.label)}</text>`;
+  }
+  if (yLabel) s += `<text x="${m.l}" y="${H - 6}">${escHtml(yLabel)}</text>`;
+  return s + '</svg>';
+}
+
+// Dot chart with an optional straight-line trend. Returns { svg, slope } where
+// slope is the trend's change per week in the y units (or null if too few dots).
+function csScatter({ pts, xMin, xMax, yMin, yMax, yStep, yFmt, trend, goal, W = 700, H = 290, fs13 = false }) {
+  const m = { l: 62, r: 16, t: 14, b: 34 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x = v => m.l + (v - xMin) / (xMax - xMin) * iw, y = v => m.t + ih - (v - yMin) / (yMax - yMin) * ih;
+  let s = `<svg class="${fs13 ? 'cs-fs13' : 'cs-fs12'}" viewBox="0 0 ${W} ${H}" role="img">`;
+  for (let v = yMin; v <= yMax; v += yStep) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="#c8ddd4"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${yFmt(v)}</text>`;
+  const span = (xMax - xMin) / CS_DAY, withYear = span > 330;
+  const tstep = span <= 35 ? 7 : span <= 70 ? 14 : span <= 150 ? 28 : span <= 330 ? 56 : span <= 800 ? 91 : 182;
+  for (let d = 0; d <= span; d += tstep) {
+    const v = xMin + d * CS_DAY;
+    s += `<line x1="${x(v)}" x2="${x(v)}" y1="${m.t}" y2="${m.t + ih}" stroke="#dbe7e0"/><text x="${x(v)}" y="${H - m.b + 16}" text-anchor="middle">${withYear ? CS_MONTHS[new Date(v).getUTCMonth()] + " '" + String(new Date(v).getUTCFullYear()).slice(2) : csFmtDay(v)}</text>`;
+  }
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(yMin)}" y2="${y(yMin)}" stroke="#44525b"/>`;
+  let slope = null;
+  if (trend && pts.length >= 5) {
+    const xs = pts.map(p => p.x / CS_DAY), ys = pts.map(p => p.y), mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
+    let num = 0, den = 0;
+    xs.forEach((v, i) => { num += (v - mx) * (ys[i] - my); den += (v - mx) ** 2; });
+    if (den > 0) {
+      const b = num / den, a = my - b * mx;
+      slope = b * 7;
+      const y1 = a + b * xMin / CS_DAY, y2 = a + b * xMax / CS_DAY;
+      s += `<line x1="${x(xMin)}" y1="${y(Math.max(yMin, Math.min(yMax, y1)))}" x2="${x(xMax)}" y2="${y(Math.max(yMin, Math.min(yMax, y2)))}" stroke="#2c3a42" stroke-width="2.5" stroke-dasharray="7 5"/>`;
+    }
+  }
+  const goalOn = goal && goal.y >= yMin && goal.y <= yMax;
+  if (goalOn) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(goal.y)}" y2="${y(goal.y)}" stroke="#c0453a" stroke-width="2.5"/>`;
+  const rad = pts.length > 600 ? 2.5 : pts.length > 150 ? 3.5 : 5;
+  pts.forEach(p => { s += `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="${rad}" fill="${p.color}" stroke="#fff" stroke-width="1.2"><title>${escHtml(p.tip)}</title></circle>`; });
+  // goal label goes on top of the dots, with a white outline so it stays readable
+  if (goalOn) s += `<text x="${W - m.r - 4}" y="${y(goal.y) - 7}" text-anchor="end" style="fill:#c0453a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">${escHtml(goal.label)}</text>`;
+  return { svg: s + '</svg>', slope };
+}
+
+// ---------- the report ----------
+function csCarrierText(data, short) {
+  if (!data.carriers) return 'All Carriers';
+  if (short) return data.carriers.length === 1 ? data.carriers[0] : `${data.carriers.length} Carriers`;
+  const list = [...data.carriers].sort((a, b) => a.localeCompare(b));
+  return list.length > 6 ? list.slice(0, 6).join(', ') + ` +${list.length - 6} more` : list.join(', ');
+}
+
+const csPanel = (title, body, cls = '') => `<div class="cs-panel ${cls}"><div class="cs-panel-head"><span class="cs-panel-title">${title}</span></div>${body}</div>`;
+
+// One carrier's worth of the report (or the whole selection when only one
+// carrier is in the results): summary cards, the charts, the day-of-week table,
+// and the load list. Everything in here is figured from just the rows passed in.
+function csBuildSection(rows, prior, data, xMin, xMax, screen) {
+  const { goal } = data;
+  const panel = csPanel;
+  const S = csStats(rows, goal), P = prior.length ? csStats(prior, goal) : null, valid = rows.filter(r => r.valid);
+  const goalTxt = goal != null ? csFmtTime(goal) : '';
+  const hasLive = rows.some(r => r.live), hasDrop = rows.some(r => !r.live);
+  const goalOn = goal != null && hasLive;   // goal applies to Live loads only
+
+  // --- summary cards ---
+  const k = (lbl, val, sub, cls = '', sm = false) => `<div class="cs-kpi ${cls}"><div class="lbl">${lbl}</div><div class="val${sm ? ' sm' : ''}">${val}</div><div class="sub">${sub}</div></div>`;
+  const nd = P ? S.n - P.n : null;
+  let kpis =
+    k('Loads', S.n.toLocaleString(), P ? (nd === 0 ? 'same as the prior period' : Math.abs(nd) + (nd > 0 ? ' more' : ' fewer') + ' than the prior period') + ` (${P.n})` : 'Total loads') +
+    k('Median secure time', csFmtTime(S.arr), P ? csCmpTime(S.arr, P.arr) : 'Middle secure time') +
+    k('Secure time window', `${csFmtTime(S.min)} – ${csFmtTime(S.max)}`, 'Earliest to latest secure time', '', true);
+  if (goalOn) {
+    kpis += k(`Live after ${goalTxt}`, `${S.late} <small>of ${S.nLive}</small>`, `${Math.round(S.late / S.nLive * 100)}% of Live loads missed the goal. ` + (P && P.nLive ? (P.late === S.late ? 'Same as the prior period' : `Prior period: ${P.late} of ${P.nLive}`) : ''), 'red');
+  }
+  kpis += k('Median unload time', S.unl == null ? '–' : csFmtDur(S.unl), S.unl == null ? 'No loads' : `Median of ${S.nValid} loads. ` + (P ? csCmpDur(S.unl, P.unl) : ''), 'amber');
+  const kpiCols = goalOn ? '.8fr 1.25fr 1.4fr 1.1fr 1.1fr' : '.8fr 1.3fr 1.5fr 1.3fr';
+  const kpiHtml = `<div class="cs-kpis" style="grid-template-columns:${kpiCols}">${kpis}</div>`;
+
+  // --- arrival trend ---
+  const mins = rows.map(r => r.arrMin);
+  const aPts = rows.map(r => ({
+    x: r.dayMs + CS_DAY / 2, y: r.arrMin,
+    color: !goalOn ? '#1d8c6a' : !r.live ? '#7a8c96' : r.arrMin > goal ? '#c0453a' : '#1d8c6a',
+    tip: `${csFmtDay(r.dayMs)} · ${r.carrier} · Door ${r.door} · secured ${csFmtTime(r.arrMin)}${goalOn && r.live && r.arrMin > goal ? ' (after ' + goalTxt + ')' : ''}`
+  }));
+  let yMin = Math.floor((csMin(mins) - 15) / 60) * 60, yMax = Math.ceil((csMax(mins) + 15) / 60) * 60;
+  if (yMax - yMin < 120) yMax = yMin + 120;
+  const at = csScatter({ pts: aPts, xMin, xMax, yMin, yMax, yStep: 60, yFmt: csFmtHour, trend: true, goal: goalOn ? { y: goal, label: `Live ${goalTxt} goal` } : null });
+  let trendTx;
+  if (at.slope == null) trendTx = 'Not enough loads to draw a trend.';
+  else if (Math.abs(at.slope) < 1) trendTx = 'The secure time is holding steady.';
+  else { const w = Math.round(Math.abs(at.slope)); trendTx = `The trend line shows secure times getting about ${w} minute${w === 1 ? '' : 's'} ${at.slope < 0 ? 'earlier' : 'later'} each week.`; }
+  const arrSub = `Each dot is one load.` + (goalOn ? ` ${S.late} of ${S.nLive} Live loads were secured after the ${goalTxt} goal.${hasDrop ? ' Drop loads have no goal.' : ''}` : '') + ` ${trendTx} Based on ${rows.length.toLocaleString()} loads, so treat it as a lean, not a promise.`;
+  const arrLegend = `<div class="cs-legend">` +
+    (goalOn ? `<span><i style="background:#1d8c6a"></i>Live, by ${goalTxt}</span><span><i style="background:#c0453a"></i>Live, after ${goalTxt}</span>` + (hasDrop ? `<span><i style="background:#7a8c96"></i>Drop (no goal)</span>` : '') + `<span><i class="ln" style="background:#c0453a"></i>Live goal</span>` : `<span><i style="background:#1d8c6a"></i>One load</span>`) +
+    `<span><i class="ln" style="background:#2c3a42"></i>Trend line</span></div>`;
+  const arrPanel = panel('Secure time trend', `<div class="cs-panel-body"><p class="cs-panel-sub">${arrSub}</p>${at.svg}${arrLegend}</div>`);
+
+  // --- arrival histogram (30-minute blocks) ---
+  const b0 = Math.floor((csMin(mins) - 15) / 60) * 60, b1 = Math.ceil((csMax(mins) + 15) / 60) * 60;
+  const nb = (b1 - b0) / 30, cats = [], cnt = Array(nb).fill(0);
+  for (let i = 0; i < nb; i++) { const tm = b0 + i * 30; cats.push({ label: csFmtHour(tm), show: tm % 60 === 0 && (nb <= 20 || tm % 120 === 0) }); }
+  rows.forEach(r => { cnt[Math.min(nb - 1, Math.max(0, Math.floor((r.arrMin - b0) / 30)))]++; });
+  const busiest = cnt.reduce((bi, v, i, a) => v > a[bi] ? i : bi, 0);
+  const histSvg = csBarChart({ cats, vals: cnt, vline: { pos: (S.arr - b0) / 30, label: 'Median ' + csFmtTime(S.arr) }, yLabel: 'Number of loads, in 30-minute blocks' });
+  const histPanel = panel('Typical secure times', `<div class="cs-panel-body"><p class="cs-panel-sub">Median secure time is ${csFmtTime(S.arr)}. The busiest half hour is ${csFmtTime(b0 + busiest * 30)}.</p>${histSvg}</div>`);
+
+  // --- unload trend (under 24 hrs) ---
+  const tr = valid.filter(r => r.dur < 1440), longer = valid.length - tr.length;
+  let unlBody;
+  if (tr.length) {
+    const mx = csMax(tr.map(r => r.dur)), st = csNiceStep(mx, [5, 10, 15, 20, 30, 60, 120, 240]), ym = Math.ceil(mx / st) * st;
+    const uPts = tr.map(r => ({ x: r.dayMs + CS_DAY / 2, y: r.dur, color: '#1d8c6a', tip: `${csFmtDay(r.dayMs)} · ${r.carrier} · Door ${r.door} · ${csFmtDur(r.dur)} (${csFmtTime(r.arrMin)} to ${r.relMin == null ? '—' : csFmtTime(r.relMin)})` }));
+    const us = csScatter({ pts: uPts, xMin, xMax, yMin: 0, yMax: ym, yStep: st, yFmt: v => v >= 60 ? (v / 60) + ' hr' : v + ' min', trend: true, W: 480, H: 250, fs13: true });
+    const ut = us.slope == null ? '' : Math.abs(us.slope) < 1 ? ' Unload time is holding steady.' : ` The trend line shows unloads getting about ${Math.round(Math.abs(us.slope))} min ${us.slope < 0 ? 'faster' : 'slower'} each week.`;
+    unlBody = `<p class="cs-panel-sub">Each dot is one load, secured to released.${ut}${longer ? ` ${longer} load${longer === 1 ? '' : 's'} over 24 hours not shown.` : ''}</p>${us.svg}`;
+  } else {
+    unlBody = `<p class="cs-panel-sub"></p><div class="cs-empty">No loads to chart.</div>`;
+  }
+  const unlPanel = panel('Unload time trend', `<div class="cs-panel-body">${unlBody}</div>`);
+
+  // --- by day of week ---
+  let dow = `<table><thead><tr><th>Day</th><th class="c">Loads</th><th>Median secure time</th><th>Earliest – latest secure time</th><th>Median unload time</th></tr></thead><tbody>`;
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => {
+    const g = rows.filter(r => r.dow === d);
+    if (!g.length) return;
+    const gs = csStats(g, goal);
+    dow += `<tr><td><b>${d}</b></td><td class="c">${g.length.toLocaleString()}</td><td>${csFmtTime(gs.arr)}</td><td>${csFmtTime(gs.min)} – ${csFmtTime(gs.max)}</td><td>${gs.unl == null ? '–' : csFmtDur(gs.unl)}</td></tr>`;
+  });
+  const dowPanel = panel('By day of the week', `<div class="cs-panel-body" style="padding:6px 10px 2px;"><p class="cs-panel-sub" style="min-height:0;">Which days loads show up and how each day compares.</p></div>${dow}</tbody></table>`);
+
+  // --- every load ---
+  // The full load list is only built for the print / PDF version, where every
+  // row is included. On screen it's just a one-line note.
+  let loadPanel;
+  if (screen) {
+    loadPanel = panel(`Every load in this range`, `<div class="cs-panel-body"><p class="cs-panel-sub" style="min-height:0;">${rows.length.toLocaleString()} load${rows.length === 1 ? '' : 's'} — the full list, newest first, is included when you Print or Save as PDF.</p></div>`);
+  } else {
+    let lt = `<table><thead><tr><th>Secured</th><th>Door</th><th>Trailer #</th><th>Type</th><th>Released</th><th>Time at door</th></tr></thead><tbody>`;
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const r = rows[i];
+      const time = r.dur == null ? '—' : r.valid ? csFmtDur(r.dur) : `${csFmtDur(Math.max(0, r.dur))} <span class="cs-late" title="Too short, left out of the unload time numbers only">(excluded)</span>`;
+      const rel = r.relMin == null ? '—' : (r.relDayMs !== r.dayMs ? csFmtDay(r.relDayMs) + ' ' : '') + csFmtTime(r.relMin);
+      lt += `<tr><td>${r.dow} ${csFmtDay(r.dayMs)}, ${csFmtTime(r.arrMin)}</td><td>${escHtml(r.door)}</td><td>${escHtml(r.trailer) || '—'}</td><td>${escHtml(r.type) || '—'}</td><td>${rel}</td><td>${time}</td></tr>`;
+    }
+    loadPanel = panel(`Every load in this range`, `<div class="cs-panel-body cs-keep-next" style="padding:6px 10px 2px;"><p class="cs-panel-sub" style="min-height:0;">Newest first. “(excluded)” means that load is left out of the unload time numbers only — it still counts as a load and in the secure time numbers.</p></div><div class="cs-scroll">${lt}</tbody></table></div>`, 'cs-breakable');
+  }
+
+  return `${kpiHtml}${arrPanel}<div class="cs-grid2">${histPanel}${unlPanel}</div>${dowPanel}${loadPanel}`;
+}
+
+function csBuildReportHtml(data, screen) {
+  const { rows, prior, range, goal } = data;
+  const rootCls = 'cs-report' + (screen ? ' cs-screen' : '');
+  const stamp = data.generated.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const rangeText = rows.length
+    ? `${csFmtDay(rows[0].dayMs, true)} – ${csFmtDay(rows[rows.length - 1].dayMs, true)}`
+    : (range.start ? `${csFmtDay(csKeyToDayMs(range.start), true)} – ${csFmtDay(csKeyToDayMs(range.end), true)}` : 'no records');
+
+  // group the loads by carrier (A–Z) — each carrier gets its own section below
+  const byCarrier = new Map();
+  rows.forEach(r => { if (!byCarrier.has(r.carrier)) byCarrier.set(r.carrier, []); byCarrier.get(r.carrier).push(r); });
+  const names = [...byCarrier.keys()].sort((a, b) => a.localeCompare(b));
+  const missing = data.carriers ? data.carriers.filter(n => !byCarrier.has(n)).sort((a, b) => a.localeCompare(b)) : [];
+
+  const head = `<div class="cs-titlebar"><h1>Carrier Statistics</h1><div class="cs-meta">
+    <div><b>Carriers:</b> ${escHtml(csCarrierText(data))}</div>
+    <div><b>Range:</b> ${escHtml(range.label)} · ${rangeText} · ${rows.length.toLocaleString()} load${rows.length === 1 ? '' : 's'}</div>
+    ${missing.length && rows.length ? `<div><b>No loads in this range:</b> ${escHtml(missing.join(', '))}</div>` : ''}
+    <div><b>Pulled:</b> ${stamp}</div></div></div>`;
+
+  if (!rows.length) {
+    return `<div class="${rootCls}">${head}${csPanel('Results', '<div class="cs-empty">No loads found for these carriers and dates.</div>')}</div>`;
+  }
+
+  // the same date axis on every carrier's charts, so they line up for comparison
+  let xMin, xMax;
+  if (range.start) { xMin = csKeyToDayMs(range.start); xMax = csKeyToDayMs(range.end) + CS_DAY; }
+  else { xMin = rows[0].dayMs; xMax = rows[rows.length - 1].dayMs + CS_DAY; }
+  if (xMax <= xMin) xMax = xMin + CS_DAY;
+
+  let body;
+  if (names.length === 1) {
+    body = csBuildSection(rows, prior, data, xMin, xMax, screen);
+  } else {
+    // quick side-by-side table up front, then one section per carrier (each starts on a new page when printed)
+    const goalOn = goal != null && rows.some(r => r.live), goalTxt = goal != null ? csFmtTime(goal) : '';
+    let t = `<table><thead><tr><th>Carrier</th><th class="c">Loads</th><th>Median secure time</th><th>Earliest – latest</th>${goalOn ? `<th class="c">Live after ${goalTxt}</th>` : ''}<th>Median unload</th></tr></thead><tbody>`;
+    names.forEach(name => {
+      const g = byCarrier.get(name), gs = csStats(g, goal);
+      t += `<tr><td><b>${escHtml(name)}</b></td><td class="c">${g.length.toLocaleString()}</td><td>${csFmtTime(gs.arr)}</td><td>${csFmtTime(gs.min)} – ${csFmtTime(gs.max)}</td>${goalOn ? `<td class="c">${gs.nLive ? `${gs.late} of ${gs.nLive} (${Math.round(gs.late / gs.nLive * 100)}%)` : '—'}</td>` : ''}<td>${gs.unl == null ? '–' : csFmtDur(gs.unl)}</td></tr>`;
+    });
+    const overview = csPanel('Carrier summary', `<div class="cs-panel-body" style="padding:6px 10px 2px;"><p class="cs-panel-sub" style="min-height:0;">A quick look at each carrier, A to Z. Every carrier has its own section after this page, with its own charts and tables.</p></div>${t}</tbody></table>`);
+    const sections = names.map(name => {
+      const g = byCarrier.get(name);
+      const bar = `<div class="cs-carrier-bar"><span class="cs-carrier-name">${escHtml(name)}</span><span class="cs-carrier-count">${g.length.toLocaleString()} load${g.length === 1 ? '' : 's'}</span></div>`;
+      return `<div class="cs-carrier-sec">${bar}${csBuildSection(g, prior.filter(r => r.carrier === name), data, xMin, xMax, screen)}</div>`;
+    }).join('');
+    body = overview + sections;
+  }
+
+  const goalAny = goal != null && rows.some(r => r.live), goalTxtAll = goal != null ? csFmtTime(goal) : '';
+  const note = `<div class="cs-note"><b>How this is figured:</b> This report uses each load's <b>Secure time</b>, which is the moment the trailer is put on an operational door. <b>Arrival time</b> and Secure time are not always the same. For <b>Live</b> loads they are one and the same. For <b>Drop</b> loads they are separate: the Arrival time is when the trailer is received, which can be somewhere other than an operational door (a yard door, for example), and the Secure time only comes when it is moved into an operational door. Only the Secure time is used here, so every time in this report's cards, charts, and tables is a Secure time. A trailer that was received but never moved onto an operational door has no Secure time, so it is not in this report. Older records from before Received and Secure were split use their original arrival time as the Secure time.
+    Unload time is the time from Secure time to Released, so for drop trailers it includes any time they sat on the door waiting.
+    The unload trend chart leaves out anything over 24 hours (those still show in the load list). Loads under ${CS_MIN_VALID} minutes from Secure time to Released look like entry mistakes and are left out of the unload time numbers only (they still count as loads and in the secure time numbers).
+    ${goalAny ? `The ${goalTxtAll} goal applies to Live loads only; Drop loads have no goal. ` : ''}"Did not receive" records are not counted${data.skipped ? `, and ${data.skipped} record${data.skipped === 1 ? '' : 's'} with no Secure time ${data.skipped === 1 ? 'was' : 'were'} left out` : ''}.${data.noRelease ? ` ${data.noRelease} record${data.noRelease === 1 ? '' : 's'} from earlier days with no release time ${data.noRelease === 1 ? 'was' : 'were'} also left out (they look like unfinished leftover records).` : ''}
+    All times are shown in local time. Medians are used so one long wait doesn't skew the picture. Small sample sizes can make trends jumpy.</div>`;
+
+  return `<div class="${rootCls}">${head}${body}${note}</div>`;
+}
+
+// ---------- print / save as PDF ----------
+// Both buttons open the report in its own window, set up for 8.5 x 11 portrait,
+// and bring up the browser's print window. "Save as PDF" is the same thing —
+// the only difference is the reminder to pick "Save as PDF" as the printer, and
+// that the window title (which becomes the file name) is already filled in.
+function csFileTitle() {
+  const d = _csData;
+  return `Carrier Statistics - ${csCarrierText(d, true)} - ${d.range.label} - ${todayStr()}`;
+}
+
+function csOpenPrintWindow(mode) {
+  if (!_csData || !_csData.rows.length) { toast('Pull data first', 'error'); return; }
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(csFileTitle())}</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: letter portrait; margin: 0.4in 0.4in 0.55in; @bottom-center { content: "Carrier Statistics — page " counter(page) " of " counter(pages); font-family: Arial, sans-serif; font-size: 8pt; color: #555; } }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { padding: 0.4in; }
+  @media print { body { padding: 0; } }
+${CS_REPORT_CSS}
+</style></head><body>${csBuildReportHtml(_csData, false)}</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { toast('Please allow pop-ups to print or save the report', 'error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  if (mode === 'pdf') toast('In the print window, choose "Save as PDF" as the destination, then Save');
+  let done = false;
+  const go = () => { if (done) return; done = true; try { w.focus(); w.print(); } catch (e) { console.error(e); } };
+  if (w.document.fonts && w.document.fonts.ready) w.document.fonts.ready.then(() => setTimeout(go, 150));
+  setTimeout(go, 1500);
+}
+
 async function applyHistoryRange() {
   const startInp = document.getElementById('history-range-start');
   const endInp = document.getElementById('history-range-end');
@@ -3920,15 +4593,6 @@ async function applyHistoryRange() {
   populateHistoryFilters();
   renderHistory();
   updateHistoryRangeLabel(`Showing ${start} to ${end}`);
-}
-
-async function loadEntireHistoryManual() {
-  updateHistoryRangeLabel('Loading full history…');
-  _fullHistoryLoaded = false; // force a fresh full fetch even if a range was cached
-  await loadFullHistoryIfNeeded();
-  populateHistoryFilters();
-  renderHistory();
-  updateHistoryRangeLabel('Showing full history');
 }
 
 // Used before destructive/complete actions (Clear History, Export CSV) to guarantee
@@ -4311,7 +4975,7 @@ function switchTab(name) {
       loadHistoryRange(start, end).then(() => {
         populateHistoryFilters();
         renderHistory();
-        updateHistoryRangeLabel(`Showing last 7 days (${start} to ${end}) — use From/To or Load Full History to see more`);
+        updateHistoryRangeLabel(`Showing last 7 days (${start} to ${end}) — use From/To to see more`);
       });
     } else {
       // Range already loaded — just re-render from what's in memory, no re-fetch
@@ -4319,7 +4983,10 @@ function switchTab(name) {
       renderHistory();
     }
   }
-  if (name === 'dashboard') { renderDashboardGrid(); renderDashboard(); }
+  if (name === 'dashboard') {
+    if (_dashSubView === 'carrier') csInitControls();
+    else { renderDashboardGrid(); renderDashboard(); }
+  }
   if (name === 'forecast') {
     const inp = document.getElementById('forecast-date');
     if (inp && !inp._prevDate) inp._prevDate = inp.value || todayStr();
@@ -8451,15 +9118,16 @@ function renderHistoryRows(tbodyId, emptyId, recs, emptyMsg) {
   tbody.appendChild(frag);
 }
 
-function renderHistory() {
-  renderHistoryHeader();
+// Reads the History tab's filter boxes and returns a function that filters a
+// list of records the same way. Shared by the table and Export Filtered CSV
+// so the export always matches what's on screen.
+function getHistoryFilterFn() {
   const search   = (document.getElementById('history-search').value||'').toLowerCase();
   const carrierQ = (document.getElementById('history-carrier-search')?.value||'').toLowerCase();
   const trailerQ = (document.getElementById('history-trailer-search')?.value||'').toLowerCase();
   const typeF    = document.getElementById('history-type-filter')?.value || '';
   const doorF    = document.getElementById('history-door-filter')?.value || '';
-
-  const applyFilters = (list) => {
+  return (list) => {
     let recs = list;
     if (carrierQ) recs = recs.filter(r => (r.carrier||'').toLowerCase().includes(carrierQ));
     if (trailerQ) recs = recs.filter(r => (r.trailerNum||'').toLowerCase().includes(trailerQ));
@@ -8468,6 +9136,11 @@ function renderHistory() {
     if (search)   recs = recs.filter(r => (r.door+(r.notes||'')).toLowerCase().includes(search));
     return recs;
   };
+}
+
+function renderHistory() {
+  renderHistoryHeader();
+  const applyFilters = getHistoryFilterFn();
 
   // Trailers still on a door get their own table now instead of being mixed
   // in with (and floated above) completed history rows.
@@ -8520,13 +9193,31 @@ async function repairOldHistoryRecords() {
   saveState(); renderHistory();
   toast(fixed ? `Repaired ${fixed} record${fixed === 1 ? '' : 's'} ✓` : 'No broken records found');
 }
+const HISTORY_CSV_HEADER = ['Date','Door','Carrier','Trailer#','Type','ReceivedBy','Received','SecuredBy','Secure Time','Released','ReleasedBy','Notes','Expected'];
+function historyCsvRow(r) {
+  return [r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.receivedBy||'', r.received||'', r.securedBy||'', r.secured||'', r.released||'', r.releasedBy||'', r.notes||'', r.expected?'Y':'N'];
+}
+
 async function exportHistory() {
   toast('Loading full history for export…');
   await ensureFullHistoryLoaded();
-  const rows = [['Date','Door','Carrier','Trailer#','Type','ReceivedBy','Received','SecuredBy','Secure Time','Released','ReleasedBy','Notes','Expected']];
-  state.history.forEach(r => rows.push([r.date, r.door, r.carrier, r.trailerNum||'', r.type, r.receivedBy||'', r.received||'', r.securedBy||'', r.secured||'', r.released||'', r.releasedBy||'', r.notes||'', r.expected?'Y':'N']));
+  const rows = [HISTORY_CSV_HEADER];
+  state.history.forEach(r => rows.push(historyCsvRow(r)));
   downloadCSV('dock_history.csv', rows);
   toast('History exported ✓');
+}
+
+// Exports only the completed-history rows currently showing in the table:
+// whatever date range is loaded, narrowed by the carrier / trailer # / notes /
+// type / door filters. Does NOT load the full history first.
+function exportFilteredHistory() {
+  const recs = getHistoryFilterFn()(state.history).slice();
+  if (!recs.length) { toast('Nothing to export — no rows match the current filters', 'error'); return; }
+  recs.sort((a, b) => compareHistoryRecs(a, b, historySortKeys));
+  const rows = [HISTORY_CSV_HEADER];
+  recs.forEach(r => rows.push(historyCsvRow(r)));
+  downloadCSV('dock_history_filtered.csv', rows);
+  toast(`Exported ${recs.length.toLocaleString()} filtered record${recs.length === 1 ? '' : 's'} ✓`);
 }
 
 function importHistoryCSV(input) {
