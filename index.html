@@ -6089,9 +6089,14 @@ function sendMoveSlackNotification(t, fromDoor, toDoor) {
   const wh = getTrailerMoveWebhook();
   if (!wh.url) return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
-  const fromLabel = yardLabelFor(fromDoor) || `Door ${fromDoor ? fromDoor.num : '?'}`;
-  const toLabel = yardLabelFor(toDoor) || `Door ${toDoor ? toDoor.num : '?'}`;
-  const message = renderWebhookMessage('move', { carrier, trailer: t.trailerNum || '', from: fromLabel, to: toLabel });
+  // {from} and {to} are just the door number (like 12). A yard has no door number,
+  // so it still reads "main yard" / "CFF yard".
+  const fromLabel = yardLabelFor(fromDoor) || `${fromDoor ? fromDoor.num : '?'}`;
+  const toLabel = yardLabelFor(toDoor) || `${toDoor ? toDoor.num : '?'}`;
+  // If the wording says "Door {from}" and the place is a yard, drop the word "Door"
+  // so it reads "main yard" instead of "Door main yard".
+  const message = renderWebhookMessage('move', { carrier, trailer: t.trailerNum || '', from: fromLabel, to: toLabel })
+    .replace(/\bDoor (main yard|CFF yard)\b/gi, '$1');
   return fetch(wh.url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -7173,8 +7178,8 @@ const WEBHOOK_TAG_HELP = {
   carrier: 'Carrier name',
   trailer: 'Trailer number (left out cleanly if there is none)',
   door: 'Door number',
-  from: 'Where the trailer is coming from, like Door 12 or main yard',
-  to: 'Where the trailer is going, like Door 30 or main yard',
+  from: 'The door the trailer is coming from — just the number, like 12 (or main yard / CFF yard)',
+  to: 'The door the trailer is going to — just the number, like 30 (or main yard / CFF yard)',
   destination: 'The Sales Side door the trailer is headed to (like 21)',
   date: "Today's date",
   list: 'The list of trailers (each one is written using the trailer line below)'
@@ -7182,7 +7187,7 @@ const WEBHOOK_TAG_HELP = {
 const WEBHOOK_MESSAGE_DEFS = [
   { key: 'move', title: 'Trailer Move', tags: ['carrier', 'trailer', 'from', 'to'],
     when: 'Sent when a trailer is moved from one door to another and you choose to send the move request.',
-    def: 'Move {carrier} {trailer} in {from} to {to}' },
+    def: 'Move {carrier} {trailer} in Door {from} to Door {to}' },
   { key: 'release_yard', title: 'Drop Release: Ready for the Yard', tags: ['carrier', 'trailer', 'door'],
     when: 'Sent when a DROP trailer is released and is ready to go back to the yard (the usual case).',
     def: '{carrier} {trailer} in Door {door} ready for the yard' },
@@ -7211,7 +7216,7 @@ const WEBHOOK_MESSAGE_DEFS = [
     def: 'No trailers currently in CFF Yard storage.' }
 ];
 const WEBHOOK_SAMPLE = {
-  carrier: 'Ward', trailer: '123456', door: '44', from: 'Door 12', to: 'main yard', destination: '21',
+  carrier: 'Ward', trailer: '123456', door: '44', from: '12', to: '30', destination: '21',
   get date() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
   list: 'Ward - 123456\nPITT - 789012'
 };
