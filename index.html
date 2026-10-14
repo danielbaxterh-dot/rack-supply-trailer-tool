@@ -5,7 +5,7 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy, writeBatch, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy, writeBatch, where, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC1NDl9M4bpaxogv6ckUURzyKOv5b96DR0",
@@ -20,7 +20,7 @@
   const db = getFirestore(app);
 
   window._db = db;
-  window._fbFns = { doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy, writeBatch, where };
+  window._fbFns = { doc, collection, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, query, orderBy, writeBatch, where, runTransaction };
   window._fbReady = true;
 
   // Poll until main script has registered _onFirebaseReady, then call it
@@ -1107,6 +1107,26 @@
   .cs-input { background: #f5faf7; border: 1px solid #b0d4c0; border-radius: 6px; padding: 6px 10px; color: #1a4731; font-size: 12px; font-weight: 600; outline: none; box-shadow: inset 0 2px 3px rgba(0,0,0,0.06); }
   .cs-blank { max-width: 7.7in; margin: 0; background: #fff; border: 1px dashed #9db8a8; border-radius: 10px; padding: 46px 20px; text-align: center; color: #2d6b4a; font-size: 14px; font-weight: 700; line-height: 1.7; }
 
+  /* DOOR QUEUE (bar on the door card + dropdown) */
+  .door-card.door-card-queue { overflow: visible; }
+  button.door-queue-bar { width: 100%; padding: 4px 8px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; text-align: left; letter-spacing: 0.3px; }
+  button.door-queue-bar.has-queue { background: linear-gradient(180deg, #f6d57a 0%, #e0a030 100%) !important; border-color: #8a5a00 !important; }
+  .door-queue-menu { position: absolute; top: 100%; left: 0; z-index: 60; min-width: 350px; margin-top: 3px; background: #fff; border: 2px solid #8a5a00; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.38); padding: 6px; cursor: default; color: #000; font-size: 13px; line-height: 1.3; }
+  .dqm-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 2px 6px; border-bottom: 1px solid #e0c060; margin-bottom: 4px; }
+  .dqm-title { font-weight: 800; color: #5a4000; }
+  .dqm-head-btns { display: flex; gap: 6px; }
+  .door-queue-menu button { padding: 3px 9px; font-size: 12px; font-weight: 700; border-radius: 5px; cursor: pointer; }
+  .door-queue-menu button:disabled { opacity: 0.4; cursor: default; }
+  .dqm-row { display: flex; align-items: center; gap: 8px; padding: 5px 2px; border-bottom: 1px solid #eee; }
+  .dqm-row:last-child { border-bottom: none; }
+  .dqm-pos { flex: 0 0 24px; height: 24px; border-radius: 50%; background: #e0a030; color: #000; font-weight: 800; text-align: center; line-height: 24px; }
+  .dqm-main { flex: 1; min-width: 0; }
+  .dqm-type { font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 8px; background: #e8eeeb; color: #1a4731; }
+  .dqm-sub { font-size: 11px; color: #555; }
+  .dqm-notes { font-size: 11px; font-style: italic; color: #333; }
+  .dqm-btns { display: flex; gap: 3px; }
+  .dqm-empty { padding: 10px 6px; font-size: 12px; color: #555; }
+
   /* UTILITIES */
   .flex-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .mt8 { margin-top: 8px; }
@@ -1155,6 +1175,11 @@
     white-space: nowrap;
   }
   #release-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  /* The release/move banner and a toast both sit dead center. When a toast is up at the same
+     time (like "next supplier secured to Door 1 from the queue"), lift the banner above it
+     so neither one hides the other. */
+  body:has(#toast.show) #release-banner { top: auto; bottom: calc(50% + 70px); transform: translate(-50%, 0) scale(0.9); }
+  body:has(#toast.show) #release-banner.show { transform: translate(-50%, 0) scale(1); }
   .door-info-row { clear: both; padding-top: 6px; }
   .unavail-label { font-size: 12px; color: var(--red); font-weight: 700; }
   .yd-label { font-size: 11px; color: var(--purple); font-weight: 600; }
@@ -2257,7 +2282,8 @@
     <h2>🚛 Slot a Trailer</h2>
     <div class="form-row">
       <label>Door</label>
-      <select id="slot-door"></select>
+      <select id="slot-door" onchange="updateSlotQueueHint()"></select>
+      <div id="slot-queue-hint" style="display:none;margin-top:6px;padding:8px 10px;background:#fff8e6;border:1px solid #e0c060;border-radius:6px;font-size:12px;font-weight:700;color:#5a4000;"></div>
     </div>
     <div class="form-row">
       <label>Carrier</label>
@@ -2276,7 +2302,7 @@
       </select>
     </div>
     <div class="form-row">
-      <label>Secure Time</label>
+      <label id="slot-arrival-label">Secure Time</label>
       <input type="datetime-local" id="slot-arrival">
     </div>
     <div class="form-row">
@@ -2285,7 +2311,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-slot')">Cancel</button>
-      <button class="btn btn-teal" onclick="slotTrailer()" style="color:#000;">Secure Trailer</button>
+      <button class="btn btn-teal" id="slot-submit-btn" onclick="slotTrailer()" style="color:#000;">Secure Trailer</button>
     </div>
   </div>
 </div>
@@ -2472,7 +2498,7 @@
     </div>
     <div class="form-row">
       <label>Door</label>
-      <select id="qs-door" style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);"></select>
+      <select id="qs-door" onchange="updateQuickSlotQueueHint()" style="background:#b8b8b8;border:1px solid #a0c8b0;box-shadow:0 3px 6px rgba(0,0,0,0.1),inset 0 2px 4px rgba(0,0,0,0.07),0 1px 0 rgba(255,255,255,0.9);"></select>
     </div>
     <div class="form-row">
       <label>Trailer Number</label>
@@ -2496,7 +2522,7 @@
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-quick-slot')" style="color:#000;">Cancel</button>
       <button class="btn btn-red" onclick="markDidNotReceive()" style="color:#000;margin:0 auto;">Did Not Receive</button>
-      <button class="btn btn-teal" onclick="slotFromExpected()" style="color:#000;">Secure Trailer</button>
+      <button class="btn btn-teal" id="qs-submit-btn" onclick="slotFromExpected()" style="color:#000;">Secure Trailer</button>
     </div>
   </div>
 </div>
@@ -2573,6 +2599,9 @@
         <option value="yard">Main Yard</option>
         <option value="cff_yard">CFF Yard</option>
       </select>
+    </div>
+    <div class="form-row">
+      <label style="display:flex;align-items:center;gap:10px;text-transform:none;font-size:15px !important;letter-spacing:0;"><input type="checkbox" id="dl-queue" style="width:22px;height:22px;" onchange="editDoorQueue(window._doorLayoutEditId, this.checked)"> Queue — let suppliers wait in line for this door</label>
     </div>
     <div class="modal-actions">
       <button class="btn btn-red" onclick="editDeleteDoor(window._doorLayoutEditId)">🗑 Delete Door</button>
@@ -2657,6 +2686,7 @@ function localDateTimeInputValue(date) {
 //   history/{id}       - completed trailer records
 
 let _unsubTrailers = null;
+let _unsubDoorQueues = null;
 let _unsubDoorPings = null;
 let _unsubForecast = null;
 let _unsubHistory = null;
@@ -2694,6 +2724,58 @@ async function clearDoorPing(doorId) {
       await fb().deleteDoc(fb().doc(getDb(), 'doorStatusPings', String(key)));
     } catch (e) { /* not present, offline, or no permission — safe to ignore */ }
   }
+}
+
+// ---- Commands from the Door Status tool ----
+// Several Trailer Tool screens can be open at once and all of them see a command,
+// so each one first tries to "claim" it with a transaction; only the one screen
+// that succeeds acts on it, so nothing happens twice. Commands older than 2
+// minutes are discarded (nobody was watching) so an old press can never act on
+// a trailer that arrived on that door later. No Slack message is sent from here.
+function _doorForPingKey(key) {
+  return state.doors.find(d => String(d.id) === String(key) || String(d.num) === String(key));
+}
+function _pingIsFresh(iso) {
+  const age = Date.now() - new Date(iso || 0).getTime();
+  return isFinite(age) && age >= 0 && age <= 2 * 60 * 1000;
+}
+
+// "Unload Complete" (door 1): releases the trailer from the door.
+async function handleUnloadCompletePing(key, data) {
+  try {
+    const ref = fb().doc(getDb(), 'doorStatusPings', String(key));
+    const fresh = _pingIsFresh(data.updatedAt);
+    const claimed = await fb().runTransaction(getDb(), async tx => {
+      const snap = await tx.get(ref);
+      if (!snap.exists() || snap.data().status !== 'unload-complete') return false;
+      tx.delete(ref);
+      return true;
+    });
+    if (!claimed || !fresh) return;
+    const door = _doorForPingKey(key);
+    if (!door || !state.trailers[door.id]) return;
+    releaseTrailer(door.id, false, null, { releasedBy: 'DOOR STATUS' });
+  } catch (e) { console.error('Unload Complete ping failed:', e); }
+}
+
+// Reset age (doors 52, 53, 59): same as clicking Reset Age on the door tile.
+// Only the reset flag is cleared; the ready/empty color on the door stays.
+async function handleResetAgePing(key, data) {
+  try {
+    const ref = fb().doc(getDb(), 'doorStatusPings', String(key));
+    const stamp = data.resetAgeAt;
+    const fresh = _pingIsFresh(stamp);
+    const claimed = await fb().runTransaction(getDb(), async tx => {
+      const snap = await tx.get(ref);
+      if (!snap.exists() || snap.data().resetAgeAt !== stamp) return false;
+      tx.update(ref, { resetAgeAt: null });
+      return true;
+    });
+    if (!claimed || !fresh) return;
+    const door = _doorForPingKey(key);
+    if (!door || !state.trailers[door.id]) return;
+    resetOtherCarrierTimer(door.id);
+  } catch (e) { console.error('Reset age ping failed:', e); }
 }
 
 async function loadStateFromFirebase() {
@@ -2863,6 +2945,14 @@ async function loadStateFromFirebase() {
   _safeToSyncToFirebase = true;
   rolloverStaleExpectedTrailers().catch(e => console.error('Expected Trailers rollover failed:', e));
 
+  // Real-time listener for door queues (suppliers waiting in line at queue-enabled doors)
+  if (_unsubDoorQueues) _unsubDoorQueues();
+  _unsubDoorQueues = fb().onSnapshot(fb().doc(db, 'config', 'doorQueues'), snap => {
+    if (window._sandboxMode) return;
+    state.doorQueues = (snap.exists() && snap.data().queues) || {};
+    if (document.getElementById('tab-home').classList.contains('active')) renderDoors();
+  });
+
   // Real-time listener for active trailers
   if (_unsubTrailers) _unsubTrailers();
   _unsubTrailers = fb().onSnapshot(fb().collection(db, 'trailers'), snap => {
@@ -2887,6 +2977,16 @@ async function loadStateFromFirebase() {
     state.doorPings = {};
     snap.forEach(d => { state.doorPings[d.id] = d.data(); });
     if (document.getElementById('tab-home').classList.contains('active')) renderDoors();
+    // Commands sent by the Door Status tool's buttons: "Unload Complete" (door 1)
+    // releases the trailer, and a "reset age" flag (doors 52, 53, 59) does the
+    // same as clicking Reset Age on the door tile.
+    snap.docChanges().forEach(change => {
+      if (change.type === 'removed') return;
+      const data = change.doc.data();
+      if (!data) return;
+      if (data.status === 'unload-complete') handleUnloadCompletePing(change.doc.id, data);
+      else if (data.resetAgeAt) handleResetAgePing(change.doc.id, data);
+    });
   });
 
   // Real-time listener for forecast / future deliveries — keeps the Expected
@@ -4796,6 +4896,7 @@ function loadState() {
   state.completedToday = [];
   state.settings = { doorWidth:270, doorNum:30, carrierFont:18, doorHeight:120, sidebar:320, tableFont:12, columns:6, cardGap:10, rows:8, bfLinesPerSkid:9 };
   state.forecast = {};
+  state.doorQueues = {};
 }
 
 // ---- Page zoom controls ----
@@ -5208,6 +5309,7 @@ function renderDoors() {
     const card = document.createElement('div');
     card.className = 'door-card' + (t ? ' active-trailer' : '') + (door.unavailable ? ' door-unavailable' : '') + pingClass;
     card.style.minHeight = s.doorHeight + 'px';
+    if (door.queueEnabled) card.classList.add('door-card-queue');   // lets the queue dropdown hang below the card
     const isYard = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD');
     if (isYard) {
       const isCFF = door.type === 'cff_yard' || door.num.toUpperCase().includes('CFF') || (door.name && door.name.toUpperCase().includes('CFF'));
@@ -5276,7 +5378,7 @@ function renderDoors() {
       </div>`;
     }
 
-    let inner = `${door.name ? `<div class="door-name-label-top">${door.name}</div>` : ''}<div class="door-body">${leftCol}${rightCol}</div>${notesBar}${actions}`;
+    let inner = `${door.name ? `<div class="door-name-label-top">${door.name}</div>` : ''}<div class="door-body">${leftCol}${rightCol}</div>${notesBar}${actions}${door.queueEnabled ? buildDoorQueueHtml(door) : ''}`;
     if (editModeActive) {
       inner += `<button onclick="event.stopPropagation();removeDoor('${door.id}')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:#d93535;color:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);z-index:11;">✕</button>`;
     }
@@ -5325,6 +5427,7 @@ function renderDoors() {
   renderExpectedTrailers();
   initDragDrop();
   syncDoorsToolbarWidth();
+  fixQueueMenuSide();
 }
 setInterval(() => { if (document.getElementById('tab-home').classList.contains('active')) renderDoors(); }, 30000);
 
@@ -5438,6 +5541,7 @@ function toggleUnavailable(doorId) {
 function removeDoor(doorId) {
   state.doors = state.doors.filter(d => d.id !== doorId);
   delete state.trailers[doorId];
+  dropDoorQueue(doorId);
   saveState(); renderDoors(); toast('Door removed');
 }
 
@@ -5463,17 +5567,182 @@ function populateCarrierSelect(selId) {
     sel.appendChild(opt);
   });
 }
+// ===================== DOOR QUEUE =====================
+// A door with "Queue" turned on (Edit Layout → click the door) lets suppliers wait
+// in line. When the active trailer leaves the door (released, moved, or completed),
+// the next supplier in line is secured to the door automatically.
+//
+// Times: a queued supplier's ARRIVED time is the time entered when it joined the
+// line (stored as `arrival` and `receivedAt`, exactly like a trailer that was
+// received into a yard door first). Its SECURE time (`securedAt`) is stamped the
+// moment it is pulled onto the door, so the wait shows up as Received → Secured.
+//
+// The lines are shared live between devices in one document, config/doorQueues
+// ({ queues: { [doorId]: [entries in line order] } }). Each entry is a trailer
+// record in the same shape as state.trailers[doorId], plus a `qid` so reorder /
+// remove still hit the right supplier even if someone else changed the line.
+window._queueOpenDoorId = null;
+
+function newQueueId() { return 'q' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function getDoorQueue(doorId) { return (state.doorQueues && state.doorQueues[doorId]) || []; }
+function isQueueDoorBusy(doorId) {
+  const d = state.doors.find(x => x.id === doorId);
+  return !!(d && d.queueEnabled && state.trailers[doorId]);
+}
+async function saveDoorQueuesToFirebase() {
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
+  try {
+    const clean = JSON.parse(JSON.stringify(state.doorQueues || {}));   // Firestore rejects `undefined` values
+    await fb().setDoc(fb().doc(getDb(), 'config', 'doorQueues'), { queues: clean });
+  } catch (e) { console.error(e); }
+}
+function addToDoorQueue(doorId, entry) {
+  if (!state.doorQueues) state.doorQueues = {};
+  if (!entry.qid) entry.qid = newQueueId();
+  (state.doorQueues[doorId] = state.doorQueues[doorId] || []).push(entry);
+  saveDoorQueuesToFirebase();
+  renderDoors();
+  return state.doorQueues[doorId].length;
+}
+// Called whenever a queue door becomes free. Returns true if a supplier was secured.
+function promoteDoorQueue(doorId) {
+  const door = state.doors.find(d => d.id === doorId);
+  const q = getDoorQueue(doorId);
+  if (!door || !door.queueEnabled || !q.length || state.trailers[doorId]) return false;
+  const next = q.shift();
+  if (!q.length) delete state.doorQueues[doorId];
+  if (!isYardDoorType(door)) { next.securedAt = new Date().toISOString(); next.securedBy = 'QUEUE'; }
+  delete next.qid;
+  state.trailers[doorId] = next;
+  clearDoorPing(doorId);
+  saveTrailerToFirebase(doorId);
+  saveDoorQueuesToFirebase();
+  toast(`${next.carrier}${next.trailerNum ? ' #' + next.trailerNum : ''} secured to Door ${door.num} from the queue`);
+  return true;
+}
+function secureNextFromQueue(doorId) {
+  if (promoteDoorQueue(doorId)) { saveState(); renderDoors(); }
+}
+function queueMoveEntry(doorId, qid, dir) {
+  const q = getDoorQueue(doorId), i = q.findIndex(e => e.qid === qid), j = i + dir;
+  if (i < 0 || j < 0 || j >= q.length) return;
+  [q[i], q[j]] = [q[j], q[i]];
+  saveDoorQueuesToFirebase(); renderDoors();
+}
+function queueRemoveEntry(doorId, qid) {
+  const q = getDoorQueue(doorId), i = q.findIndex(e => e.qid === qid);
+  if (i < 0) return;
+  const e = q[i], door = state.doors.find(d => d.id === doorId);
+  if (!confirm(`Remove ${e.carrier}${e.trailerNum ? ' #' + e.trailerNum : ''} from the Door ${door ? door.num : ''} queue?`)) return;
+  q.splice(i, 1);
+  if (!q.length) delete state.doorQueues[doorId];
+  saveDoorQueuesToFirebase(); renderDoors();
+}
+// A deleted door can't keep a line behind.
+function dropDoorQueue(doorId) {
+  if (state.doorQueues && state.doorQueues[doorId]) { delete state.doorQueues[doorId]; saveDoorQueuesToFirebase(); }
+}
+
+// ---------- the bar + dropdown on the door card ----------
+function buildDoorQueueHtml(door) {
+  const q = getDoorQueue(door.id), open = window._queueOpenDoorId === door.id;
+  let html = `<button class="door-queue-bar${q.length ? ' has-queue' : ''}" data-queuedoor="${door.id}" onclick="event.stopPropagation();toggleQueueDropdown('${door.id}')">Queue: ${q.length ? q.length + ' waiting' : 'empty'} ${open ? '▴' : '▾'}</button>`;
+  if (!open) return html;
+  const doorEmpty = !state.trailers[door.id];
+  html += `<div class="door-queue-menu" onclick="event.stopPropagation()" ondblclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+    <div class="dqm-head"><span class="dqm-title">Door ${escHtml(door.num)} queue — ${q.length} waiting</span>
+      <span class="dqm-head-btns">${doorEmpty && q.length ? `<button onclick="secureNextFromQueue('${door.id}')">Secure next now</button>` : ''}<button onclick="queueAddClicked('${door.id}')">+ Add to Queue</button></span></div>`;
+  if (!q.length) {
+    html += `<div class="dqm-empty">No one is waiting. Use <b>+ Add to Queue</b> to line a supplier up behind the trailer on this door.</div>`;
+  } else {
+    q.forEach((e, i) => {
+      html += `<div class="dqm-row"><span class="dqm-pos">${i + 1}</span>
+        <div class="dqm-main"><b>${escHtml(e.carrier || '—')}</b> ${e.trailerNum ? '#' + escHtml(e.trailerNum) : ''} ${e.type ? `<span class="dqm-type">${escHtml(e.type)}</span>` : ''}
+          <div class="dqm-sub">Arrived ${fmtTime(e.arrival)} · waiting ${e.arrival ? minsToHM(Math.max(0, elapsedMin(e.arrival))) : '—'}</div>
+          ${e.notes ? `<div class="dqm-notes">${escHtml(e.notes)}</div>` : ''}</div>
+        <div class="dqm-btns"><button title="Move up" onclick="queueMoveEntry('${door.id}','${e.qid}',-1)"${i === 0 ? ' disabled' : ''}>▲</button><button title="Move down" onclick="queueMoveEntry('${door.id}','${e.qid}',1)"${i === q.length - 1 ? ' disabled' : ''}>▼</button><button title="Remove from queue" onclick="queueRemoveEntry('${door.id}','${e.qid}')">✕</button></div></div>`;
+    });
+  }
+  return html + `</div>`;
+}
+function toggleQueueDropdown(doorId) {
+  window._queueOpenDoorId = window._queueOpenDoorId === doorId ? null : doorId;
+  renderDoors();
+}
+function queueAddClicked(doorId) {
+  window._queueOpenDoorId = null;
+  renderDoors();
+  openSlotModalForDoor(doorId);
+}
+// Keep the dropdown on screen: doors near the right edge open leftward.
+function fixQueueMenuSide() {
+  const m = document.querySelector('.door-queue-menu');
+  if (!m) return;
+  const r = m.getBoundingClientRect();
+  if (r.right > window.innerWidth - 8) { m.style.left = 'auto'; m.style.right = '0'; }
+}
+document.addEventListener('click', e => {
+  if (!window._queueOpenDoorId) return;
+  if (e.target.closest && (e.target.closest('.door-queue-menu') || e.target.closest('.door-queue-bar'))) return;
+  window._queueOpenDoorId = null;
+  renderDoors();
+});
+
+// ---------- Slot a Trailer window: busy queue doors can be picked too ----------
+function populateSlotDoorSelect() {
+  const sel = document.getElementById('slot-door');
+  sel.innerHTML = '';
+  state.doors.filter(d => d.active && !d.unavailable).sort(compareDoorsForMove).forEach(door => {
+    const busy = !!state.trailers[door.id];
+    if (busy && !door.queueEnabled) return;
+    const opt = document.createElement('option');
+    opt.value = door.id;
+    opt.textContent = `Door ${door.num}${door.name ? ' — ' + door.name : ''}${busy ? ` — busy (${getDoorQueue(door.id).length} waiting) · join the queue` : ''}`;
+    sel.appendChild(opt);
+  });
+}
+// Switches the window between "Secure Trailer" and "Add to Queue" depending on the door picked.
+function updateSlotQueueHint() {
+  const doorId = document.getElementById('slot-door').value;
+  const queueing = isQueueDoorBusy(doorId);
+  document.getElementById('slot-submit-btn').textContent = queueing ? 'Add to Queue' : 'Secure Trailer';
+  document.getElementById('slot-arrival-label').textContent = queueing ? 'Arrived Time' : 'Secure Time';
+  const hint = document.getElementById('slot-queue-hint');
+  if (queueing) {
+    const door = state.doors.find(d => d.id === doorId);
+    hint.style.display = 'block';
+    hint.textContent = `Door ${door.num} is busy. This supplier will wait in line (#${getDoorQueue(doorId).length + 1}) and secure to the door automatically when it's their turn.`;
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+// ---------- door settings: the Queue checkbox ----------
+function editDoorQueue(id, checked) {
+  const d = state.doors.find(x => x.id === id);
+  if (!d) return;
+  if (!checked && getDoorQueue(id).length) {
+    document.getElementById('dl-queue').checked = true;
+    toast(`Door ${d.num} still has ${getDoorQueue(id).length} waiting — clear the queue first`, 'error');
+    return;
+  }
+  d.queueEnabled = !!checked;
+  saveState(); renderDoors();
+}
+
 function openSlotModal() {
-  populateDoorSelect('slot-door', true);
+  populateSlotDoorSelect();
   populateCarrierSelect('slot-carrier');
   document.getElementById('slot-arrival').value = localDateTimeInputValue();
   document.getElementById('slot-trailer').value = '';
   document.getElementById('slot-notes').value = '';
+  updateSlotQueueHint();
   document.getElementById('modal-slot').classList.add('open');
 }
 function openSlotModalForDoor(doorId) {
   openSlotModal();
   document.getElementById('slot-door').value = doorId;
+  updateSlotQueueHint();
 }
 function slotTrailer() {
   const doorId = document.getElementById('slot-door').value;
@@ -5490,9 +5759,19 @@ function slotTrailer() {
   const arrival = arrivalVal ? new Date(arrivalVal).toISOString() : new Date().toISOString();
   const doorForSlot = state.doors.find(d => d.id === doorId);
   const yardSlot = isYardDoorType(doorForSlot);
-  state.trailers[doorId] = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival, securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase() };
-  if (consumeExpectedRow(carrier, null, trailerNum)) state.trailers[doorId].fulfilledRollover = true;
+  const newTrailer = { carrier, trailerNum, type, arrival, secured: false, notes, expected, pctFull: 100, trailerEmpty: false, slottedBy: (window._currentUser || 'unknown').toUpperCase(), receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival, securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase() };
+  // Door is busy and has a queue: this supplier waits in line. Arrived time = the time entered;
+  // its secure time is stamped when it is pulled onto the door.
+  const queueIt = isQueueDoorBusy(doorId);
+  if (queueIt) { newTrailer.receivedAt = arrival; newTrailer.securedAt = null; newTrailer.securedBy = null; newTrailer.qid = newQueueId(); }
+  else state.trailers[doorId] = newTrailer;
+  if (consumeExpectedRow(carrier, null, trailerNum)) newTrailer.fulfilledRollover = true;
   closeModal('modal-slot');
+  if (queueIt) {
+    const pos = addToDoorQueue(doorId, newTrailer);
+    toast(`${carrier} added to the Door ${state.doors.find(d => d.id === doorId)?.num} queue — #${pos} in line`);
+    return;
+  }
   saveTrailerToFirebase(doorId);
   clearDoorPing(doorId); // a new trailer here means any old ready/empty flag no longer applies
   saveState(); renderDoors(); toast(`Trailer slotted at Door ${state.doors.find(d=>d.id===doorId)?.num}`);
@@ -5633,6 +5912,7 @@ function moveTrailer(from, to, sendSlack = true) {
   saveTrailerToFirebase(to);
   deleteTrailerFromFirebase(from);
   clearDoorPing(from); // source door is empty now — clear any ready/empty flag from Door Status
+  promoteDoorQueue(from);   // queue door: next supplier in line secures to it automatically
   clearDoorPing(to);   // destination may have had a stale flag from before — a newly-arrived trailer means that flag is no longer accurate either
   saveState(); renderDoors();
   const moveWebhook = sendSlack ? sendMoveSlackNotification(t, fromDoor, toDoor) : null;
@@ -6636,7 +6916,7 @@ function confirmBfRelease() {
   if (p) releaseTrailer(p.doorId, p.sendSlack);
 }
 
-function releaseTrailer(doorId, sendSlack = true, autoInfo = null) {
+function releaseTrailer(doorId, sendSlack = true, autoInfo = null, opts = {}) {
   const t = state.trailers[doorId];
   if (!t) return;
   const door = state.doors.find(d => d.id === doorId);
@@ -6655,7 +6935,7 @@ function releaseTrailer(doorId, sendSlack = true, autoInfo = null) {
     secured: t.securedAt || (t.receivedAt ? null : t.arrival),
     securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
     released: now,
-    releasedBy: (window._currentUser || 'unknown').toUpperCase(),
+    releasedBy: opts.releasedBy || (window._currentUser || 'unknown').toUpperCase(),
     completed: now,
     notes: t.notes,
     expected: t.expected,
@@ -6671,6 +6951,7 @@ function releaseTrailer(doorId, sendSlack = true, autoInfo = null) {
   saveHistoryRecordToFirebase(rec);
   deleteTrailerFromFirebase(doorId);
   clearDoorPing(doorId); // door is free again — clear any ready/empty flag from Door Status
+  promoteDoorQueue(doorId);   // queue door: next supplier in line secures to it automatically
   const webhookFired = sendSlack ? (autoInfo ? sendAutoReleaseSlackNotification(rec, autoInfo) : sendReleaseSlackNotification(rec, salesSlot)) : null;
   saveState(); renderDoors(); renderExpectedTrailers();
   showReleaseBanner(webhookFired);
@@ -6686,7 +6967,10 @@ const SLACK_RELEASE_WEBHOOK_URL = 'https://hooks.slack.com/triggers/T03K743FC/11
 // below instead of hardcoding SLACK_RELEASE_WEBHOOK_URL directly, so sandbox
 // mode transparently redirects all of them to this one webhook.
 const SANDBOX_WEBHOOK_URL = 'https://hooks.slack.com/triggers/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';
-const SANDBOX_WEBHOOK_PAYLOAD_KEY = 'Sandbox_trailer_moves';
+// Must match the payload variable name in the Slack sandbox workflow EXACTLY,
+// including capital letters ("Sandbox_Trailer_moves" — capital S and T, lowercase
+// "moves"). If it doesn't match, Slack rejects the message.
+const SANDBOX_WEBHOOK_PAYLOAD_KEY = 'Sandbox_Trailer_moves';
 
 function getTrailerMoveWebhook() {
   if (window._sandboxMode) return { url: SANDBOX_WEBHOOK_URL, key: SANDBOX_WEBHOOK_PAYLOAD_KEY };
@@ -7071,6 +7355,7 @@ function completeTrailer(doorId) {
   saveHistoryRecordToFirebase(rec);
   deleteTrailerFromFirebase(doorId);
   clearDoorPing(doorId); // door is free again — clear any ready/empty flag from Door Status
+  promoteDoorQueue(doorId);   // queue door: next supplier in line secures to it automatically
   saveState(); renderDoors(); renderExpectedTrailers(); toast('Trailer completed ✓');
 }
 
@@ -9887,7 +10172,7 @@ function openQuickSlotModal(carrierName, trailerNum, notes, rowId) {
   // person corrects/changes the trailer # before confirming, the app still
   // knows exactly which pending row to remove from Expected Trailers.
   document.getElementById('modal-quick-slot').dataset.rowId = rowId || '';
-  // Populate door select — empty doors only
+  // Populate door select — empty doors, plus busy doors that have a queue (the supplier joins the line)
   const dl = document.getElementById('qs-door');
   dl.innerHTML = '';
   const placeholderOpt = document.createElement('option');
@@ -9896,18 +10181,24 @@ function openQuickSlotModal(carrierName, trailerNum, notes, rowId) {
   placeholderOpt.selected = true;
   placeholderOpt.textContent = 'Select door…';
   dl.appendChild(placeholderOpt);
-  const sortedDoors = state.doors.filter(d => d.active && !d.unavailable && !state.trailers[d.id]).sort(compareDoorsForMove);
+  const sortedDoors = state.doors.filter(d => d.active && !d.unavailable && (!state.trailers[d.id] || d.queueEnabled)).sort(compareDoorsForMove);
   sortedDoors.forEach(door => {
     const opt = document.createElement('option');
     opt.value = door.num;
-    opt.textContent = door.name ? `${door.num} — ${door.name}` : door.num;
+    opt.textContent = (door.name ? `${door.num} — ${door.name}` : door.num) + (state.trailers[door.id] ? ` — busy (${getDoorQueue(door.id).length} waiting) · join the queue` : '');
     dl.appendChild(opt);
   });
   document.getElementById('qs-trailer').value = trailerNum || '';
   document.getElementById('qs-type').value = 'DROP';
   document.getElementById('qs-notes').value = notes || '';
   document.getElementById('qs-unexpected').checked = false;
+  updateQuickSlotQueueHint();
   document.getElementById('modal-quick-slot').classList.add('open');
+}
+// Button reads "Add to Queue" when the door picked is a busy queue door.
+function updateQuickSlotQueueHint() {
+  const door = state.doors.find(d => d.num === document.getElementById('qs-door').value && d.active);
+  document.getElementById('qs-submit-btn').textContent = (door && isQueueDoorBusy(door.id)) ? 'Add to Queue' : 'Secure Trailer';
 }
 
 function markDidNotReceive() {
@@ -9957,7 +10248,7 @@ function slotFromExpected() {
   if (!doorId) { toast('Please enter a valid door number', 'error'); return; }
   const qsArrival = new Date().toISOString();
   const yardSlot = isYardDoorType(door);
-  state.trailers[doorId] = {
+  const newTrailer = {
     carrier: carrierName,
     trailerNum,
     type,
@@ -9972,8 +10263,17 @@ function slotFromExpected() {
     securedAt: yardSlot ? null : qsArrival,
     securedBy: yardSlot ? null : (window._currentUser || 'unknown').toUpperCase()
   };
+  const queueIt = isQueueDoorBusy(doorId);   // busy queue door: wait in line instead of replacing the trailer on the door
+  if (queueIt) { newTrailer.receivedAt = qsArrival; newTrailer.securedAt = null; newTrailer.securedBy = null; newTrailer.qid = newQueueId(); }
+  else state.trailers[doorId] = newTrailer;
   closeModal('modal-quick-slot');
-  if (consumeExpectedRow(carrierName, rowId)) state.trailers[doorId].fulfilledRollover = true;
+  if (consumeExpectedRow(carrierName, rowId)) newTrailer.fulfilledRollover = true;
+  if (queueIt) {
+    const pos = addToDoorQueue(doorId, newTrailer);
+    renderExpectedTrailers();
+    toast(`${carrierName} added to the Door ${state.doors.find(d => d.id === doorId)?.num} queue — #${pos} in line`);
+    return;
+  }
   saveTrailerToFirebase(doorId);
   saveState(); renderDoors(); renderExpectedTrailers();
   toast(`${carrierName} slotted at Door ${state.doors.find(d => d.id === doorId)?.num}`);
@@ -10428,6 +10728,7 @@ function openDoorLayoutModal(doorId) {
   document.getElementById('dl-num').value = door.num;
   document.getElementById('dl-name').value = door.name || '';
   document.getElementById('dl-type').value = door.type || 'standard';
+  document.getElementById('dl-queue').checked = !!door.queueEnabled;
   document.getElementById('dl-toggle-unavail-btn').textContent = door.unavailable ? '✓ Enable' : '⊘ Disable';
   document.getElementById('modal-door-layout').classList.add('open');
 }
@@ -10469,6 +10770,7 @@ function editDeleteDoor(id) {
 function confirmDeleteDoor(id) {
   state.doors = state.doors.filter(x => x.id !== id);
   delete state.trailers[id];
+  dropDoorQueue(id);
   closeModal('modal-door-action');
   saveState(); renderDoors(); toast('Door deleted');
 }
