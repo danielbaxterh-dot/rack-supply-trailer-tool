@@ -2758,7 +2758,7 @@ async function handleUnloadCompletePing(key, data) {
     if (!claimed || !fresh) return;
     const door = _doorForPingKey(key);
     if (!door || !state.trailers[door.id]) return;
-    releaseTrailer(door.id, false, null, { releasedBy: 'DOOR STATUS' });
+    releaseTrailer(door.id, false, null, { releasedBy: String(data.user || 'DOOR STATUS').toUpperCase() });
   } catch (e) { console.error('Unload Complete ping failed:', e); }
 }
 
@@ -2788,7 +2788,7 @@ async function handleSecureLoadPing(key, data) {
     const fd = state.forecast && state.forecast[todayStr()];
     const expected = !!(fd && fd.ltl && fd.ltl.some(r => r.carrier === carrier));
     const yardSlot = isYardDoorType(door);
-    const who = 'DOOR STATUS';
+    const who = String(data.user || 'DOOR STATUS').toUpperCase();   // the spotter's T-ID
     const newTrailer = { carrier, trailerNum, type, arrival, secured: false, notes: '', expected, pctFull: 100, trailerEmpty: false, slottedBy: who, receivedAt: yardSlot ? arrival : null, securedAt: yardSlot ? null : arrival, securedBy: yardSlot ? null : who };
     if (state.trailers[doorId]) {
       if (!door.queueEnabled) {
