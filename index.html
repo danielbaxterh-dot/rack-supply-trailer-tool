@@ -2826,7 +2826,7 @@ async function handleResetAgePing(key, data) {
     if (!claimed || !fresh) return;
     const door = _doorForPingKey(key);
     if (!door || !state.trailers[door.id]) return;
-    resetOtherCarrierTimer(door.id);
+    resetOtherCarrierTimer(door.id, data.resetAgeBy);
   } catch (e) { console.error('Reset age ping failed:', e); }
 }
 
@@ -6994,9 +6994,12 @@ function releaseConfirmChoice(sendSlack) {
   if (action) action(sendSlack);
 }
 
-function resetOtherCarrierTimer(doorId) {
+// byUser is only passed when the Door Status tool triggers this, so the history record
+// names the person who pressed the button there instead of whoever's screen handled it.
+function resetOtherCarrierTimer(doorId, byUser) {
   const t = state.trailers[doorId];
   if (!t) return;
+  const who = String(byUser || window._currentUser || 'unknown').toUpperCase();
   const door = state.doors.find(d => d.id === doorId);
   const now = new Date().toISOString();
 
@@ -7014,7 +7017,7 @@ function resetOtherCarrierTimer(doorId) {
     secured: t.securedAt || (t.receivedAt ? null : t.arrival),
     securedBy: t.securedAt ? (t.securedBy || null) : (t.receivedAt ? null : (t.securedBy || t.slottedBy || null)),
     released: now,
-    releasedBy: (window._currentUser || 'unknown').toUpperCase(),
+    releasedBy: who,
     completed: now,
     notes: t.notes || '',
     expected: t.expected,
@@ -7029,7 +7032,7 @@ function resetOtherCarrierTimer(doorId) {
   const otherYard = isYardDoorType(door);
   t.receivedAt = otherYard ? now : null;
   t.securedAt = otherYard ? null : now;
-  t.securedBy = otherYard ? null : (window._currentUser || 'unknown').toUpperCase();
+  t.securedBy = otherYard ? null : who;
 
   saveTrailerToFirebase(doorId);
   saveState();
