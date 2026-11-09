@@ -2650,6 +2650,11 @@
       </select>
     </div>
     <div class="form-row">
+      <label>Release Behavior</label>
+      <select id="dl-behavior" onchange="editDoorBehavior(window._doorLayoutEditId, this.value)"></select>
+      <div style="font-size:11px;color:#4a6a5a;margin-top:4px;">Overrides the carrier's setting for any trailer on this door.</div>
+    </div>
+    <div class="form-row">
       <label style="display:flex;align-items:center;gap:10px;text-transform:none;font-size:15px !important;letter-spacing:0;"><input type="checkbox" id="dl-queue" style="width:22px;height:22px;" onchange="editDoorQueue(window._doorLayoutEditId, this.checked)"> Queue — let suppliers wait in line for this door</label>
     </div>
     <div class="modal-actions">
@@ -5903,7 +5908,7 @@ function renderDoors() {
 
     // Full-width notes bar
     const notesBar = t && t.notes && t.carrier === 'Bin Freight' && t.bfDate
-      ? `<div style="padding:4px 6px 3px;border-top:1px solid #e8eeeb;text-align:center;"><span style="display:inline-block;background:linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%);color:#000;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:4px 14px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);">${escHtml(t.notes)}</span></div>`
+      ? `<div style="padding:4px 6px 3px;border-top:1px solid #e8eeeb;text-align:left;"><span style="display:block;box-sizing:border-box;width:62%;min-width:max-content;text-align:left;background:linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%);color:#000;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:4px 12px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);">${escHtml(t.notes)}</span></div>`
       : t && t.notes
       ? `<div style="font-size:14px;color:#000;font-style:italic;font-weight:700;padding:4px 6px 2px;border-top:1px solid #e8eeeb;word-break:break-word;line-height:1.4;">${t.notes}</div>`
       : '';
@@ -5920,7 +5925,7 @@ function renderDoors() {
         ${(() => {
           const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
           const wrap = inner => `<div style="display:flex;gap:calc(5px * var(--card-scale));align-items:center;">${inner}</div>`;
-          const tileBeh = getTileBehavior(t.carrier);
+          const tileBeh = getEffectiveTileBehavior(door, t.carrier);
           if (tileBeh === 'hide_release') return moveBtn;
           if (tileBeh === 'save_reset') {
             return wrap(moveBtn + `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Age</button>`);
@@ -6031,7 +6036,7 @@ function openDoorEditModal(doorId) {
   }
   document.getElementById('de-unexpected').checked = !!(t && t.unexpected);
   const deRelBtn = document.getElementById('de-release-btn');
-  if (deRelBtn) deRelBtn.style.display = (t && getTileBehavior(t.carrier) === 'hide_release') ? 'none' : '';
+  if (deRelBtn) deRelBtn.style.display = (t && getEffectiveTileBehavior(door, t.carrier) === 'hide_release') ? 'none' : '';
   document.getElementById('modal-door-edit').classList.add('open');
 }
 
@@ -6043,7 +6048,8 @@ function openDoorEditModal(doorId) {
 // exact same confirmation flow the card's Release button already uses.
 function releaseDoorFromEditModal() {
   const _t0 = state.trailers[document.getElementById('modal-door-edit').dataset.doorid];
-  if (_t0 && getTileBehavior(_t0.carrier) === 'hide_release') { toast('Release is hidden for this carrier', 'error'); return; }
+  const _d0 = state.doors.find(d => d.id === document.getElementById('modal-door-edit').dataset.doorid);
+  if (_t0 && getEffectiveTileBehavior(_d0, _t0.carrier) === 'hide_release') { toast('Release is hidden for this door', 'error'); return; }
   const doorId = document.getElementById('modal-door-edit').dataset.doorid;
   closeModal('modal-door-edit');
   confirmRelease(doorId);
@@ -7608,6 +7614,13 @@ function carrierInPriority(carrierName) {
   if (c && c.type === 'OTHER') return false;
   return carrierShowsAge(carrierName);
 }
+// A door can override its carriers' behavior. Blank = use whatever the carrier is set to.
+function doorBehaviorOverride(door) {
+  return door && TILE_BEHAVIORS.some(b => b.id === door.tileBehavior) ? door.tileBehavior : null;
+}
+function getEffectiveTileBehavior(door, carrierName) {
+  return doorBehaviorOverride(door) || getTileBehavior(carrierName);
+}
 function tileBehaviorOptionsHTML(selectedId) {
   return TILE_BEHAVIORS.map(b => `<option value="${b.id}" ${b.id === selectedId ? 'selected' : ''}>${b.label} — ${b.short}</option>`).join('');
 }
@@ -7666,7 +7679,11 @@ function confirmRelease(doorId) {
   // Trailers on the Auto door ask which door they're in and where they're going
   // (CFF or yard) instead of the usual confirmation. With Slack messages turned
   // off in App Settings there's nothing to ask for, so it releases like any other door.
-  if ((isAutoDoor(state.doors.find(d => d.id === doorId)) || getTileBehavior(t.carrier) === 'ask_door') && state.settings.slackReleaseEnabled !== false) { openAutoReleaseModal(doorId); return; }
+  // A behavior picked on the door wins; otherwise a door named "Auto" or a carrier set to Door Prompt Release asks.
+  const _doorObj = state.doors.find(d => d.id === doorId);
+  const _ov = doorBehaviorOverride(_doorObj);
+  const _askDoor = _ov ? _ov === 'ask_door' : (isAutoDoor(_doorObj) || getTileBehavior(t.carrier) === 'ask_door');
+  if (_askDoor && state.settings.slackReleaseEnabled !== false) { openAutoReleaseModal(doorId); return; }
   if (!isSlackEligible(t)) { proceedWithRelease(doorId, false); return; }
   const door = state.doors.find(d => d.id === doorId);
   const summary = `${t.carrier}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${door?.num || doorId}`;
@@ -11540,6 +11557,9 @@ function openDoorLayoutModal(doorId) {
   document.getElementById('dl-name').value = door.name || '';
   document.getElementById('dl-type').value = door.type || 'standard';
   document.getElementById('dl-queue').checked = !!door.queueEnabled;
+  const dlBeh = document.getElementById('dl-behavior');
+  dlBeh.innerHTML = `<option value="">Use carrier setting</option>` + TILE_BEHAVIORS.map(b => `<option value="${b.id}">${b.label} — ${b.short}</option>`).join('');
+  dlBeh.value = doorBehaviorOverride(door) || '';
   document.getElementById('dl-toggle-unavail-btn').textContent = door.unavailable ? '✓ Enable' : '⊘ Disable';
   document.getElementById('modal-door-layout').classList.add('open');
 }
@@ -11556,6 +11576,12 @@ function editDoorNum(id, val) {
 function editDoorName(id, val) {
   const d = state.doors.find(x => x.id === id);
   if (d) { d.name = val; saveState(); }
+}
+function editDoorBehavior(id, val) {
+  const d = state.doors.find(x => x.id === id);
+  if (!d) return;
+  if (val) d.tileBehavior = val; else delete d.tileBehavior;
+  saveState(); renderDoors();
 }
 function editDoorType(id, val) {
   const d = state.doors.find(x => x.id === id);
