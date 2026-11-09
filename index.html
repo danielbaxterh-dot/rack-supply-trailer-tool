@@ -1518,7 +1518,7 @@
         <div class="sidebar-panel-body">
           <table class="sidebar-table" id="shuttle-table">
             <thead><tr>
-              <th>Door</th><th>Secured</th><th>Released</th>
+              <th>Door</th><th>Secured</th><th>Released</th><th style="width:22px;"></th>
             </tr></thead>
             <tbody id="shuttle-tbody"></tbody>
           </table>
@@ -6592,13 +6592,13 @@ function isYardDoorType(door) {
   return !!door && (door.type === 'yard' || door.type === 'cff_yard' || (door.id && door.id.startsWith('YD')));
 }
 
-// Returns 'CFF yard' / 'main yard' if the door is a yard door, or null if it's a regular dock door
+// Returns 'CFF yard' / 'Main Yard' if the door is a yard door, or null if it's a regular dock door
 function yardLabelFor(door) {
   if (!door) return null;
   const isYard = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD');
   if (!isYard) return null;
   const isCFF = door.type === 'cff_yard' || door.num.toUpperCase().includes('CFF') || (door.name && door.name.toUpperCase().includes('CFF'));
-  return isCFF ? 'CFF yard' : 'main yard';
+  return isCFF ? 'CFF yard' : 'Main Yard';
 }
 
 function sendMoveSlackNotification(t, fromDoor, toDoor) {
@@ -6606,11 +6606,11 @@ function sendMoveSlackNotification(t, fromDoor, toDoor) {
   if (!wh.url) return null;
   const carrier = WEBHOOK_CARRIER_ALIAS[t.carrier] || t.carrier || 'Trailer';
   // {from} and {to} are just the door number (like 12). A yard has no door number,
-  // so it still reads "main yard" / "CFF yard".
+  // so it still reads "Main Yard" / "CFF yard".
   const fromLabel = yardLabelFor(fromDoor) || `${fromDoor ? fromDoor.num : '?'}`;
   const toLabel = yardLabelFor(toDoor) || `${toDoor ? toDoor.num : '?'}`;
   // If the wording says "Door {from}" and the place is a yard, drop the word "Door"
-  // so it reads "main yard" instead of "Door main yard".
+  // so it reads "Main Yard" instead of "Door Main Yard".
   const message = renderWebhookMessage('move', { carrier, trailer: t.trailerNum || '', from: fromLabel, to: toLabel })
     .replace(/\bDoor (main yard|CFF yard)\b/gi, '$1');
   return fetch(wh.url, {
@@ -7018,7 +7018,7 @@ function isShuttleCarrier(name) { return String(name || '').trim().toLowerCase()
 function getShuttleRows() {
   const rows = [];
   (state.completedToday || []).filter(r => isShuttleCarrier(r.carrier)).forEach(r => {
-    rows.push({ door: String(r.door || ''), securedAt: r.secured || null, securedBy: r.securedBy || '', releasedAt: r.released || null, releasedBy: r.releasedBy || '' });
+    rows.push({ door: String(r.door || ''), securedAt: r.secured || null, securedBy: r.securedBy || '', releasedAt: r.released || null, releasedBy: r.releasedBy || '', kind: 'record', recId: r.id });
   });
   Object.entries(state.trailers || {}).forEach(([doorId, t]) => {
     if (!t || !isShuttleCarrier(t.carrier)) return;
@@ -7029,7 +7029,7 @@ function getShuttleRows() {
     // A shuttle that never got a release time drops off at end of day: it only
     // stays in the table on the day it was secured.
     if (dashDateKey(securedAt) !== todayStr()) return;
-    rows.push({ door: String(door ? door.num : doorId), securedAt, securedBy: t.securedBy || t.slottedBy || '', releasedAt: null, releasedBy: '' });
+    rows.push({ door: String(door ? door.num : doorId), securedAt, securedBy: t.securedBy || t.slottedBy || '', releasedAt: null, releasedBy: '', kind: 'active', doorId });
   });
   const ts = v => { const d = parseFlexDate(v); return d ? d.getTime() : 0; };
   rows.sort((a, b) => ts(b.securedAt || b.releasedAt) - ts(a.securedAt || a.releasedAt)); // newest first
@@ -7042,12 +7042,35 @@ function fmtShuttleDT(dt) {
   if (!d) return '—';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
+// Delete a row from the Shuttle table.
+//  - A shuttle still on a door (no release time): clears its secure record. The trailer
+//    stays on the door and the row comes back when Shuttle Secured is pressed.
+//  - A released shuttle: deletes that load's history record.
+function removeShuttleRow(kind, key) {
+  if (kind === 'active') {
+    const t = state.trailers[key];
+    if (!t) return;
+    if (!confirm('Delete this secure record?\n\nThe trailer stays on the door. It will show in this table again when Shuttle Secured is pressed.')) return;
+    t.awaitingSecure = true;
+    t.securedAt = null; t.securedBy = null;
+    saveTrailerToFirebase(key);
+    saveState(); renderDoors();
+    toast('Secure record deleted ✓');
+  } else {
+    const id = isNaN(Number(key)) ? key : Number(key);
+    if (!state.history.some(r => r.id === id)) return;
+    if (!confirm('Delete this shuttle record from history?\n\nThis removes it from the table and from the History tab.')) return;
+    removeCompleted(id);
+    toast('Record deleted ✓');
+  }
+  queueShuttlePublish();
+}
 function renderShuttleTable() {
   const tbody = document.getElementById('shuttle-tbody');
   if (!tbody) return;
   const rows = getShuttleRows();
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#888;font-style:italic;padding:10px;">No shuttle activity yet today</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888;font-style:italic;padding:10px;">No shuttle activity yet today</td></tr>`;
     return;
   }
   const cell = (at, by) => at
@@ -7058,6 +7081,7 @@ function renderShuttleTable() {
       <td style="color:#000;font-weight:800;">${String(r.door).replace(/</g,'&lt;')}</td>
       <td style="font-size:12px;">${cell(r.securedAt, r.securedBy)}</td>
       <td style="font-size:12px;">${cell(r.releasedAt, r.releasedBy)}</td>
+      <td style="text-align:center;padding:0 4px;"><span role="button" title="Delete this record" onclick="removeShuttleRow('${r.kind}', '${r.kind === 'active' ? r.doorId : r.recId}')" style="cursor:pointer;color:#b03030;font-weight:800;font-size:14px;">✕</span></td>
     </tr>`).join('');
 }
 
@@ -7071,7 +7095,7 @@ function queueShuttlePublish() {
 }
 async function publishShuttleLog() {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
-  const rows = getShuttleRows();
+  const rows = getShuttleRows().map(r => ({ door: r.door, securedAt: r.securedAt, securedBy: r.securedBy, releasedAt: r.releasedAt, releasedBy: r.releasedBy }));
   const json = JSON.stringify(rows);
   if (json === _lastShuttlePublished) return;
   _lastShuttlePublished = json;
@@ -8082,8 +8106,8 @@ const WEBHOOK_TAG_HELP = {
   carrier: 'Carrier name',
   trailer: 'Trailer number (left out cleanly if there is none)',
   door: 'Door number',
-  from: 'The door the trailer is coming from — just the number, like 12 (or main yard / CFF yard)',
-  to: 'The door the trailer is going to — just the number, like 30 (or main yard / CFF yard)',
+  from: 'The door the trailer is coming from — just the number, like 12 (or Main Yard / CFF yard)',
+  to: 'The door the trailer is going to — just the number, like 30 (or Main Yard / CFF yard)',
   destination: 'The Sales Side door the trailer is headed to (like 21)',
   date: "Today's date",
   list: 'The list of trailers (each one is written using the trailer line below)'
