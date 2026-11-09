@@ -2546,9 +2546,9 @@
     <div class="form-row">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="new-carrier-reset-age" style="width:16px;height:16px;cursor:pointer;">
-        Add a Reset Age button to the door tile
+        Reset Age button in the double-click window
       </label>
-      <div style="font-size:11px;color:#4a6a5a;margin-top:4px;">Saves the load to history and restarts the age. The trailer stays on the door. Save &amp; Reset already includes it.</div>
+      <div style="font-size:11px;color:#4a6a5a;margin-top:4px;">Saves the load to history and restarts the age. The trailer stays on the door. (Save &amp; Reset puts the button on the tile instead.)</div>
     </div>
     <div class="form-row">
       <label>Email draft button</label>
@@ -2737,6 +2737,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-door-edit')">Cancel</button>
+      <button class="btn btn-orange" id="de-reset-age-btn" onclick="resetAgeFromEditModal()" style="display:none;" title="Saves any changes here, saves the load to history and restarts the age. The trailer stays on the door.">Reset Age</button>
       <button class="btn btn-red" id="de-release-btn" onclick="releaseDoorFromEditModal()">Release</button>
       <button class="btn btn-teal" onclick="saveDoorEdit()">Save</button>
     </div>
@@ -5967,9 +5968,9 @@ function renderDoors() {
           const emailBtn = getEmailTemplateId(t.carrier)
             ? moveBtn.replace(`openMoveModalForDoor('${door.id}')`, `downloadEmailDraft('${door.id}')`).replace('>Move</button>', '>✉ Email</button>').replace('calc(14px * var(--card-scale))', 'calc(9px * var(--card-scale))')
             : '';
-          // Reset Age shows for Save & Reset tiles, and for any carrier that has the Reset Age button turned on
+          // Save & Reset tiles show Reset Age on the tile. A carrier's separate Reset Age option lives in the double-click window instead.
           const resetBtn = `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Age</button>`;
-          const extraBtns = ((tileBeh === 'save_reset' || carrierHasResetAge(t.carrier)) ? resetBtn : '') + emailBtn;
+          const extraBtns = (tileBeh === 'save_reset' ? resetBtn : '') + emailBtn;
           if (tileBeh === 'hide_release') return extraBtns ? wrap(moveBtn + extraBtns) : moveBtn;
           if (tileBeh === 'save_reset') return wrap(moveBtn + extraBtns);
           return wrap(moveBtn + `<button onclick="confirmRelease('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>` + extraBtns);
@@ -6077,6 +6078,8 @@ function openDoorEditModal(doorId) {
     securedByRow.style.display = 'none';
   }
   document.getElementById('de-unexpected').checked = !!(t && t.unexpected);
+  const deResetBtn = document.getElementById('de-reset-age-btn');
+  if (deResetBtn) deResetBtn.style.display = (t && carrierHasResetAge(t.carrier)) ? '' : 'none';
   const deRelBtn = document.getElementById('de-release-btn');
   if (deRelBtn) deRelBtn.style.display = (t && getEffectiveTileBehavior(door, t.carrier) === 'hide_release') ? 'none' : '';
   document.getElementById('modal-door-edit').classList.add('open');
@@ -6088,6 +6091,12 @@ function openDoorEditModal(doorId) {
 // so this modal was previously the only way to touch that trailer at all and
 // had no way to release it. Closes the edit modal first, then reuses the
 // exact same confirmation flow the card's Release button already uses.
+function resetAgeFromEditModal() {
+  const doorId = document.getElementById('modal-door-edit').dataset.doorid;
+  if (!state.trailers[doorId]) return;
+  saveDoorEdit();                 // keep anything typed in this window, then close it
+  resetOtherCarrierTimer(doorId); // saves the load to history and restarts the age
+}
 function releaseDoorFromEditModal() {
   const _t0 = state.trailers[document.getElementById('modal-door-edit').dataset.doorid];
   const _d0 = state.doors.find(d => d.id === document.getElementById('modal-door-edit').dataset.doorid);
@@ -7854,15 +7863,6 @@ function carrierHasResetAge(carrierName) {
   const c = state.carriers.find(c => c.name === carrierName);
   return !!(c && c.resetAgeBtn === true);
 }
-function syncResetAgeChk(sel) {
-  const box = sel.closest('.carrier-edit-mode');
-  const chk = box && box.querySelector('.carrier-reset-age-chk');
-  if (!chk) return;
-  const isSR = sel.value === 'save_reset';          // Save & Reset already has the button
-  if (isSR && !chk.disabled) { chk.dataset.prev = chk.checked ? '1' : '0'; chk.checked = true; }
-  else if (!isSR && chk.disabled) chk.checked = chk.dataset.prev === '1';   // put back what it was
-  chk.disabled = isSR;
-}
 function tileBehaviorOptionsHTML(selectedId) {
   return TILE_BEHAVIORS.map(b => `<option value="${b.id}" ${b.id === selectedId ? 'selected' : ''}>${b.label} — ${b.short}</option>`).join('');
 }
@@ -8522,7 +8522,7 @@ function renderCarriers() {
             <span class="badge ${typeColor}" style="font-size:10px;color:#000;">${typeLabel}</span>
             ${c.dualType ? `<span class="badge badge-purple" style="font-size:10px;color:#000;margin-left:4px;" title="Also shows up on the other type's dropdown when slotting a trailer">+ both</span>` : ''}
             <span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#e6eee9;border:1px solid #c8ddd4;" title="Door tile behavior — double-click the card to change">${tileBehaviorLabel(getTileBehavior(c.name))}</span>
-            ${c.resetAgeBtn === true ? `<span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#e6eee9;border:1px solid #c8ddd4;" title="Reset Age button on the door tile — double-click the card to change">+ Reset Age</span>` : ''}
+            ${c.resetAgeBtn === true ? `<span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#e6eee9;border:1px solid #c8ddd4;" title="Reset Age button in the double-click window — double-click the card to change">+ Reset Age</span>` : ''}
             ${c.showAge === false ? `<span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#f3e3e3;border:1px solid #e0c0c0;" title="No age counter on the door tile — double-click the card to change">No age counter</span>` : ''}
           </div>
           <button class="delete-btn" onclick="removeCarrier('${c.id}')" style="align-self:flex-start;flex-shrink:0;color:#ccc;font-size:13px;">✕</button>
@@ -8546,7 +8546,7 @@ function renderCarriers() {
         </label>
         <div style="display:flex;flex-direction:column;gap:3px;">
           <span style="font-size:11px;font-weight:700;color:#4a6a5a;text-transform:uppercase;letter-spacing:0.4px;">Door Tile Behavior</span>
-          <select class="carrier-behavior-sel" onchange="syncResetAgeChk(this)" style="padding:5px 8px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;color:#000;">${tileBehaviorOptionsHTML(getTileBehavior(c.name))}</select>
+          <select class="carrier-behavior-sel" style="padding:5px 8px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;color:#000;">${tileBehaviorOptionsHTML(getTileBehavior(c.name))}</select>
         </div>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
           <input type="checkbox" class="carrier-show-age-chk" ${c.showAge === false ? '' : 'checked'} style="width:14px;height:14px;cursor:pointer;">
@@ -8557,8 +8557,8 @@ function renderCarriers() {
           Include in priority age badge
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
-          <input type="checkbox" class="carrier-reset-age-chk" ${(getTileBehavior(c.name) === 'save_reset' || c.resetAgeBtn === true) ? 'checked' : ''} ${getTileBehavior(c.name) === 'save_reset' ? 'disabled' : ''} style="width:14px;height:14px;cursor:pointer;">
-          Add Reset Age button
+          <input type="checkbox" class="carrier-reset-age-chk" ${c.resetAgeBtn === true ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
+          Reset Age button in double-click window
         </label>
         <div style="display:flex;flex-direction:column;gap:3px;">
           <span style="font-size:11px;font-weight:700;color:#4a6a5a;text-transform:uppercase;letter-spacing:0.4px;">Email draft button</span>
@@ -8607,7 +8607,7 @@ function saveCarrierEdit(id, btn) {
   const showAge = card.querySelector('.carrier-show-age-chk').checked;
   const priorityBadge = card.querySelector('.carrier-priority-chk').checked;
   const emailTemplate = card.querySelector('.carrier-email-sel').value;
-  const resetAgeBtn = card.querySelector('.carrier-reset-age-chk').checked && tileBehavior !== 'save_reset';
+  const resetAgeBtn = card.querySelector('.carrier-reset-age-chk').checked;
   if (!name) { toast('Carrier name required', 'error'); return; }
   const c = state.carriers.find(c => c.id === id);
   if (!c) return;
@@ -8696,7 +8696,7 @@ function saveNewCarrier() {
   const showAge = document.getElementById('new-carrier-show-age').checked;
   const priorityBadge = document.getElementById('new-carrier-priority').checked;
   const emailTemplate = document.getElementById('new-carrier-email').value;
-  const resetAgeBtn = document.getElementById('new-carrier-reset-age').checked && tileBehavior !== 'save_reset';
+  const resetAgeBtn = document.getElementById('new-carrier-reset-age').checked;
   const newCarrier = { id, name, type, tileBehavior, showAge, priorityBadge, emailTemplate, resetAgeBtn };
   state.carriers.push(newCarrier);
   closeModal('modal-add-carrier');
