@@ -2213,6 +2213,7 @@
   <div class="flex-row" style="margin-bottom:14px;">
     <button class="btn btn-teal" onclick="openAddCarrierModal()">+ Add Carrier</button>
     <button class="btn btn-blue" onclick="mergeDefaultCarriers()">↻ Sync Default List</button>
+    <button class="btn btn-gray" onclick="openEmailTemplatesModal()">✉ Email Templates</button>
   </div>
   <div class="carriers-grid" id="carriers-grid"></div>
 </div>
@@ -2483,6 +2484,27 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-email-templates">
+  <div class="modal" style="max-width:820px;max-height:90vh;overflow-y:auto;">
+    <h2>✉ Email Templates</h2>
+    <p style="font-size:12px;color:#000;margin-bottom:8px;">The Email button on a door tile saves an unsent draft you open in Outlook. Separate addresses with a semicolon, like <b>Name &lt;name@company.com&gt;; other@company.com</b>. In the message you can use <b>{door}</b> (door number), <b>{carrier}</b>, <b>{trailer}</b> (trailer number), <b>{date}</b> and <b>{greeting}</b> (Good morning / Good afternoon). Anything you leave blank stays blank in the draft.</p>
+    <div style="border:1px solid #c8ddd4;border-radius:8px;padding:10px;margin-bottom:12px;background:#f7fbf9;">
+      <label style="font-size:11px;font-weight:700;color:#4a6a5a;">WHEN YOU CLICK EMAIL</label>
+      <select id="email-method" style="width:100%;padding:7px 9px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;margin-bottom:8px;">
+        <option value="popup">Pop open a new message in Outlook (plain text, sends from Outlook's default account)</option>
+        <option value="file">Save a draft file to open in Outlook (can set the From address)</option>
+      </select>
+      <label style="font-size:11px;font-weight:700;color:#4a6a5a;">FROM (draft file method only)</label>
+      <input type="text" id="email-from" style="width:100%;padding:7px 9px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;outline:none;font-family:inherit;">
+    </div>
+    <div id="email-tpl-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('modal-email-templates')">Cancel</button>
+      <button class="btn btn-teal" onclick="saveEmailTemplates()" style="color:#000;">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add-carrier">
   <div class="modal">
     <h2>🚚 Add Carrier</h2>
@@ -2520,6 +2542,14 @@
         Include in priority age badge
       </label>
       <div style="font-size:11px;color:#4a6a5a;margin-top:4px;">The numbered badge on the oldest trailers on the doors.</div>
+    </div>
+    <div class="form-row">
+      <label>Email draft button</label>
+      <select id="new-carrier-email">
+        <option value="">None</option>
+        <option value="discard">Discard trailer</option>
+        <option value="swap">Skid trailer swap</option>
+      </select>
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-add-carrier')">Cancel</button>
@@ -5926,11 +5956,15 @@ function renderDoors() {
           const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
           const wrap = inner => `<div style="display:flex;gap:calc(5px * var(--card-scale));align-items:center;">${inner}</div>`;
           const tileBeh = getEffectiveTileBehavior(door, t.carrier);
-          if (tileBeh === 'hide_release') return moveBtn;
+          // One-click Outlook draft for carriers that have an email template (Discard, Junk Skids by default)
+          const emailBtn = getEmailTemplateId(t.carrier)
+            ? moveBtn.replace(`openMoveModalForDoor('${door.id}')`, `downloadEmailDraft('${door.id}')`).replace('>Move</button>', '>✉ Email</button>').replace('calc(14px * var(--card-scale))', 'calc(9px * var(--card-scale))')
+            : '';
+          if (tileBeh === 'hide_release') return emailBtn ? wrap(moveBtn + emailBtn) : moveBtn;
           if (tileBeh === 'save_reset') {
-            return wrap(moveBtn + `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Age</button>`);
+            return wrap(moveBtn + `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Age</button>` + emailBtn);
           }
-          return wrap(moveBtn + `<button onclick="confirmRelease('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>`);
+          return wrap(moveBtn + `<button onclick="confirmRelease('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>` + emailBtn);
         })()}
       </div>`;
     }
@@ -7576,6 +7610,192 @@ function resetOtherCarrierTimer(doorId, byUser) {
   toast('Timer reset ✓');
 }
 
+// ===================== EMAIL DRAFTS (Outlook) =====================
+// The Email button on a door tile downloads a ready-made, unsent message as an
+// .eml file. Double-click it and classic Outlook opens it as a new draft with the
+// recipients, subject and body already filled in — review it and press Send.
+// (The "X-Unsent: 1" line is what makes Outlook open it as a draft instead of a
+// received message.) Outlook sends it from its default account.
+const EMAIL_FROM_DEFAULT = 'McMaster Freight Receiving - AUR <cle.receiving@mcmaster.com>';
+const EMAIL_TEMPLATES_DEFAULT = {
+  discard: {
+    label: 'Discard trailer',
+    to: 'AUR Facilities Support (Formerly AUR Branch Support) <AURFacilitiesSupport@mcmaster.com>',
+    cc: 'AUR Rack Supply Management <aur.racksupplymanagement@mcmaster.com>; McMaster Freight Receiving - AUR <cle.receiving@mcmaster.com>',
+    subject: 'Discard trailer',
+    body: 'Could we please schedule a pickup/exchange for our discard trailer?  Our current trailer is full and will need to be swapped. Dock door {door}.\n\n'
+  },
+  swap: {
+    label: 'Skid trailer swap',
+    to: 'Kevin Thomas <kthomas@rivercitysolutions.com>; McMaster Freight Receiving - AUR <cle.receiving@mcmaster.com>',
+    cc: 'Pick Ups <pickups@rivercitysolutions.com>; AUR Facilities Support (Formerly AUR Branch Support) <AURFacilitiesSupport@mcmaster.com>; Samantha Hardman <RCSolutions@rivercitywood.com>; AUR Rack Supply Management <aur.racksupplymanagement@mcmaster.com>; Mike Reed <mike.reed@mcmaster.com>',
+    subject: 'Mcmaster-Carr Skid Trailer Swap',
+    body: '{greeting}.\nCan you please send an empty trailer to the 200 location? We have full trailer {trailer} on site.\nThank you,\n\nMcMaster-Carr Supply Co.'
+  }
+};
+
+const EMAIL_SWAP_BODY_BLANK_TRAILER = '{greeting}.\nCan you please send an empty trailer to the 200 location? We have full trailer  on site.\nThank you,\n\nMcMaster-Carr Supply Co.';
+function getEmailTemplate(id) {
+  const base = EMAIL_TEMPLATES_DEFAULT[id];
+  if (!base) return null;
+  const saved = Object.assign({}, (state.settings.emailTemplates || {})[id] || {});
+  if (id === 'swap' && saved.body === EMAIL_SWAP_BODY_BLANK_TRAILER) delete saved.body;   // earlier default had the trailer number left blank
+  return Object.assign({}, base, saved, { label: base.label });
+}
+// Which template a carrier's tiles get. A choice on the Carriers tab wins ("" = none);
+// until one is made, Discard gets the discard email and Junk Skids the swap email.
+function getEmailTemplateId(carrierName) {
+  const c = state.carriers.find(c => c.name === carrierName);
+  if (c && typeof c.emailTemplate === 'string') return EMAIL_TEMPLATES_DEFAULT[c.emailTemplate] ? c.emailTemplate : '';
+  if (/^discard$/i.test(String(carrierName || '').trim())) return 'discard';
+  if (carrierName === 'Junk Skids') return 'swap';
+  return '';
+}
+
+// "Name <a@b.com>; c@d.com" -> [{ name, addr }]
+function parseEmailList(str) {
+  const out = [];
+  String(str || '').split(/[;\n]+/).forEach(seg => {
+    const parts = (seg.match(/@/g) || []).length > 1 && !/</.test(seg) ? seg.split(',') : [seg];
+    parts.forEach(part => {
+      const t = part.trim();
+      if (!t) return;
+      const m = t.match(/^(.*?)<\s*([^>\s]+@[^>\s]+)\s*>$/);
+      if (m) out.push({ name: m[1].trim().replace(/^"|"$/g, ''), addr: m[2] });
+      else if (/^[^\s@]+@[^\s@]+$/.test(t)) out.push({ name: '', addr: t });
+    });
+  });
+  return out;
+}
+const emlEncodeWord = str => /^[\x20-\x7e]*$/.test(str) ? str : '=?UTF-8?B?' + btoa(unescape(encodeURIComponent(str))) + '?=';
+function emlAddrHeader(list) {
+  return list.map(a => a.name ? `"${emlEncodeWord(a.name).replace(/(["\\])/g, '\\$1')}" <${a.addr}>` : a.addr).join(',\r\n ');
+}
+function emlBase64(str) {
+  const b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replace(/(.{76})/g, '$1\r\n');
+}
+function emailHtmlFromText(text, vars) {
+  const filled = String(text || '').replace(/\{(door|carrier|trailer|date|greeting)\}/g, (_, k) => k === 'trailer' ? (vars.trailer ? '\u0001' + vars.trailer + '\u0002' : '') : (vars[k] == null ? '' : vars[k]));
+  const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\u0001/g, '<b>').replace(/\u0002/g, '</b>');
+  const lines = filled.replace(/\r/g, '').split('\n');
+  const html = lines.map(l => {
+    const body = esc(l).replace(/ {2,}/g, m => ' ' + '&nbsp;'.repeat(m.length - 1));
+    return `<p style="margin:0;">${body || '&nbsp;'}</p>`;
+  }).join('');
+  return `<html><body style="font-family:Calibri,Arial,sans-serif;font-size:11pt;">${html}</body></html>`;
+}
+function emailFromList() { return parseEmailList(state.settings.emailFrom !== undefined ? state.settings.emailFrom : EMAIL_FROM_DEFAULT); }
+function buildEmailEml(tpl, vars) {
+  const to = parseEmailList(tpl.to), cc = parseEmailList(tpl.cc), from = emailFromList();
+  const headers = ['X-Unsent: 1'];
+  if (from.length) headers.push('From: ' + emlAddrHeader(from.slice(0, 1)));
+  if (to.length) headers.push('To: ' + emlAddrHeader(to));
+  if (cc.length) headers.push('Cc: ' + emlAddrHeader(cc));
+  headers.push('Subject: ' + emlEncodeWord(emailFill(tpl.subject, vars)));
+  headers.push('MIME-Version: 1.0', 'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: base64');
+  return headers.join('\r\n') + '\r\n\r\n' + emlBase64(emailHtmlFromText(tpl.body, vars)) + '\r\n';
+}
+function emailFill(text, vars) {
+  return String(text || '').replace(/\{(door|carrier|trailer|date|greeting)\}/g, (_, k) => vars[k] == null ? '' : vars[k]);
+}
+
+// Pop-up method: a mailto link, which opens a new message window in whatever mail
+// app Windows uses by default (classic Outlook). It is plain text only, can't set
+// the From address, and has a length limit — if a message is too long it falls back
+// to the draft file.
+function buildMailtoUrl(tpl, vars) {
+  const addrs = list => parseEmailList(list).map(a => a.addr).join(';');
+  const params = [];
+  const cc = addrs(tpl.cc);
+  if (cc) params.push('cc=' + encodeURIComponent(cc).replace(/%3B/gi, ';'));
+  params.push('subject=' + encodeURIComponent(emailFill(tpl.subject, vars)));
+  params.push('body=' + encodeURIComponent(emailFill(tpl.body, vars).replace(/\r/g, '').replace(/\n/g, '\r\n')));
+  return 'mailto:' + addrs(tpl.to) + '?' + params.join('&');
+}
+
+function downloadEmailDraft(doorId) {
+  const t = state.trailers[doorId];
+  const door = state.doors.find(d => d.id === doorId);
+  if (!t) return;
+  const id = getEmailTemplateId(t.carrier);
+  const tpl = id && getEmailTemplate(id);
+  if (!tpl) { toast('No email template for this carrier', 'error'); return; }
+  const now = new Date();
+  const vars = {
+    door: door ? door.num : '',
+    carrier: t.carrier || '',
+    trailer: t.trailerNum || '',
+    date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+    greeting: now.getHours() < 12 ? 'Good morning' : 'Good afternoon'
+  };
+  if ((state.settings.emailMethod || 'popup') === 'popup') {
+    const url = buildMailtoUrl(tpl, vars);
+    if (url.length <= 1900) {
+      const link = document.createElement('a');
+      link.href = url;
+      document.body.appendChild(link); link.click(); link.remove();
+      toast('Opening Outlook…');
+      return;
+    }
+    toast('Message is too long for a pop-up — saving a draft file instead', 'error');
+  }
+  const eml = buildEmailEml(tpl, vars);
+  const blob = new Blob([eml], { type: 'message/rfc822' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${tpl.label}${door ? ' - Door ' + String(door.num).replace(/[\\/:*?"<>|]/g, '') : ''}.eml`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast('Draft saved — open it to review and send ✓');
+}
+
+// ---- template editor (Carriers tab > Email Templates) ----
+function openEmailTemplatesModal() {
+  document.getElementById('email-method').value = state.settings.emailMethod || 'popup';
+  document.getElementById('email-from').value = state.settings.emailFrom !== undefined ? state.settings.emailFrom : EMAIL_FROM_DEFAULT;
+  const box = document.getElementById('email-tpl-body');
+  const inp = 'width:100%;padding:7px 9px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;outline:none;font-family:inherit;';
+  box.innerHTML = Object.keys(EMAIL_TEMPLATES_DEFAULT).map(id => {
+    const t = getEmailTemplate(id);
+    return `<div style="border:1px solid #c8ddd4;border-radius:8px;padding:10px;margin-bottom:12px;background:#f7fbf9;" data-tpl="${id}">
+      <div style="font-weight:800;color:#1a4731;margin-bottom:6px;">${t.label}</div>
+      <label style="font-size:11px;font-weight:700;color:#4a6a5a;">TO</label>
+      <textarea class="et-to" rows="2" style="${inp}">${escHtml(t.to)}</textarea>
+      <label style="font-size:11px;font-weight:700;color:#4a6a5a;">CC</label>
+      <textarea class="et-cc" rows="3" style="${inp}">${escHtml(t.cc)}</textarea>
+      <label style="font-size:11px;font-weight:700;color:#4a6a5a;">SUBJECT</label>
+      <input type="text" class="et-subject" value="${escHtml(t.subject)}" style="${inp}">
+      <label style="font-size:11px;font-weight:700;color:#4a6a5a;">MESSAGE</label>
+      <textarea class="et-body" rows="7" style="${inp}">${escHtml(t.body)}</textarea>
+      <div style="text-align:right;margin-top:6px;"><button type="button" class="btn btn-gray btn-sm" onclick="resetEmailTemplate('${id}')">Reset to original</button></div>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-email-templates').classList.add('open');
+}
+function resetEmailTemplate(id) {
+  const d = EMAIL_TEMPLATES_DEFAULT[id], blk = document.querySelector(`#email-tpl-body [data-tpl="${id}"]`);
+  if (!blk) return;
+  blk.querySelector('.et-to').value = d.to; blk.querySelector('.et-cc').value = d.cc;
+  blk.querySelector('.et-subject').value = d.subject; blk.querySelector('.et-body').value = d.body;
+}
+function saveEmailTemplates() {
+  const out = {};
+  document.querySelectorAll('#email-tpl-body [data-tpl]').forEach(blk => {
+    out[blk.dataset.tpl] = {
+      to: blk.querySelector('.et-to').value.trim(), cc: blk.querySelector('.et-cc').value.trim(),
+      subject: blk.querySelector('.et-subject').value.trim(), body: blk.querySelector('.et-body').value
+    };
+  });
+  state.settings.emailTemplates = out;
+  state.settings.emailMethod = document.getElementById('email-method').value;
+  state.settings.emailFrom = document.getElementById('email-from').value.trim();
+  saveState(); saveSettingsToFirebase();
+  closeModal('modal-email-templates');
+  toast('Email templates saved ✓');
+}
+
 // ===================== CARRIER TILE BEHAVIORS =====================
 // Each carrier picks how its door tile behaves. Set when adding a carrier, or
 // by double-clicking a carrier card on the Carriers tab. Carriers that never
@@ -8313,6 +8533,12 @@ function renderCarriers() {
           <input type="checkbox" class="carrier-priority-chk" ${carrierInPriority(c.name) ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
           Include in priority age badge
         </label>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:11px;font-weight:700;color:#4a6a5a;text-transform:uppercase;letter-spacing:0.4px;">Email draft button</span>
+          <select class="carrier-email-sel" style="padding:5px 8px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;color:#000;">
+            ${['', 'discard', 'swap'].map(id => `<option value="${id}" ${getEmailTemplateId(c.name) === id ? 'selected' : ''}>${id ? EMAIL_TEMPLATES_DEFAULT[id].label : 'None'}</option>`).join('')}
+          </select>
+        </div>
         <div style="display:flex;gap:6px;justify-content:flex-end;">
           <button style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #ccc;background:#eee;color:#000;cursor:pointer;" onclick="cancelCarrierEdit(this)">Cancel</button>
           <button style="font-size:11px;padding:3px 10px;border-radius:5px;border:none;background:#27b589;color:#000;font-weight:700;cursor:pointer;" onclick="saveCarrierEdit('${c.id}', this)">Save</button>
@@ -8353,6 +8579,7 @@ function saveCarrierEdit(id, btn) {
   const tileBehavior = card.querySelector('.carrier-behavior-sel').value;
   const showAge = card.querySelector('.carrier-show-age-chk').checked;
   const priorityBadge = card.querySelector('.carrier-priority-chk').checked;
+  const emailTemplate = card.querySelector('.carrier-email-sel').value;
   if (!name) { toast('Carrier name required', 'error'); return; }
   const c = state.carriers.find(c => c.id === id);
   if (!c) return;
@@ -8362,6 +8589,7 @@ function saveCarrierEdit(id, btn) {
   c.tileBehavior = tileBehavior;
   c.showAge = showAge;
   c.priorityBadge = priorityBadge;
+  c.emailTemplate = emailTemplate;
   saveOneCarrierToFirebase(id);
   // Door Status reads the flag from each trailer's saved record, so re-save this carrier's trailers now.
   Object.keys(state.trailers).forEach(doorId => { const t = state.trailers[doorId]; if (t && t.carrier === c.name) saveTrailerToFirebase(doorId); });
@@ -8426,6 +8654,7 @@ function openAddCarrierModal() {
   document.getElementById('new-carrier-type').value = 'DROP';
   onNewCarrierTypeChange();
   document.getElementById('new-carrier-show-age').checked = true;
+  document.getElementById('new-carrier-email').value = '';
   document.getElementById('modal-add-carrier').classList.add('open');
 }
 function saveNewCarrier() {
@@ -8436,7 +8665,8 @@ function saveNewCarrier() {
   const tileBehavior = document.getElementById('new-carrier-behavior').value || defaultBehaviorForType(type);
   const showAge = document.getElementById('new-carrier-show-age').checked;
   const priorityBadge = document.getElementById('new-carrier-priority').checked;
-  const newCarrier = { id, name, type, tileBehavior, showAge, priorityBadge };
+  const emailTemplate = document.getElementById('new-carrier-email').value;
+  const newCarrier = { id, name, type, tileBehavior, showAge, priorityBadge, emailTemplate };
   state.carriers.push(newCarrier);
   closeModal('modal-add-carrier');
   saveOneCarrierToFirebase(id).then(() => {
