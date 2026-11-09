@@ -2915,8 +2915,57 @@ async function handleResetAgePing(key, data) {
     if (!claimed || !fresh) return;
     const door = _doorForPingKey(key);
     if (!door || !state.trailers[door.id]) return;
+    if (SHUTTLE_DOOR_NUMS.includes(Number(door.num))) { applyShuttlePing(door.id, data.status, data.resetAgeBy); return; }
     resetOtherCarrierTimer(door.id, data.resetAgeBy);
   } catch (e) { console.error('Reset age ping failed:', e); }
+}
+
+// Shuttle doors (52, 53) in the Door Status tool. The two buttons do different things:
+//  - Shuttle Released: logs the release (one history record for the load) and clears
+//    the secure time. The trailer stays on the door, but there is no new secure
+//    record and no row in the Shuttle table until Shuttle Secured is pressed.
+//  - Shuttle Secured: stamps the secure time and who pressed it. No history record
+//    is written; that happens when the shuttle is released.
+const SHUTTLE_DOOR_NUMS = [52, 53];
+function applyShuttlePing(doorId, status, byUser) {
+  const t = state.trailers[doorId];
+  if (!t) return;
+  const who = String(byUser || 'unknown').toUpperCase();
+  const door = state.doors.find(d => d.id === doorId);
+  const now = new Date().toISOString();
+  if (status === 'empty') {
+    if (t.awaitingSecure) return;                     // already released — a second press changes nothing
+    const securedStamp = t.securedAt || (t.receivedAt ? null : t.arrival);
+    if (securedStamp) {
+      const rec = {
+        id: Date.now(), date: todayStr(), door: door?.num || doorId, doorId,
+        carrier: t.carrier, trailerNum: t.trailerNum || '', type: t.type,
+        arrival: t.arrival, received: t.receivedAt || null,
+        receivedBy: t.receivedAt ? (t.slottedBy || null) : null,
+        secured: securedStamp,
+        securedBy: t.securedAt ? (t.securedBy || null) : (t.securedBy || t.slottedBy || null),
+        released: now, releasedBy: who, completed: now,
+        notes: t.notes || '', expected: t.expected, slottedBy: t.slottedBy || ''
+      };
+      state.history.push(rec);
+      state.completedToday.push(rec);
+      saveHistoryRecordToFirebase(rec);
+    }
+    t.awaitingSecure = true;
+    t.securedAt = null; t.securedBy = null; t.receivedAt = null;
+    t.arrival = now;                                  // age restarts, as it always has on release
+    toast('Shuttle released — waiting on Secured ✓');
+  } else {
+    delete t.awaitingSecure;
+    t.arrival = now;
+    if (isYardDoorType(door)) { t.receivedAt = now; t.securedAt = null; t.securedBy = null; }
+    else { t.securedAt = now; t.securedBy = who; t.receivedAt = null; }
+    toast('Shuttle secured ✓');
+  }
+  saveTrailerToFirebase(doorId);
+  saveState();
+  renderDoors();
+  renderExpectedTrailers();
 }
 
 async function loadStateFromFirebase() {
@@ -6973,6 +7022,7 @@ function getShuttleRows() {
   });
   Object.entries(state.trailers || {}).forEach(([doorId, t]) => {
     if (!t || !isShuttleCarrier(t.carrier)) return;
+    if (t.awaitingSecure) return;                   // released, and not secured again yet
     const door = state.doors.find(d => d.id === doorId);
     const securedAt = t.securedAt || (t.receivedAt ? null : t.arrival);
     if (!securedAt) return; // still only received in the yard — not secured yet
@@ -7614,6 +7664,7 @@ function resetOtherCarrierTimer(doorId, byUser) {
   saveHistoryRecordToFirebase(rec);
 
   // Keep the trailer on the door — just clear the age
+  delete t.awaitingSecure;
   t.arrival = now;
   const otherYard = isYardDoorType(door);
   t.receivedAt = otherYard ? now : null;
