@@ -1509,6 +1509,21 @@
           </table>
         </div>
       </div>
+
+      <!-- SHUTTLE SECURE & RELEASE -->
+      <div class="sidebar-panel" id="shuttle-panel">
+        <div class="sidebar-panel-header">
+          <span class="sidebar-panel-title">Shuttle Secure &amp; Release</span>
+        </div>
+        <div class="sidebar-panel-body">
+          <table class="sidebar-table" id="shuttle-table">
+            <thead><tr>
+              <th>Door</th><th>Secured</th><th>Released</th>
+            </tr></thead>
+            <tbody id="shuttle-tbody"></tbody>
+          </table>
+        </div>
+      </div>
       <div class="sidebar-panel">
         <div class="sidebar-panel-header">
           <span class="sidebar-panel-title">Completed Trailers</span>
@@ -1517,7 +1532,7 @@
         <div class="sidebar-panel-body" id="completed-table-wrap">
           <table class="sidebar-table">
             <thead><tr>
-              <th>Carrier</th><th>Trailer #</th><th>Secured</th><th>Released</th><th>By</th><th>Notes</th>
+              <th>Carrier</th><th>Trailer #</th><th>Door</th><th>Secured</th><th>Released</th><th>By</th><th>Notes</th>
             </tr></thead>
             <tbody id="completed-tbody"></tbody>
           </table>
@@ -2037,6 +2052,9 @@
           <div class="cs-carrier-box" id="cs-carrier-box"></div>
         </div>
         <div class="cs-ctl-col" style="flex:1 1 300px;">
+          <div class="cs-ctl-label">What to pull</div>
+          <select id="cs-stat" class="cs-input" onchange="csOnStatChange()" style="width:100%;max-width:340px;"></select>
+          <div id="cs-stat-hint" style="font-size:11px;color:#4a7a5a;margin:3px 0 8px;"></div>
           <div class="cs-ctl-label">Date range</div>
           <div class="flex-row" id="cs-range-btns" style="gap:6px;">
             <button class="btn btn-sm btn-gray cs-range-btn btn-selected" data-range="30" onclick="csSetRange('30')">Last 30 Days</button>
@@ -2051,8 +2069,10 @@
             <span class="cs-ctl-label">To</span>
             <input type="date" autocomplete="off" id="cs-to" class="cs-input" onchange="csMarkStale()">
           </div>
+          <div id="cs-goal-wrap">
           <div class="cs-ctl-label" style="margin-top:6px;">Live goal time <span style="text-transform:none;font-weight:600;color:#4a7a5a;">(Live loads only — Drop loads have no goal. Clear it to leave the goal out)</span></div>
           <input type="time" autocomplete="off" id="cs-goal" class="cs-input" value="11:30" style="width:130px;" onchange="csMarkStale()">
+          </div>
           <div class="flex-row" style="margin-top:8px;">
             <button class="btn btn-gray" id="cs-pull-btn" onclick="csPullData()" style="padding:7px 22px;font-size:13px;">Pull Data</button>
             <button class="btn btn-gray btn-sm" onclick="csClear()">Clear</button>
@@ -2366,8 +2386,10 @@
       </select>
     </div>
     <div class="form-row">
-      <label>Note</label>
-      <textarea id="bf-note-text" rows="3" placeholder="Optional note..." style="width:100%;padding:8px 10px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;outline:none;resize:vertical;font-family:inherit;"></textarea>
+      <label>Bin Freight Day</label>
+      <div id="bf-current-day" style="font-size:11px;color:#4a6a5a;margin-bottom:6px;"></div>
+      <div id="bf-day-picker" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      <div id="bf-picked-label" style="font-size:12px;font-weight:700;color:#1a4731;margin-top:8px;min-height:16px;"></div>
     </div>
     <p style="font-size:11px;color:#000;margin-bottom:12px;">Saving will create a release time history record, restart age counter, and create a new secure history record.</p>
     <div class="modal-actions">
@@ -2470,11 +2492,34 @@
     </div>
     <div class="form-row">
       <label>Type</label>
-      <select id="new-carrier-type">
+      <select id="new-carrier-type" onchange="onNewCarrierTypeChange()">
         <option value="DROP">DROP</option>
         <option value="LIVE">LIVE</option>
         <option value="OTHER">OTHER</option>
       </select>
+    </div>
+    <div class="form-row">
+      <label>Door Tile Behavior</label>
+      <select id="new-carrier-behavior">
+        <option value="normal">Normal — Move + Release</option>
+        <option value="hide_release">Hide Release — Move only</option>
+        <option value="save_reset">Save &amp; Reset — Move + Reset Age</option>
+        <option value="ask_door">Door Prompt Release — asks door + CFF/Yard</option>
+      </select>
+      <div id="new-carrier-behavior-hint" style="font-size:11px;color:#4a6a5a;margin-top:4px;"></div>
+    </div>
+    <div class="form-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="new-carrier-show-age" checked style="width:16px;height:16px;cursor:pointer;">
+        Show age counter on the door tile
+      </label>
+    </div>
+    <div class="form-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="new-carrier-priority" checked style="width:16px;height:16px;cursor:pointer;">
+        Include in priority age badge
+      </label>
+      <div style="font-size:11px;color:#4a6a5a;margin-top:4px;">The numbered badge on the oldest trailers on the doors.</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-add-carrier')">Cancel</button>
@@ -2579,7 +2624,8 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-auto-release')">Cancel</button>
-      <button class="btn btn-hook" onclick="confirmAutoRelease()">Release | Send Request</button>
+      <button class="btn btn-gray" onclick="confirmAutoRelease(false)" title="Releases the trailer without sending the Slack message. Door and destination are not needed.">Release | No Request</button>
+      <button class="btn btn-hook" onclick="confirmAutoRelease(true)">Release | Send Request</button>
     </div>
   </div>
 </div>
@@ -2649,7 +2695,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('modal-door-edit')">Cancel</button>
-      <button class="btn btn-red" onclick="releaseDoorFromEditModal()">Release</button>
+      <button class="btn btn-red" id="de-release-btn" onclick="releaseDoorFromEditModal()">Release</button>
       <button class="btn btn-teal" onclick="saveDoorEdit()">Save</button>
     </div>
   </div>
@@ -4190,6 +4236,40 @@ let _csAllCarriers = true;
 let _csSelected = new Set();
 let _csData = null;
 let _csBusy = false;
+let _csStat = 'full';
+
+// What the picker can pull. "full" is the original report. Every other choice
+// shows just that one stat for the chosen carriers and dates, in the same look.
+// basis: which day a load is counted on — 'sec' = day secured, 'rel' = day released.
+const CS_STATS = {
+  full:       { label: 'Full report — everything graphed', hint: 'Every chart and table for the chosen carriers and dates. Pick “All Records” for a carrier’s whole history.' },
+  secure:     { label: 'Secure times', kind: 'time', basis: 'sec', hint: 'Time of day loads were secured: trend, typical times and day of the week.' },
+  release:    { label: 'Release times', kind: 'time', basis: 'rel', hint: 'Time of day loads were released. Loads are counted on the day they were released.' },
+  dwell:      { label: 'Time at door (Secure → Release)', kind: 'dur', basis: 'sec', hint: 'How long loads sat at the door, from secured to released.' },
+  r2s:        { label: 'Received → Secure time', kind: 'dur', basis: 'sec', hint: 'How long from received to secured. Only loads with a received time are included.' },
+  secured_n:  { label: 'Loads secured (count)', kind: 'count', basis: 'sec', hint: 'How many loads were secured, by day, week or month.' },
+  released_n: { label: 'Loads released (count)', kind: 'count', basis: 'rel', hint: 'How many loads were released, by day, week or month.' },
+  dnr:        { label: 'DNR — Did Not Receive (count)', kind: 'dnr', hint: 'How many times the carrier was marked Did Not Receive.' },
+  unexpected: { label: 'Unexpected loads (count)', kind: 'unexpected', hint: 'How many loads were secured and flagged Unexpected.' }
+};
+function csStatKind(stat) { return (CS_STATS[stat] || {}).kind || 'full'; }
+function csIsAnomalyKind(stat) { const k = csStatKind(stat); return k === 'dnr' || k === 'unexpected'; }
+function csSyncStatUI() {
+  const sel = document.getElementById('cs-stat');
+  if (sel) {
+    if (!sel.options.length) sel.innerHTML = Object.entries(CS_STATS).map(([id, c]) => `<option value="${id}">${c.label}</option>`).join('');
+    sel.value = _csStat;
+  }
+  const hint = document.getElementById('cs-stat-hint');
+  if (hint) hint.textContent = (CS_STATS[_csStat] || {}).hint || '';
+  const gw = document.getElementById('cs-goal-wrap');
+  if (gw) gw.style.display = (_csStat === 'full' || _csStat === 'secure') ? '' : 'none';
+}
+function csOnStatChange() {
+  _csStat = document.getElementById('cs-stat').value;
+  csSyncStatUI();
+  csMarkStale();
+}
 
 const CS_MIN_VALID = 2;           // minutes; shorter secured→released is treated as an entry mistake
 const CS_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -4287,6 +4367,7 @@ function csDaysBetween(a, b) { return Math.round((csKeyToDayMs(b) - csKeyToDayMs
 // ---------- controls ----------
 function csInitControls() {
   csInjectStyle();
+  csSyncStatUI();
   csRenderCarrierBox();
   const from = document.getElementById('cs-from'), to = document.getElementById('cs-to');
   if (from && !from.value) from.value = csAddDays(todayStr(), -29);
@@ -4411,16 +4492,22 @@ function csMakeRow(r, sec, rel) {
     live, carrier: r.carrier || '—', door: r.door || r.doorId || '', trailer: r.trailerNum || '', type: r.type || '',
     ms: s.ms, dayMs: s.dayMs, arrMin: s.min, dayKey: dashDateKey(sec), dow: CS_DOW[sec.getDay()],
     relDayMs: l ? l.dayMs : null, relMin: l ? l.min : null,
+    relMs: l ? l.ms : null, relDayKey: rel ? dashDateKey(rel) : null,
+    r2s: (() => { const rc = parseFlexDate(r.received || r.receivedAt); return rc ? (sec - rc) / 60000 : null; })(),
     dur, valid: dur != null && dur >= CS_MIN_VALID
   };
 }
 
-function csBuildDataset(recs, carrierNames, range, goal) {
+function csBuildDataset(recs, carrierNames, range, goal, stat) {
   const nameSet = carrierNames ? new Set(carrierNames) : null;
   const all = [];
   let skipped = 0, noRelease = 0;
   const today = todayStr();
-  const inRange = r => (!range.start || r.dayKey >= range.start) && (!range.end || r.dayKey <= range.end);
+  // Which day a load is counted on: the day secured, or (release-based stats) the day released.
+  const basis = (CS_STATS[stat] || {}).basis || 'sec';
+  const keyOf = r => basis === 'rel' ? r.relDayKey : r.dayKey;
+  const inRange = r => { const k = keyOf(r); return !!k && (!range.start || k >= range.start) && (!range.end || k <= range.end); };
+  const needOk = r => stat === 'r2s' ? (r.r2s != null && r.r2s >= 0) : stat === 'dwell' ? r.dur != null : true;
   recs.forEach(r => {
     if (r.didNotReceive) return;
     if (nameSet && !nameSet.has(r.carrier)) return;
@@ -4442,9 +4529,38 @@ function csBuildDataset(recs, carrierNames, range, goal) {
     if (row.dur == null && row.dayKey < today) { if (inRange(row)) noRelease++; return; }
     all.push(row);
   });
-  const rows = all.filter(inRange).sort((a, b) => a.ms - b.ms);
-  const prior = range.priorStart ? all.filter(r => r.dayKey >= range.priorStart && r.dayKey <= range.priorEnd) : [];
+  const rows = all.filter(r => inRange(r) && needOk(r)).sort((a, b) => basis === 'rel' ? a.relMs - b.relMs : a.ms - b.ms);
+  const prior = range.priorStart ? all.filter(r => { const k = keyOf(r); return !!k && k >= range.priorStart && k <= range.priorEnd && needOk(r); }) : [];
   return { rows, prior, carriers: carrierNames, range, goal, skipped, noRelease, generated: new Date() };
+}
+
+// DNR and Unexpected counts. DNR records are counted on the day the carrier
+// was marked (same as the Daily Dashboard); Unexpected loads on the day secured.
+function csBuildCountDataset(recs, carrierNames, range, stat) {
+  const nameSet = carrierNames ? new Set(carrierNames) : null;
+  const items = [];
+  recs.forEach(r => {
+    if (nameSet && !nameSet.has(r.carrier)) return;
+    let dt;
+    if (stat === 'dnr') {
+      if (!r.didNotReceive) return;
+      dt = parseFlexDate(r.arrival || r.completed || r.date);
+    } else {
+      if (r.didNotReceive || !r.unexpected) return;
+      dt = parseFlexDate(r.secured || r.securedAt || r.arrival);
+    }
+    if (!dt) return;
+    items.push({
+      carrier: r.carrier || '—', door: (r.door && r.door !== '—') ? r.door : '', trailer: (r.trailerNum && r.trailerNum !== '—') ? r.trailerNum : '',
+      type: r.type || '', notes: (stat === 'dnr' ? '' : (r.notes || '')),
+      ms: dt.getTime(), dayKey: dashDateKey(dt), dayMs: Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()),
+      min: dt.getHours() * 60 + dt.getMinutes(), dow: CS_DOW[dt.getDay()]
+    });
+  });
+  const inR = r => (!range.start || r.dayKey >= range.start) && (!range.end || r.dayKey <= range.end);
+  const rows = items.filter(inR).sort((a, b) => a.ms - b.ms);
+  const prior = range.priorStart ? items.filter(r => r.dayKey >= range.priorStart && r.dayKey <= range.priorEnd) : [];
+  return { rows, prior, carriers: carrierNames, range, goal: null, skipped: 0, noRelease: 0, generated: new Date() };
 }
 
 async function csPullData() {
@@ -4463,9 +4579,12 @@ async function csPullData() {
   try {
     const recs = await csFetchRecords(range.fetchFrom);
     if (recs === null) { _csData = null; csRenderReport(); return; }
-    _csData = csBuildDataset(recs, carriers, range, goal);
+    const stat = _csStat;
+    _csData = csIsAnomalyKind(stat) ? csBuildCountDataset(recs, carriers, range, stat) : csBuildDataset(recs, carriers, range, goal, stat);
+    _csData.stat = stat;
     csRenderReport();
-    if (!_csData.rows.length) toast('No loads found for those filters', 'error');
+    // zero DNRs / unexpected loads is a real answer, not a problem
+    if (!_csData.rows.length && !csIsAnomalyKind(stat)) toast('No loads found for those filters', 'error');
   } finally {
     _csBusy = false;
     if (btn) { btn.disabled = false; btn.textContent = 'Pull Data'; }
@@ -4487,7 +4606,7 @@ function csRenderReport() {
     wrap.innerHTML = '<div class="cs-blank">Carrier Statistics is blank until you pull data.<br><span style="font-weight:400;">Choose your carriers and a date range above, then click <b>Pull Data</b>.</span></div>';
     return;
   }
-  bar.style.display = _csData.rows.length ? 'flex' : 'none';
+  bar.style.display = (_csData.rows.length || csIsAnomalyKind(_csData.stat)) ? 'flex' : 'none';
   const stale = document.getElementById('cs-stale-note');
   if (stale) stale.style.display = 'none';
   wrap.innerHTML = csBuildReportHtml(_csData, true);
@@ -4682,6 +4801,7 @@ function csBuildSection(rows, prior, data, xMin, xMax, screen) {
 }
 
 function csBuildReportHtml(data, screen) {
+  if (data.stat && data.stat !== 'full') return csBuildStatReport(data, screen);
   const { rows, prior, range, goal } = data;
   const rootCls = 'cs-report' + (screen ? ' cs-screen' : '');
   const stamp = data.generated.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -4741,6 +4861,287 @@ function csBuildReportHtml(data, screen) {
   return `<div class="${rootCls}">${head}${body}${note}</div>`;
 }
 
+// ---------- single-stat reports (everything except "Full report") ----------
+const csKpi = (lbl, val, sub, cls = '', sm = false) => `<div class="cs-kpi ${cls}"><div class="lbl">${lbl}</div><div class="val${sm ? ' sm' : ''}">${val}</div><div class="sub">${sub}</div></div>`;
+const csKpiRow = (cells, cols) => `<div class="cs-kpis" style="grid-template-columns:${cols}">${cells}</div>`;
+function csCmpCount(n, p) {
+  if (p == null) return '';
+  const d = n - p;
+  return d === 0 ? `same as the prior period (${p})` : `${Math.abs(d)} ${d > 0 ? 'more' : 'fewer'} than the prior period (${p})`;
+}
+const csMean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+function csDayOf(cfg) { return r => cfg.basis === 'rel' ? r.relDayMs : r.dayMs; }
+function csDowOf(ms) { return CS_DOW[new Date(ms).getUTCDay()]; }
+
+// Bar chart of counts per day / week / month (picked from how long the range is).
+function csBucketBar(dayList, xMin, xMax, label) {
+  const span = Math.round((xMax - xMin) / CS_DAY);
+  const unit = span <= 45 ? 'day' : span <= 400 ? 'week' : 'month';
+  const startOf = ms => {
+    if (unit === 'day') return ms;
+    if (unit === 'week') return ms - ((new Date(ms).getUTCDay() + 6) % 7) * CS_DAY;   // weeks start Monday
+    const d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+  };
+  const next = ms => {
+    if (unit === 'day') return ms + CS_DAY;
+    if (unit === 'week') return ms + 7 * CS_DAY;
+    const d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  };
+  const counts = new Map();
+  dayList.forEach(ms => { const k = startOf(ms); counts.set(k, (counts.get(k) || 0) + 1); });
+  const keys = [];
+  for (let k = startOf(xMin), g = 0; k < xMax && g < 1500; k = next(k), g++) keys.push(k);
+  const every = Math.max(1, Math.ceil(keys.length / 10));
+  const lab = ms => unit === 'month' ? CS_MONTHS[new Date(ms).getUTCMonth()] + " '" + String(new Date(ms).getUTCFullYear()).slice(2) : csFmtDay(ms);
+  const cats = keys.map((k, i) => ({ label: lab(k), show: i % every === 0 }));
+  const vals = keys.map(k => counts.get(k) || 0);
+  return { svg: csBarChart({ cats, vals, yLabel: `${label} per ${unit}${unit === 'week' ? ' (weeks start Monday)' : ''}`, W: 700 }), unit };
+}
+
+// The load list: a one-line note on screen, the full list in the print / PDF version.
+function csLoadListPanel(rows, screen) {
+  if (screen) return csPanel('Every load in this range', `<div class="cs-panel-body"><p class="cs-panel-sub" style="min-height:0;">${rows.length.toLocaleString()} load${rows.length === 1 ? '' : 's'} — the full list, newest first, is included when you Print or Save as PDF.</p></div>`);
+  let lt = `<table><thead><tr><th>Secured</th><th>Carrier</th><th>Door</th><th>Trailer #</th><th>Type</th><th>Released</th><th>Time at door</th></tr></thead><tbody>`;
+  const sorted = rows.slice().sort((a, b) => b.ms - a.ms);
+  sorted.forEach(r => {
+    const rel = r.relMin == null ? '—' : csFmtDay(r.relDayMs) + ', ' + csFmtTime(r.relMin);
+    const time = r.dur == null ? '—' : csFmtDur(Math.max(0, r.dur));
+    lt += `<tr><td>${r.dow} ${csFmtDay(r.dayMs)}, ${csFmtTime(r.arrMin)}</td><td>${escHtml(r.carrier)}</td><td>${escHtml(r.door)}</td><td>${escHtml(r.trailer) || '—'}</td><td>${escHtml(r.type) || '—'}</td><td>${rel}</td><td>${time}</td></tr>`;
+  });
+  return csPanel('Every load in this range', `<div class="cs-panel-body cs-keep-next" style="padding:6px 10px 2px;"><p class="cs-panel-sub" style="min-height:0;">Newest first.</p></div>${lt}</tbody></table>`);
+}
+
+// Secure times / Release times
+function csTimeSection(rows, prior, data, xMin, xMax, screen, cfg) {
+  const isSec = cfg.id === 'secure', verb = isSec ? 'secure' : 'release', past = isSec ? 'secured' : 'released';
+  const val = isSec ? (r => r.arrMin) : (r => r.relMin), dayOf = csDayOf(cfg);
+  const goal = isSec ? data.goal : null, goalTxt = goal != null ? csFmtTime(goal) : '';
+  const hasLive = rows.some(r => r.live), hasDrop = rows.some(r => !r.live), goalOn = goal != null && hasLive;
+  const vals = rows.map(val), med = csMedian(vals), lo = csMin(vals), hi = csMax(vals);
+  const hasPrior = !!data.range.priorStart;
+  const pMed = prior.length ? csMedian(prior.map(val)) : null;
+  const nLive = rows.filter(r => r.live).length, late = goalOn ? rows.filter(r => r.live && r.arrMin > goal).length : 0;
+  const pLive = prior.filter(r => r.live).length, pLate = goalOn ? prior.filter(r => r.live && r.arrMin > goal).length : 0;
+
+  let kpis = csKpi('Loads', rows.length.toLocaleString(), hasPrior ? csCmpCount(rows.length, prior.length) : 'Total loads') +
+    csKpi(`Median ${verb} time`, csFmtTime(med), pMed != null ? csCmpTime(med, pMed) : `Middle ${verb} time`) +
+    csKpi(`${isSec ? 'Secure' : 'Release'} time window`, `${csFmtTime(lo)} – ${csFmtTime(hi)}`, `Earliest to latest ${verb} time`, '', true);
+  if (goalOn) kpis += csKpi(`Live after ${goalTxt}`, `${late} <small>of ${nLive}</small>`, nLive ? `${Math.round(late / nLive * 100)}% of Live loads missed the goal. ` + (pLive ? (pLate === late ? 'Same as the prior period' : `Prior period: ${pLate} of ${pLive}`) : '') : '', 'red');
+  const kpiHtml = csKpiRow(kpis, goalOn ? '.8fr 1.25fr 1.4fr 1.1fr' : '.8fr 1.3fr 1.5fr');
+
+  const pts = rows.map(r => ({
+    x: dayOf(r) + CS_DAY / 2, y: val(r),
+    color: !goalOn ? '#1d8c6a' : !r.live ? '#7a8c96' : r.arrMin > goal ? '#c0453a' : '#1d8c6a',
+    tip: `${csFmtDay(dayOf(r))} · ${r.carrier} · Door ${r.door} · ${past} ${csFmtTime(val(r))}${goalOn && r.live && r.arrMin > goal ? ' (after ' + goalTxt + ')' : ''}`
+  }));
+  let yMin = Math.floor((lo - 15) / 60) * 60, yMax = Math.ceil((hi + 15) / 60) * 60;
+  if (yMax - yMin < 120) yMax = yMin + 120;
+  const sc = csScatter({ pts, xMin, xMax, yMin, yMax, yStep: 60, yFmt: csFmtHour, trend: true, goal: goalOn ? { y: goal, label: `Live ${goalTxt} goal` } : null });
+  let trendTx;
+  if (sc.slope == null) trendTx = 'Not enough loads to draw a trend.';
+  else if (Math.abs(sc.slope) < 1) trendTx = `The ${verb} time is holding steady.`;
+  else { const w = Math.round(Math.abs(sc.slope)); trendTx = `The trend line shows ${verb} times getting about ${w} minute${w === 1 ? '' : 's'} ${sc.slope < 0 ? 'earlier' : 'later'} each week.`; }
+  const sub = `Each dot is one load.` + (goalOn ? ` ${late} of ${nLive} Live loads were secured after the ${goalTxt} goal.${hasDrop ? ' Drop loads have no goal.' : ''}` : '') + ` ${trendTx} Based on ${rows.length.toLocaleString()} loads, so treat it as a lean, not a promise.`;
+  const legend = `<div class="cs-legend">` + (goalOn
+    ? `<span><i style="background:#1d8c6a"></i>Live, by ${goalTxt}</span><span><i style="background:#c0453a"></i>Live, after ${goalTxt}</span>` + (hasDrop ? `<span><i style="background:#7a8c96"></i>Drop (no goal)</span>` : '') + `<span><i class="ln" style="background:#c0453a"></i>Live goal</span>`
+    : `<span><i style="background:#1d8c6a"></i>One load</span>`) + `<span><i class="ln" style="background:#2c3a42"></i>Trend line</span></div>`;
+  const trendPanel = csPanel(`${isSec ? 'Secure' : 'Release'} time trend`, `<div class="cs-panel-body"><p class="cs-panel-sub">${sub}</p>${sc.svg}${legend}</div>`);
+
+  const b0 = Math.floor((lo - 15) / 60) * 60, b1 = Math.ceil((hi + 15) / 60) * 60;
+  const nb = (b1 - b0) / 30, cats = [], cnt = Array(nb).fill(0);
+  for (let i = 0; i < nb; i++) { const tm = b0 + i * 30; cats.push({ label: csFmtHour(tm), show: tm % 60 === 0 && (nb <= 20 || tm % 120 === 0) }); }
+  vals.forEach(v => { cnt[Math.min(nb - 1, Math.max(0, Math.floor((v - b0) / 30)))]++; });
+  const busiest = cnt.reduce((bi, v, i, a) => v > a[bi] ? i : bi, 0);
+  const hist = csBarChart({ cats, vals: cnt, vline: { pos: (med - b0) / 30, label: 'Median ' + csFmtTime(med) }, yLabel: 'Number of loads, in 30-minute blocks', W: 700 });
+  const histPanel = csPanel(`Typical ${verb} times`, `<div class="cs-panel-body"><p class="cs-panel-sub">Median ${verb} time is ${csFmtTime(med)}. The busiest half hour is ${csFmtTime(b0 + busiest * 30)}.</p>${hist}</div>`);
+
+  let dow = `<table><thead><tr><th>Day</th><th class="c">Loads</th><th>Median ${verb} time</th><th>Earliest – latest ${verb} time</th></tr></thead><tbody>`;
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => {
+    const g = rows.filter(r => csDowOf(dayOf(r)) === d);
+    if (!g.length) return;
+    const gv = g.map(val);
+    dow += `<tr><td><b>${d}</b></td><td class="c">${g.length.toLocaleString()}</td><td>${csFmtTime(csMedian(gv))}</td><td>${csFmtTime(csMin(gv))} – ${csFmtTime(csMax(gv))}</td></tr>`;
+  });
+  const dowPanel = csPanel('By day of the week', `<div class="cs-panel-body" style="padding:6px 10px 2px;"><p class="cs-panel-sub" style="min-height:0;">Which days loads were ${past} and how each day compares.</p></div>${dow}</tbody></table>`);
+  return `${kpiHtml}${trendPanel}${histPanel}${dowPanel}${csLoadListPanel(rows, screen)}`;
+}
+
+// Time at door / Received → Secure
+function csDurSection(rows, prior, data, xMin, xMax, screen, cfg) {
+  const isDwell = cfg.id === 'dwell';
+  const get = isDwell ? (r => r.dur) : (r => r.r2s);
+  const usable = r => isDwell ? r.valid : (r.r2s != null && r.r2s >= 0);
+  const use = rows.filter(usable), pUse = prior.filter(usable);
+  const name = isDwell ? 'time at door' : 'received-to-secure time';
+  const hasPrior = !!data.range.priorStart;
+  const vals = use.map(get);
+  const med = csMedian(vals), pMed = pUse.length ? csMedian(pUse.map(get)) : null;
+  const kpis = csKpi('Loads', rows.length.toLocaleString(), hasPrior ? csCmpCount(rows.length, prior.length) : 'Total loads') +
+    csKpi(`Median ${name}`, med == null ? '–' : csFmtDur(med), med == null ? 'No usable loads' : `Median of ${use.length.toLocaleString()} loads. ` + (pMed != null ? csCmpDur(med, pMed) : '')) +
+    csKpi('Shortest – longest', use.length ? `${csFmtDur(csMin(vals))} – ${csFmtDur(csMax(vals))}` : '–', 'Range of the loads counted', '', true);
+  const kpiHtml = csKpiRow(kpis, '.8fr 1.5fr 1.5fr');
+  if (!use.length) return `${kpiHtml}${csPanel('Results', '<div class="cs-empty">No loads with a usable time in this range.</div>')}`;
+
+  const tr = use.filter(r => get(r) < 1440), longer = use.length - tr.length;
+  let trendBody;
+  if (tr.length) {
+    const mx = csMax(tr.map(get)), st = csNiceStep(mx, [5, 10, 15, 20, 30, 60, 120, 240], 5), ym = Math.ceil(mx / st) * st || st;
+    const pts = tr.map(r => ({ x: r.dayMs + CS_DAY / 2, y: get(r), color: '#1d8c6a', tip: `${csFmtDay(r.dayMs)} · ${r.carrier} · Door ${r.door} · ${csFmtDur(get(r))}` }));
+    const sc = csScatter({ pts, xMin, xMax, yMin: 0, yMax: ym, yStep: st, yFmt: v => v >= 60 ? (v / 60) + ' hr' : v + ' min', trend: true });
+    const tt = sc.slope == null ? '' : Math.abs(sc.slope) < 1 ? ' It is holding steady.' : ` The trend line shows it getting about ${Math.round(Math.abs(sc.slope))} min ${sc.slope < 0 ? 'faster' : 'slower'} each week.`;
+    trendBody = `<p class="cs-panel-sub">Each dot is one load.${tt}${longer ? ` ${longer} load${longer === 1 ? '' : 's'} over 24 hours not shown.` : ''}</p>${sc.svg}`;
+  } else trendBody = `<p class="cs-panel-sub"></p><div class="cs-empty">No loads under 24 hours to chart.</div>`;
+  const trendPanel = csPanel(`${isDwell ? 'Time at door' : 'Received → Secure'} trend`, `<div class="cs-panel-body">${trendBody}</div>`);
+
+  let histPanel = '';
+  if (tr.length) {
+    const tv = tr.map(get), mx = csMax(tv), step = csNiceStep(mx, [5, 10, 15, 20, 30, 60, 120, 240], 12), nb = Math.floor(mx / step) + 1;
+    const cnt = Array(nb).fill(0); tv.forEach(v => { cnt[Math.min(nb - 1, Math.floor(v / step))]++; });
+    const every = Math.max(1, Math.ceil(nb / 8));
+    const cats = cnt.map((_, i) => ({ label: csFmtDur(i * step), show: i % every === 0 }));
+    const tMed = csMedian(tv);
+    const hist = csBarChart({ cats, vals: cnt, vline: { pos: tMed / step, label: 'Median ' + csFmtDur(tMed) }, yLabel: `Number of loads, in ${csFmtDur(step)} blocks`, W: 700 });
+    histPanel = csPanel('Typical times', `<div class="cs-panel-body"><p class="cs-panel-sub">Most loads fall in the ${csFmtDur(cnt.reduce((bi, v, i, a) => v > a[bi] ? i : bi, 0) * step)} block or nearby. Median is ${csFmtDur(tMed)}.</p>${hist}</div>`);
+  }
+
+  let dow = `<table><thead><tr><th>Day</th><th class="c">Loads</th><th>Median ${name}</th><th>Shortest – longest</th></tr></thead><tbody>`;
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => {
+    const g = use.filter(r => r.dow === d);
+    if (!g.length) return;
+    const gv = g.map(get);
+    dow += `<tr><td><b>${d}</b></td><td class="c">${g.length.toLocaleString()}</td><td>${csFmtDur(csMedian(gv))}</td><td>${csFmtDur(csMin(gv))} – ${csFmtDur(csMax(gv))}</td></tr>`;
+  });
+  const dowPanel = csPanel('By day of the week', `<div class="cs-panel-body" style="padding:6px 10px 2px;"><p class="cs-panel-sub" style="min-height:0;">Days are the day each load was secured.</p></div>${dow}</tbody></table>`);
+  return `${kpiHtml}${trendPanel}${histPanel}${dowPanel}${csLoadListPanel(rows, screen)}`;
+}
+
+// Loads secured / Loads released (counts)
+function csTotalsSection(rows, prior, data, xMin, xMax, screen, cfg) {
+  const past = cfg.id === 'secured_n' ? 'secured' : 'released', dayOf = csDayOf(cfg);
+  const days = rows.map(dayOf), perDay = new Map();
+  days.forEach(d => perDay.set(d, (perDay.get(d) || 0) + 1));
+  let bestDay = null; perDay.forEach((n, d) => { if (!bestDay || n > bestDay.n) bestDay = { d, n }; });
+  const dowCount = {}; days.forEach(d => { const k = csDowOf(d); dowCount[k] = (dowCount[k] || 0) + 1; });
+  const bestDow = Object.keys(dowCount).sort((a, b) => dowCount[b] - dowCount[a])[0];
+  const hasPrior = !!data.range.priorStart;
+  const kpis = csKpi(`Loads ${past}`, rows.length.toLocaleString(), hasPrior ? csCmpCount(rows.length, prior.length) : 'Total loads') +
+    csKpi('Average per active day', (rows.length / perDay.size).toFixed(1), `Over ${perDay.size} day${perDay.size === 1 ? '' : 's'} with loads`) +
+    csKpi('Busiest day', bestDay ? csFmtDay(bestDay.d) : '–', bestDay ? `${bestDay.n} load${bestDay.n === 1 ? '' : 's'}` : '', '', true) +
+    csKpi('Busiest weekday', bestDow || '–', bestDow ? `${dowCount[bestDow]} loads in total` : '', '', true);
+  const bar = csBucketBar(days, xMin, xMax, `Loads ${past}`);
+  const chart = csPanel(`Loads ${past} per ${bar.unit}`, `<div class="cs-panel-body"><p class="cs-panel-sub">Each bar is the number of loads ${past} in that ${bar.unit}.</p>${bar.svg}</div>`);
+  let dow = `<table><thead><tr><th>Day</th><th class="c">Loads</th><th class="c">Share</th></tr></thead><tbody>`;
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => {
+    if (!dowCount[d]) return;
+    dow += `<tr><td><b>${d}</b></td><td class="c">${dowCount[d].toLocaleString()}</td><td class="c">${Math.round(dowCount[d] / rows.length * 100)}%</td></tr>`;
+  });
+  const dowPanel = csPanel('By day of the week', `${dow}</tbody></table>`);
+  return `${csKpiRow(kpis, '1fr 1fr 1fr 1fr')}${chart}${dowPanel}${csLoadListPanel(rows, screen)}`;
+}
+
+// DNR / Unexpected (counts, always listed)
+function csAnomalySection(data, screen) {
+  const { rows, prior, range, stat } = data;
+  const isDnr = stat === 'dnr', label = isDnr ? 'DNR' : 'Unexpected loads';
+  const hasPrior = !!range.priorStart;
+  const carriersInRows = new Set(rows.map(r => r.carrier));
+  const last = rows.length ? rows[rows.length - 1] : null;
+  let kpis = csKpi(label, rows.length.toLocaleString(), hasPrior ? csCmpCount(rows.length, prior.length) : (isDnr ? 'Times marked Did Not Receive' : 'Loads flagged Unexpected'), rows.length ? 'red' : '') +
+    csKpi('Carriers affected', carriersInRows.size.toLocaleString(), carriersInRows.size ? [...carriersInRows].sort().slice(0, 3).join(', ') + (carriersInRows.size > 3 ? ' …' : '') : 'None', '', true) +
+    csKpi('Most recent', last ? csFmtDay(last.dayMs, true) : '–', last ? last.carrier : 'None in this range', '', true);
+  let html = csKpiRow(kpis, '1fr 1.3fr 1.3fr');
+  if (!rows.length) return html + csPanel('Results', `<div class="cs-empty">No ${isDnr ? 'DNRs' : 'unexpected loads'} for these carriers and dates.</div>`);
+
+  const multi = carriersInRows.size > 1 || (data.carriers && data.carriers.length > 1);
+  if (multi) {
+    const names = new Set(rows.map(r => r.carrier)); if (data.carriers) data.carriers.forEach(n => names.add(n));
+    let t = `<table><thead><tr><th>Carrier</th><th class="c">${label}</th>${hasPrior ? '<th class="c">Prior period</th>' : ''}</tr></thead><tbody>`;
+    [...names].map(n => ({ n, c: rows.filter(r => r.carrier === n).length, p: prior.filter(r => r.carrier === n).length }))
+      .sort((a, b) => b.c - a.c || a.n.localeCompare(b.n))
+      .forEach(x => { t += `<tr><td><b>${escHtml(x.n)}</b></td><td class="c">${x.c}</td>${hasPrior ? `<td class="c">${x.p}</td>` : ''}</tr>`; });
+    html += csPanel('By carrier', `${t}</tbody></table>`);
+  }
+
+  let xMin, xMax;
+  if (range.start) { xMin = csKeyToDayMs(range.start); xMax = csKeyToDayMs(range.end) + CS_DAY; }
+  else { xMin = rows[0].dayMs; xMax = rows[rows.length - 1].dayMs + CS_DAY; }
+  if (xMax <= xMin) xMax = xMin + CS_DAY;
+  const bar = csBucketBar(rows.map(r => r.dayMs), xMin, xMax, label);
+  html += csPanel(`${label} per ${bar.unit}`, `<div class="cs-panel-body"><p class="cs-panel-sub"></p>${bar.svg}</div>`);
+
+  let lt = isDnr
+    ? `<table><thead><tr><th>Date</th><th>Carrier</th></tr></thead><tbody>`
+    : `<table><thead><tr><th>Date</th><th>Carrier</th><th>Door</th><th>Trailer #</th><th>Type</th><th>Notes</th></tr></thead><tbody>`;
+  rows.slice().reverse().forEach(r => {
+    lt += isDnr
+      ? `<tr><td>${r.dow} ${csFmtDay(r.dayMs, true)}</td><td>${escHtml(r.carrier)}</td></tr>`
+      : `<tr><td>${r.dow} ${csFmtDay(r.dayMs, true)}, ${csFmtTime(r.min)}</td><td>${escHtml(r.carrier)}</td><td>${escHtml(r.door) || '—'}</td><td>${escHtml(r.trailer) || '—'}</td><td>${escHtml(r.type) || '—'}</td><td>${escHtml(r.notes) || '—'}</td></tr>`;
+  });
+  html += csPanel(isDnr ? 'Every DNR in this range' : 'Every unexpected load in this range', `${lt}</tbody></table>`);
+  return html;
+}
+
+function csBuildStatReport(data, screen) {
+  const stat = data.stat, cfg = Object.assign({ id: stat }, CS_STATS[stat]), kind = cfg.kind;
+  const { rows, prior, range } = data;
+  const rootCls = 'cs-report' + (screen ? ' cs-screen' : '');
+  const stamp = data.generated.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const anomaly = kind === 'dnr' || kind === 'unexpected';
+  const noun = kind === 'dnr' ? 'DNR' : kind === 'unexpected' ? 'unexpected load' : 'load';
+  const dayOf = anomaly ? (r => r.dayMs) : csDayOf(cfg);
+  const rangeText = rows.length
+    ? `${csFmtDay(Math.min(...rows.map(dayOf)), true)} – ${csFmtDay(Math.max(...rows.map(dayOf)), true)}`
+    : (range.start ? `${csFmtDay(csKeyToDayMs(range.start), true)} – ${csFmtDay(csKeyToDayMs(range.end), true)}` : 'no records');
+  const head = `<div class="cs-titlebar"><h1>Carrier Statistics — ${escHtml(cfg.label.replace(/ \(count\)$/, ''))}</h1><div class="cs-meta">
+    <div><b>Carriers:</b> ${escHtml(csCarrierText(data))}</div>
+    <div><b>Range:</b> ${escHtml(range.label)} · ${rangeText} · ${rows.length.toLocaleString()} ${noun}${rows.length === 1 ? '' : 's'}</div>
+    <div><b>Pulled:</b> ${stamp}</div></div></div>`;
+
+  const notes = {
+    time: `<b>How this is figured:</b> ${stat === 'secure' ? "A load counts from its <b>Secure time</b>, the moment the trailer was put on an operational door. Loads that were only received and never secured are left out." : "A load counts on the day it was <b>released</b>, at the time it was released. Loads not yet released are left out."} “Did not receive” records are not counted. Medians are used so one long wait doesn't skew the picture. All times are local time.`,
+    dur: stat === 'dwell'
+      ? `<b>How this is figured:</b> Time at door is Secure time to Released, so for drop trailers it includes time spent waiting on the door. Loads under ${CS_MIN_VALID} minutes look like entry mistakes and are left out of the numbers. The trend and chart leave out anything over 24 hours. Loads are counted on the day secured.`
+      : `<b>How this is figured:</b> Time from Received to Secured. Only loads that have a received time are included (live loads and older records usually don't). The trend and chart leave out anything over 24 hours. Loads are counted on the day secured.`,
+    count: `<b>How this is figured:</b> Counts loads ${stat === 'secured_n' ? 'on the day they were <b>secured</b>' : 'on the day they were <b>released</b>'}. “Did not receive” records are not counted.`,
+    dnr: `<b>How this is figured:</b> Counts the times a carrier was marked <b>Did Not Receive</b>, on the day it was marked.`,
+    unexpected: `<b>How this is figured:</b> Counts loads flagged <b>Unexpected</b>, on the day they were secured. “Did not receive” records are not counted.`
+  };
+  const note = `<div class="cs-note">${notes[kind]}${data.skipped ? ` ${data.skipped} record${data.skipped === 1 ? '' : 's'} with no Secure time ${data.skipped === 1 ? 'was' : 'were'} left out.` : ''}</div>`;
+
+  if (anomaly) return `<div class="${rootCls}">${head}${csAnomalySection(data, screen)}${note}</div>`;
+  if (!rows.length) return `<div class="${rootCls}">${head}${csPanel('Results', '<div class="cs-empty">No loads found for these carriers and dates.</div>')}${note}</div>`;
+
+  let xMin, xMax;
+  if (range.start) { xMin = csKeyToDayMs(range.start); xMax = csKeyToDayMs(range.end) + CS_DAY; }
+  else { const ds = rows.map(dayOf); xMin = Math.min(...ds); xMax = Math.max(...ds) + CS_DAY; }
+  if (xMax <= xMin) xMax = xMin + CS_DAY;
+
+  const build = (rs, pr) => kind === 'time' ? csTimeSection(rs, pr, data, xMin, xMax, screen, cfg)
+    : kind === 'dur' ? csDurSection(rs, pr, data, xMin, xMax, screen, cfg)
+    : csTotalsSection(rs, pr, data, xMin, xMax, screen, cfg);
+
+  const byCarrier = new Map();
+  rows.forEach(r => { if (!byCarrier.has(r.carrier)) byCarrier.set(r.carrier, []); byCarrier.get(r.carrier).push(r); });
+  const names = [...byCarrier.keys()].sort((a, b) => a.localeCompare(b));
+  if (names.length === 1) return `<div class="${rootCls}">${head}${build(rows, prior)}${note}</div>`;
+
+  // several carriers: a quick side-by-side table, then one section per carrier
+  const val = stat === 'secure' ? (r => r.arrMin) : stat === 'release' ? (r => r.relMin) : stat === 'dwell' ? (r => r.dur) : stat === 'r2s' ? (r => r.r2s) : null;
+  let cols, cell;
+  if (kind === 'time') { cols = `<th>Median time</th><th>Earliest – latest</th>`; cell = g => { const v = g.map(val); return `<td>${csFmtTime(csMedian(v))}</td><td>${csFmtTime(csMin(v))} – ${csFmtTime(csMax(v))}</td>`; }; }
+  else if (kind === 'dur') { cols = `<th>Median time</th><th>Shortest – longest</th>`; cell = g => { const v = g.filter(r => stat === 'dwell' ? r.valid : (r.r2s != null && r.r2s >= 0)).map(val); return v.length ? `<td>${csFmtDur(csMedian(v))}</td><td>${csFmtDur(csMin(v))} – ${csFmtDur(csMax(v))}</td>` : `<td>–</td><td>–</td>`; }; }
+  else { cols = `<th class="c">Share of all loads</th>`; cell = g => `<td class="c">${Math.round(g.length / rows.length * 100)}%</td>`; }
+  let t = `<table><thead><tr><th>Carrier</th><th class="c">Loads</th>${cols}</tr></thead><tbody>`;
+  names.forEach(n => { const g = byCarrier.get(n); t += `<tr><td><b>${escHtml(n)}</b></td><td class="c">${g.length.toLocaleString()}</td>${cell(g)}</tr>`; });
+  const overview = csPanel('Carrier summary', `<div class="cs-panel-body" style="padding:6px 10px 2px;"><p class="cs-panel-sub" style="min-height:0;">A quick look at each carrier, A to Z. Each carrier has its own section after this page.</p></div>${t}</tbody></table>`);
+  const sections = names.map(n => {
+    const g = byCarrier.get(n);
+    const bar = `<div class="cs-carrier-bar"><span class="cs-carrier-name">${escHtml(n)}</span><span class="cs-carrier-count">${g.length.toLocaleString()} load${g.length === 1 ? '' : 's'}</span></div>`;
+    return `<div class="cs-carrier-sec">${bar}${build(g, prior.filter(r => r.carrier === n))}</div>`;
+  }).join('');
+  return `<div class="${rootCls}">${head}${overview}${sections}${note}</div>`;
+}
+
 // ---------- print / save as PDF ----------
 // Both buttons open the report in its own window, set up for 8.5 x 11 portrait,
 // and bring up the browser's print window. "Save as PDF" is the same thing —
@@ -4748,11 +5149,12 @@ function csBuildReportHtml(data, screen) {
 // that the window title (which becomes the file name) is already filled in.
 function csFileTitle() {
   const d = _csData;
-  return `Carrier Statistics - ${csCarrierText(d, true)} - ${d.range.label} - ${todayStr()}`;
+  const st = d.stat && d.stat !== 'full' ? ` - ${CS_STATS[d.stat].label.replace(/[\\/:*?"<>|]/g, '')}` : '';
+  return `Carrier Statistics${st} - ${csCarrierText(d, true)} - ${d.range.label} - ${todayStr()}`;
 }
 
 function csOpenPrintWindow(mode) {
-  if (!_csData || !_csData.rows.length) { toast('Pull data first', 'error'); return; }
+  if (!_csData || (!_csData.rows.length && !csIsAnomalyKind(_csData.stat))) { toast('Pull data first', 'error'); return; }
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(csFileTitle())}</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -5017,14 +5419,18 @@ async function saveTrailerToFirebase(doorId) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
   const t = state.trailers[doorId];
   if (!t) return;
-  try { await fb().setDoc(fb().doc(getDb(), 'trailers', doorId), t); } catch(e) { console.error(e); }
+  queueShuttlePublish();
+  const payload = carrierShowsAge(t.carrier) ? t : Object.assign({}, t, { hideAge: true }); // lets Door Status hide the age too
+  try { await fb().setDoc(fb().doc(getDb(), 'trailers', doorId), payload); } catch(e) { console.error(e); }
 }
 async function deleteTrailerFromFirebase(doorId) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
+  queueShuttlePublish();
   try { await fb().deleteDoc(fb().doc(getDb(), 'trailers', doorId)); } catch(e) { console.error(e); }
 }
 async function saveHistoryRecordToFirebase(rec) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
+  queueShuttlePublish();
   try { await fb().setDoc(fb().doc(getDb(), 'history', String(rec.id)), rec); } catch(e) { console.error(e); }
 }
 async function deleteHistoryRecordFromFirebase(id) {
@@ -5430,9 +5836,7 @@ function renderDoors() {
   const activeTrailers = Object.entries(state.trailers)
     .filter(([doorId, t]) => t && t.arrival && state.doors.some(d => d.id === doorId && d.active))
     .filter(([, t]) => {
-      if (t.carrier === 'Junk Skids' || t.carrier === 'Bin Freight') return false;
-      const c = state.carriers.find(c => c.name === t.carrier);
-      return !c || c.type !== 'OTHER';
+      return carrierInPriority(t.carrier);
     })
     .sort(([, a], [, b]) => new Date(a.arrival) - new Date(b.arrival));
   const priorityMap = {};
@@ -5492,13 +5896,15 @@ function renderDoors() {
       rightCol += `
         <span class="door-trailer-num">${t.trailerNum ? '#' + t.trailerNum : '#—'}</span>
         ${t.type === 'LIVE' ? `<span class="door-type-badge ${typeClass}">${t.type}</span>` : ''}
-        ${elLabel !== null ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''} ${priorityMap[door.id] && priorityMap[door.id] <= ageBadgeCount ? 'door-elapsed-oldest' : ''}">${elLabel}</span>` : ''}
+        ${elLabel !== null && carrierShowsAge(t.carrier) ? `<span class="door-elapsed ${isLong ? 'door-elapsed-running' : ''} ${priorityMap[door.id] && priorityMap[door.id] <= ageBadgeCount ? 'door-elapsed-oldest' : ''}">${elLabel}</span>` : ''}
         `;
     }
     rightCol += `</div>`;
 
     // Full-width notes bar
-    const notesBar = t && t.notes
+    const notesBar = t && t.notes && t.carrier === 'Bin Freight' && t.bfDate
+      ? `<div style="padding:4px 6px 3px;border-top:1px solid #e8eeeb;text-align:center;"><span style="display:inline-block;background:linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%);color:#000;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:4px 14px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);">${escHtml(t.notes)}</span></div>`
+      : t && t.notes
       ? `<div style="font-size:14px;color:#000;font-style:italic;font-weight:700;padding:4px 6px 2px;border-top:1px solid #e8eeeb;word-break:break-word;line-height:1.4;">${t.notes}</div>`
       : '';
 
@@ -5507,16 +5913,16 @@ function renderDoors() {
     if (t) {
       const carrierObj = state.carriers.find(c => c.name === t.carrier);
       const isOther = (carrierObj && carrierObj.type === 'OTHER') || t.carrier === 'Junk Skids' || t.carrier === 'Bin Freight';
-      const rankNum = isOther ? null : (priorityMap[door.id] || null);
+      const rankNum = priorityMap[door.id] || null;   // priorityMap already holds only carriers set to be included
       const rank = rankNum && rankNum <= ageBadgeCount ? rankNum : '';
       actions = `<div class="door-actions">
         ${rank ? `<span class="door-priority-badge${rankNum && rankNum <= ageBadgeCount ? ' door-priority-badge-pulse' : ''}">${rank}</span>` : '<span></span>'}
         ${(() => {
           const moveBtn = `<button onclick="openMoveModalForDoor('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Move</button>`;
           const wrap = inner => `<div style="display:flex;gap:calc(5px * var(--card-scale));align-items:center;">${inner}</div>`;
-          if (t.carrier === 'Junk Skids') return moveBtn;
-          if (t.carrier === 'Bin Freight') return moveBtn;
-          if (carrierObj && carrierObj.type === 'OTHER') {
+          const tileBeh = getTileBehavior(t.carrier);
+          if (tileBeh === 'hide_release') return moveBtn;
+          if (tileBeh === 'save_reset') {
             return wrap(moveBtn + `<button onclick="resetOtherCarrierTimer('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))'">Reset Age</button>`);
           }
           return wrap(moveBtn + `<button onclick="confirmRelease('${door.id}')" style="padding:calc(5px * var(--card-scale)) calc(14px * var(--card-scale));border:none;border-bottom:calc(4px * var(--card-scale)) solid #444;border-radius:6px;cursor:pointer;font-size:calc(11px * var(--card-scale));font-weight:700;background:linear-gradient(180deg,#c0c0c0 0%,#909090 100%);color:#000;box-shadow:0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6);transition:all 0.08s;letter-spacing:0.3px;" onmousedown="this.style.transform='translateY(3px)';this.style.borderBottomWidth='1px';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.4)'" onmouseup="this.style.transform='';this.style.borderBottomWidth='calc(4px * var(--card-scale))';this.style.boxShadow='0 4px 6px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.6)'">Release</button>`);
@@ -5624,6 +6030,8 @@ function openDoorEditModal(doorId) {
     securedByRow.style.display = 'none';
   }
   document.getElementById('de-unexpected').checked = !!(t && t.unexpected);
+  const deRelBtn = document.getElementById('de-release-btn');
+  if (deRelBtn) deRelBtn.style.display = (t && getTileBehavior(t.carrier) === 'hide_release') ? 'none' : '';
   document.getElementById('modal-door-edit').classList.add('open');
 }
 
@@ -5634,6 +6042,8 @@ function openDoorEditModal(doorId) {
 // had no way to release it. Closes the edit modal first, then reuses the
 // exact same confirmation flow the card's Release button already uses.
 function releaseDoorFromEditModal() {
+  const _t0 = state.trailers[document.getElementById('modal-door-edit').dataset.doorid];
+  if (_t0 && getTileBehavior(_t0.carrier) === 'hide_release') { toast('Release is hidden for this carrier', 'error'); return; }
   const doorId = document.getElementById('modal-door-edit').dataset.doorid;
   closeModal('modal-door-edit');
   confirmRelease(doorId);
@@ -6204,6 +6614,46 @@ function releaseFromBfModal() {
   confirmRelease(doorId);
 }
 
+// ---- Bin Freight day picker ----
+// Pick the day this Bin Freight is from. The buttons are the last seven days (Monday
+// through Saturday only), each with its date, so you can see exactly what will be saved.
+// The door tile then shows e.g. "WED 11/11 BF" in place of the notes.
+const BF_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function bfDayOptions() {
+  const now = new Date(), out = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    if (d.getDay() === 0) continue;   // Monday through Saturday only
+    out.push({ key: dashDateKey(d), dow: BF_DOW[d.getDay()], md: String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0'), today: i === 0 });
+  }
+  return out;
+}
+function bfDayLabel(key) {
+  if (key === 'EMPTY') return 'EMPTY';   // the Empty choice has no day or "BF"
+  const [y, m, d] = key.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return `${BF_DOW[dt.getDay()]} ${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')} BF`;
+}
+function renderBfDayPicker() {
+  const box = document.getElementById('bf-day-picker');
+  if (!box) return;
+  const btnStyle = on => `border:1px solid ${on ? '#1d8f6b' : '#b0b0b0'} !important;background:${on ? 'linear-gradient(180deg,#27b589 0%,#1d8f6b 100%)' : 'linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%)'} !important;`;
+  box.innerHTML = bfDayOptions().map(o => {
+    const on = window._bfPickedDay === o.key;
+    return `<button type="button" onclick="pickBfDay('${o.key}')" style="min-width:84px;padding:8px 10px;border-radius:6px;cursor:pointer;text-align:center;line-height:1.25;border:1px solid ${on ? '#1d8f6b' : '#b0b0b0'} !important;background:${on ? 'linear-gradient(180deg,#27b589 0%,#1d8f6b 100%)' : 'linear-gradient(180deg,#cacaca 0%,#b0b0b0 100%)'} !important;color:#000;box-shadow:0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);">
+      <div style="font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">${o.dow}</div>
+      <div style="font-size:12px;font-weight:700;">${o.md}</div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;height:11px;">${o.today ? 'Today' : ''}</div>
+    </button>`;
+  }).join('') + `<button type="button" onclick="pickBfDay('EMPTY')" style="min-width:84px;padding:8px 10px;border-radius:6px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;${btnStyle(window._bfPickedDay === 'EMPTY')}color:#000;box-shadow:0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.6);"><span style="font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">Empty</span></button>`;
+}
+function pickBfDay(key) {
+  window._bfPickedDay = key;
+  renderBfDayPicker();
+  const lbl = document.getElementById('bf-picked-label');
+  if (lbl) lbl.textContent = `Will save as: ${bfDayLabel(key)}`;
+}
+
 function openBfNoteModal(doorId) {
   const t = state.trailers[doorId];
   const door = state.doors.find(d => d.id === doorId);
@@ -6212,7 +6662,11 @@ function openBfNoteModal(doorId) {
   document.getElementById('bf-note-summary').textContent = `Door ${door?.num || doorId}`;
   document.getElementById('bf-trailer-num').value = t.trailerNum || '';
   document.getElementById('bf-type').value = t.type || 'DROP';
-  document.getElementById('bf-note-text').value = t.notes || '';
+  window._bfPickedDay = null;   // a day has to be picked each time — no stale day carried into a new load
+  const cur = document.getElementById('bf-current-day');
+  if (cur) cur.textContent = t.bfDate ? `Currently: ${bfDayLabel(t.bfDate)}` : (t.notes ? `Current note: ${t.notes}` : 'No day set yet');
+  renderBfDayPicker();
+  const pl = document.getElementById('bf-picked-label'); if (pl) pl.textContent = '';
   document.getElementById('modal-bf-note').classList.add('open');
 }
 
@@ -6222,7 +6676,9 @@ function saveBfNote() {
   if (!t) return;
   const door = state.doors.find(d => d.id === doorId);
   const now = new Date().toISOString();
-  const note = document.getElementById('bf-note-text').value.trim();
+  const picked = window._bfPickedDay;
+  if (!picked) { toast('Pick the day first ✗'); return; }
+  const note = bfDayLabel(picked);
   const originalNote = t.notes || '';
   const trailerNum = document.getElementById('bf-trailer-num').value.trim() || t.trailerNum;
   const type = document.getElementById('bf-type').value;
@@ -6259,6 +6715,7 @@ function saveBfNote() {
   // whether the door happens to be categorized as a yard door.
   t.trailerNum = trailerNum;
   t.notes = note;
+  t.bfDate = picked;
   t.arrival = now;
   t.receivedAt = null;
   t.securedAt = now;
@@ -6419,7 +6876,7 @@ function checkSalesSideRelease(carrier, releaseTime) {
 async function saveSalesSideToFirebase() {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
   try {
-    await fb().setDoc(fb().doc(getDb(), 'salesside', todayStr()), { slots: salesSideState, date: todayStr() });
+    await fb().setDoc(fb().doc(getDb(), 'salesside', todayStr()), { slots: salesSideState, date: todayStr() }, { merge: true });
   } catch(e) { console.error(e); }
 }
 
@@ -6442,6 +6899,78 @@ function resetSalesSideForNewDay() {
   salesSideState = JSON.parse(JSON.stringify(SALES_SIDE_SLOTS));
   renderSalesSideTable();
   saveSalesSideToFirebase();
+}
+
+// ===================== SHUTTLE SECURE & RELEASE TABLE =====================
+// Today's Shuttle loads: each row is one load with the door, when and who
+// secured it, and when and who released it. Built from today's completed
+// records (released loads) plus Shuttle trailers still sitting on a door
+// (secured, not released yet). The same rows are published into today's
+// salesside document so the Spotter tab in Door Status can show them too.
+function isShuttleCarrier(name) { return String(name || '').trim().toLowerCase() === 'shuttle'; }
+
+function getShuttleRows() {
+  const rows = [];
+  (state.completedToday || []).filter(r => isShuttleCarrier(r.carrier)).forEach(r => {
+    rows.push({ door: String(r.door || ''), securedAt: r.secured || null, securedBy: r.securedBy || '', releasedAt: r.released || null, releasedBy: r.releasedBy || '' });
+  });
+  Object.entries(state.trailers || {}).forEach(([doorId, t]) => {
+    if (!t || !isShuttleCarrier(t.carrier)) return;
+    const door = state.doors.find(d => d.id === doorId);
+    const securedAt = t.securedAt || (t.receivedAt ? null : t.arrival);
+    if (!securedAt) return; // still only received in the yard — not secured yet
+    // A shuttle that never got a release time drops off at end of day: it only
+    // stays in the table on the day it was secured.
+    if (dashDateKey(securedAt) !== todayStr()) return;
+    rows.push({ door: String(door ? door.num : doorId), securedAt, securedBy: t.securedBy || t.slottedBy || '', releasedAt: null, releasedBy: '' });
+  });
+  const ts = v => { const d = parseFlexDate(v); return d ? d.getTime() : 0; };
+  rows.sort((a, b) => ts(b.securedAt || b.releasedAt) - ts(a.securedAt || a.releasedAt)); // newest first
+  return rows;
+}
+
+// Compact date + time, like "Nov 8, 2:05 PM"
+function fmtShuttleDT(dt) {
+  const d = parseFlexDate(dt);
+  if (!d) return '—';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+function renderShuttleTable() {
+  const tbody = document.getElementById('shuttle-tbody');
+  if (!tbody) return;
+  const rows = getShuttleRows();
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#888;font-style:italic;padding:10px;">No shuttle activity yet today</td></tr>`;
+    return;
+  }
+  const cell = (at, by) => at
+    ? `<div style="font-weight:700;color:#000;">${fmtShuttleDT(at)}</div><div style="font-size:10px;color:#4a6a5a;">${by ? String(by).replace(/</g,'&lt;') : '—'}</div>`
+    : `<span style="color:#bbb;">—</span>`;
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="color:#000;font-weight:800;">${String(r.door).replace(/</g,'&lt;')}</td>
+      <td style="font-size:12px;">${cell(r.securedAt, r.securedBy)}</td>
+      <td style="font-size:12px;">${cell(r.releasedAt, r.releasedBy)}</td>
+    </tr>`).join('');
+}
+
+// Publishes the rows whenever something that could change them is saved.
+// Debounced, and skipped when nothing changed since the last publish.
+let _shuttlePublishTimer = null;
+let _lastShuttlePublished = null;
+function queueShuttlePublish() {
+  clearTimeout(_shuttlePublishTimer);
+  _shuttlePublishTimer = setTimeout(publishShuttleLog, 1500);
+}
+async function publishShuttleLog() {
+  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
+  const rows = getShuttleRows();
+  const json = JSON.stringify(rows);
+  if (json === _lastShuttlePublished) return;
+  _lastShuttlePublished = json;
+  try {
+    await fb().setDoc(fb().doc(getDb(), 'salesside', todayStr()), { shuttle: rows, date: todayStr() }, { merge: true });
+  } catch (e) { console.error(e); _lastShuttlePublished = null; }
 }
 
 // ===================== TRAILER AUDIT =====================
@@ -7041,6 +7570,63 @@ function resetOtherCarrierTimer(doorId, byUser) {
   toast('Timer reset ✓');
 }
 
+// ===================== CARRIER TILE BEHAVIORS =====================
+// Each carrier picks how its door tile behaves. Set when adding a carrier, or
+// by double-clicking a carrier card on the Carriers tab. Carriers that never
+// had one chosen keep the behavior they always had (see getTileBehavior).
+const TILE_BEHAVIORS = [
+  { id: 'normal',       label: 'Normal',                short: 'Move + Release',      hint: 'Move and Release buttons on the tile.' },
+  { id: 'hide_release', label: 'Hide Release',          short: 'Move only',           hint: 'Only a Move button. No Release button on the tile or in the edit window.' },
+  { id: 'save_reset',   label: 'Save & Reset',          short: 'Move + Reset Age',    hint: 'Move and Reset Age. Reset Age saves the load to history and restarts the timer; the trailer stays on the door.' },
+  { id: 'ask_door',     label: 'Door Prompt Release',   short: 'Release asks door + CFF/Yard', hint: 'Move and Release. Release opens the Auto-style window that asks which door and CFF or Yard.' }
+];
+function tileBehaviorLabel(id) {
+  const b = TILE_BEHAVIORS.find(b => b.id === id);
+  return b ? b.label : 'Normal';
+}
+function getTileBehavior(carrierName) {
+  const c = state.carriers.find(c => c.name === carrierName);
+  if (c && TILE_BEHAVIORS.some(b => b.id === c.tileBehavior)) return c.tileBehavior;
+  // Nothing chosen yet: same behavior these carriers have always had.
+  if (carrierName === 'Junk Skids' || carrierName === 'Bin Freight') return 'hide_release';
+  if (c && c.type === 'OTHER') return 'save_reset';
+  return 'normal';
+}
+// Age counter on the door tile (and the oldest-first priority badge). On unless a carrier turns it off.
+function carrierShowsAge(carrierName) {
+  const c = state.carriers.find(c => c.name === carrierName);
+  return !(c && c.showAge === false);
+}
+// Whether this carrier's trailers get the numbered oldest-first priority badge.
+// A choice made on the Carriers tab wins. Until one is made, carriers keep what
+// they had: Junk Skids, Bin Freight, OTHER-type carriers and carriers with the
+// age counter off are left out; everyone else is in.
+function carrierInPriority(carrierName) {
+  const c = state.carriers.find(c => c.name === carrierName);
+  if (c && typeof c.priorityBadge === 'boolean') return c.priorityBadge;
+  if (carrierName === 'Junk Skids' || carrierName === 'Bin Freight') return false;
+  if (c && c.type === 'OTHER') return false;
+  return carrierShowsAge(carrierName);
+}
+function tileBehaviorOptionsHTML(selectedId) {
+  return TILE_BEHAVIORS.map(b => `<option value="${b.id}" ${b.id === selectedId ? 'selected' : ''}>${b.label} — ${b.short}</option>`).join('');
+}
+function defaultBehaviorForType(type) { return type === 'OTHER' ? 'save_reset' : 'normal'; }
+function onNewCarrierTypeChange() {
+  const t = document.getElementById('new-carrier-type').value;
+  const sel = document.getElementById('new-carrier-behavior');
+  sel.value = defaultBehaviorForType(t);
+  sel.dispatchEvent(new Event('change', { bubbles: true }));
+  const pri = document.getElementById('new-carrier-priority');
+  if (pri) pri.checked = t !== 'OTHER';   // OTHER carriers start out of the priority badge
+}
+document.addEventListener('change', e => {
+  if (!e.target || e.target.id !== 'new-carrier-behavior') return;
+  const b = TILE_BEHAVIORS.find(b => b.id === e.target.value);
+  const hint = document.getElementById('new-carrier-behavior-hint');
+  if (hint) hint.textContent = b ? b.hint : '';
+});
+
 // The Auto door is a regular door that's simply named "Auto" (door number or door name).
 function isAutoDoor(door) {
   return !!door && (/\bauto\b/i.test(door.num || '') || /\bauto\b/i.test(door.name || ''));
@@ -7057,16 +7643,21 @@ function openAutoReleaseModal(doorId) {
   setTimeout(() => document.getElementById('auto-rel-door').focus(), 50);
 }
 
-function confirmAutoRelease() {
+// sendRequest = false releases without the Slack message. The door and
+// destination are only used by that message, so they aren't required then.
+// It still counts as an Auto-style release, so it doesn't use up a Sales Side spot.
+function confirmAutoRelease(sendRequest = true) {
   const p = window._pendingAutoRelease;
   if (!p || !state.trailers[p.doorId]) { closeModal('modal-auto-release'); return; }
   const doorNum = document.getElementById('auto-rel-door').value.trim();
   const dest = document.querySelector('input[name="auto-rel-dest"]:checked');
-  if (!doorNum) { toast('Enter the door number ✗'); return; }
-  if (!dest) { toast('Pick CFF or Yard ✗'); return; }
+  if (sendRequest) {
+    if (!doorNum) { toast('Enter the door number ✗'); return; }
+    if (!dest) { toast('Pick CFF or Yard ✗'); return; }
+  }
   closeModal('modal-auto-release');
   window._pendingAutoRelease = null;
-  releaseTrailer(p.doorId, true, { door: doorNum, destination: dest.value });
+  releaseTrailer(p.doorId, !!sendRequest, { door: doorNum, destination: dest ? dest.value : '' });
 }
 
 function confirmRelease(doorId) {
@@ -7075,7 +7666,7 @@ function confirmRelease(doorId) {
   // Trailers on the Auto door ask which door they're in and where they're going
   // (CFF or yard) instead of the usual confirmation. With Slack messages turned
   // off in App Settings there's nothing to ask for, so it releases like any other door.
-  if (isAutoDoor(state.doors.find(d => d.id === doorId)) && state.settings.slackReleaseEnabled !== false) { openAutoReleaseModal(doorId); return; }
+  if ((isAutoDoor(state.doors.find(d => d.id === doorId)) || getTileBehavior(t.carrier) === 'ask_door') && state.settings.slackReleaseEnabled !== false) { openAutoReleaseModal(doorId); return; }
   if (!isSlackEligible(t)) { proceedWithRelease(doorId, false); return; }
   const door = state.doors.find(d => d.id === doorId);
   const summary = `${t.carrier}${t.trailerNum ? ' #' + t.trailerNum : ''} — Door ${door?.num || doorId}`;
@@ -7544,6 +8135,7 @@ function completeTrailer(doorId) {
 
 // ===================== COMPLETED TABLE =====================
 function renderCompletedTable() {
+  try { renderShuttleTable(); } catch (e) { console.error(e); }
   const recs = state.completedToday;
   const tbody = document.getElementById('completed-tbody');
   const empty = document.getElementById('completed-empty');
@@ -7563,6 +8155,7 @@ function renderCompletedTable() {
     tr.innerHTML = `
       <td style="color:${r.didNotReceive?'#c0392b':'#000'};font-weight:600;">${r.carrier}${r.didNotReceive?' <span style="font-size:10px;background:#fde8e8;color:#c0392b;border-radius:3px;padding:1px 4px;">DNR</span>':''}</td>
       <td style="color:#000">${r.trailerNum || '—'}</td>
+      <td style="color:#000;font-weight:700;">${(r.door && r.door !== '—') ? String(r.door).replace(/</g,'&lt;') : '—'}</td>
       <td style="color:#000">${r.arrival ? fmtTime(r.arrival) : '—'}</td>
       <td style="color:#000">${r.released ? fmtTime(r.released) : fmtTime(r.completed)}</td>
       <td style="color:#000;font-size:11px;font-weight:600;">${r.releasedBy||''}</td>
@@ -7669,6 +8262,8 @@ function renderCarriers() {
             <div class="carrier-name" style="font-size:14px;">${c.name}</div>
             <span class="badge ${typeColor}" style="font-size:10px;color:#000;">${typeLabel}</span>
             ${c.dualType ? `<span class="badge badge-purple" style="font-size:10px;color:#000;margin-left:4px;" title="Also shows up on the other type's dropdown when slotting a trailer">+ both</span>` : ''}
+            <span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#e6eee9;border:1px solid #c8ddd4;" title="Door tile behavior — double-click the card to change">${tileBehaviorLabel(getTileBehavior(c.name))}</span>
+            ${c.showAge === false ? `<span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#f3e3e3;border:1px solid #e0c0c0;" title="No age counter on the door tile — double-click the card to change">No age counter</span>` : ''}
           </div>
           <button class="delete-btn" onclick="removeCarrier('${c.id}')" style="align-self:flex-start;flex-shrink:0;color:#ccc;font-size:13px;">✕</button>
         </div>
@@ -7688,6 +8283,18 @@ function renderCarriers() {
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
           <input type="checkbox" class="carrier-dual-type-chk" ${c.dualType ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
           Drop and Live
+        </label>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:11px;font-weight:700;color:#4a6a5a;text-transform:uppercase;letter-spacing:0.4px;">Door Tile Behavior</span>
+          <select class="carrier-behavior-sel" style="padding:5px 8px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;color:#000;">${tileBehaviorOptionsHTML(getTileBehavior(c.name))}</select>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
+          <input type="checkbox" class="carrier-show-age-chk" ${c.showAge === false ? '' : 'checked'} style="width:14px;height:14px;cursor:pointer;">
+          Show age counter
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
+          <input type="checkbox" class="carrier-priority-chk" ${carrierInPriority(c.name) ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
+          Include in priority age badge
         </label>
         <div style="display:flex;gap:6px;justify-content:flex-end;">
           <button style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid #ccc;background:#eee;color:#000;cursor:pointer;" onclick="cancelCarrierEdit(this)">Cancel</button>
@@ -7726,13 +8333,21 @@ function saveCarrierEdit(id, btn) {
   const name = card.querySelector('.carrier-edit-mode input').value.trim();
   const type = card.querySelector('.carrier-edit-mode select').value;
   const dualType = card.querySelector('.carrier-dual-type-chk').checked;
+  const tileBehavior = card.querySelector('.carrier-behavior-sel').value;
+  const showAge = card.querySelector('.carrier-show-age-chk').checked;
+  const priorityBadge = card.querySelector('.carrier-priority-chk').checked;
   if (!name) { toast('Carrier name required', 'error'); return; }
   const c = state.carriers.find(c => c.id === id);
   if (!c) return;
   c.name = name;
   c.type = type;
   c.dualType = dualType;
+  c.tileBehavior = tileBehavior;
+  c.showAge = showAge;
+  c.priorityBadge = priorityBadge;
   saveOneCarrierToFirebase(id);
+  // Door Status reads the flag from each trailer's saved record, so re-save this carrier's trailers now.
+  Object.keys(state.trailers).forEach(doorId => { const t = state.trailers[doorId]; if (t && t.carrier === c.name) saveTrailerToFirebase(doorId); });
   saveState();
   renderCarriers();
   toast('Carrier updated ✓');
@@ -7789,13 +8404,22 @@ function removeCarrierLogo(carrierId) {
     }).catch(() => toast('Failed to remove logo', 'error'));
   }
 }
-function openAddCarrierModal() { document.getElementById('new-carrier-name').value = ''; document.getElementById('modal-add-carrier').classList.add('open'); }
+function openAddCarrierModal() {
+  document.getElementById('new-carrier-name').value = '';
+  document.getElementById('new-carrier-type').value = 'DROP';
+  onNewCarrierTypeChange();
+  document.getElementById('new-carrier-show-age').checked = true;
+  document.getElementById('modal-add-carrier').classList.add('open');
+}
 function saveNewCarrier() {
   const name = document.getElementById('new-carrier-name').value.trim();
   const type = document.getElementById('new-carrier-type').value;
   if (!name) { toast('Enter a carrier name', 'error'); return; }
   const id = name.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now();
-  const newCarrier = { id, name, type };
+  const tileBehavior = document.getElementById('new-carrier-behavior').value || defaultBehaviorForType(type);
+  const showAge = document.getElementById('new-carrier-show-age').checked;
+  const priorityBadge = document.getElementById('new-carrier-priority').checked;
+  const newCarrier = { id, name, type, tileBehavior, showAge, priorityBadge };
   state.carriers.push(newCarrier);
   closeModal('modal-add-carrier');
   saveOneCarrierToFirebase(id).then(() => {
@@ -8623,6 +9247,7 @@ function renderOpUpdates() {
       <td style="border-right:1px solid #e0eeea;">
         <div style="font-weight:800;color:#1a4731;font-size:13px;">${t.carrier}</div>
         <div style="font-size:10px;color:#4a7a5a;font-weight:600;">${t.trailerNum ? '#' + t.trailerNum : ''}</div>
+        ${t.notes ? `<div style="font-size:11px;color:#000;font-style:italic;font-weight:700;white-space:normal;max-width:190px;word-break:break-word;line-height:1.3;">${escHtml(t.notes)}</div>` : ''}
       </td>
       <td style="text-align:center;border-right:1px solid #e0eeea;">
         <input type="number" min="0" inputmode="numeric" id="opu-remaining-${door.id}" class="fc-tbl-input opu-lines-input" style="width:64px;display:inline-block;font-weight:800;" value="${t.linesOverride !== null && t.linesOverride !== undefined && t.linesOverride !== '' ? t.linesOverride : ''}" placeholder="—" onchange="updateTrailerLinesOverride('${door.id}', this.value)" onkeydown="handleEnterMoveNext(event, '.opu-lines-input')">
@@ -8688,7 +9313,7 @@ function printOpUpdatesWalkSheet() {
       const t = state.trailers[door.id];
       const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
       if (!occupied) {
-        return { door: door.num, carrier: 'Empty', sub: '', remaining: '', bfRemaining: '' };
+        return { door: door.num, carrier: 'Empty', sub: '', note: '', remaining: '', bfRemaining: '' };
       }
       const rem = linesRemainingForTrailer(t);
       const bfRem = bfSkidsRemainingForTrailer(t);
@@ -8696,6 +9321,7 @@ function printOpUpdatesWalkSheet() {
         door: door.num,
         carrier: t.carrier,
         sub: t.trailerNum ? `#${t.trailerNum}` : '',
+        note: t.notes || '',   // the door tile note
         remaining: (t.linesOverride !== null && t.linesOverride !== undefined && t.linesOverride !== '') || t.trailerEmpty ? rem : '',
         bfRemaining: (t.bfOverride !== null && t.bfOverride !== undefined && t.bfOverride !== '') || t.trailerEmpty ? bfRem : ''
       };
@@ -8709,6 +9335,7 @@ function printOpUpdatesWalkSheet() {
         door: 'Expected',
         carrier: r.carrier,
         sub: subParts.join(' \u00b7 '),
+        note: '',
         remaining: (r.linesOverride !== null && r.linesOverride !== undefined && r.linesOverride !== '') || r.trailerEmpty ? rem : '',
         bfRemaining: (r.bfOverride !== null && r.bfOverride !== undefined && r.bfOverride !== '') || r.trailerEmpty ? bfRem : ''
       };
@@ -8721,7 +9348,7 @@ function printOpUpdatesWalkSheet() {
     return `
       <tr>
         <td style="${style}">${escHtml(String(r.door))}</td>
-        <td style="${style}">${escHtml(r.carrier)}${r.sub ? `<br><span style="font-size:8px;color:#666;">${escHtml(r.sub)}</span>` : ''}</td>
+        <td style="${style}">${escHtml(r.carrier)}${r.sub ? `<br><span style="font-size:8px;color:#666;">${escHtml(r.sub)}</span>` : ''}${r.note ? `<span class="walk-note">${escHtml(r.note)}</span>` : ''}</td>
         <td style="text-align:center;${style}">${r.remaining}</td>
         <td style="text-align:center;${style}">${r.bfRemaining}</td>
       </tr>`;
@@ -8733,7 +9360,7 @@ function printOpUpdatesWalkSheet() {
   // #/time sub-line) while empty rows are 1 line, so a side with more
   // occupied doors ends up visibly taller. Balance by estimated line height
   // instead so both columns come out roughly the same length.
-  const rowWeight = r => r.sub ? 2 : 1;
+  const rowWeight = r => (r.sub ? 2 : 1) + (r.note ? Math.ceil(r.note.length / 22) : 0);
   const totalWeight = trailerRows.reduce((sum, r) => sum + rowWeight(r), 0);
   let runningWeight = 0, splitIdx = trailerRows.length;
   for (let i = 0; i < trailerRows.length; i++) {
@@ -8788,6 +9415,7 @@ function printOpUpdatesWalkSheet() {
     white-space: nowrap;
     width: 1%;
   }
+  .walk-note { display: block; white-space: normal; max-width: 38mm; font-size: 8.5pt; font-style: italic; font-weight: 700; line-height: 1.2; margin-top: 1px; color: #000; text-align: left; }
   #floor-table col.col-label { width: 46%; }
   #floor-table col.col-narrow { width: 27%; }
   @media print {
@@ -11127,7 +11755,7 @@ function enhanceSelect(selectId) {
 
 function enhanceAllModalSelects() {
   ['sltl-type', 'sltl-carrier', 'sltl-door', 'bf-type', 'new-door-type',
-   'new-carrier-type', 'qs-type', 'qs-door', 'de-carrier', 'de-type', 'outlook-form-carrier'].forEach(enhanceSelect);
+   'new-carrier-type', 'new-carrier-behavior', 'qs-type', 'qs-door', 'de-carrier', 'de-type', 'outlook-form-carrier'].forEach(enhanceSelect);
 }
 
 // ===================== INIT =====================
