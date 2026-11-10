@@ -1351,6 +1351,7 @@
   <h1>Rack Receiving Trailer Tool</h1>
   <div style="display:flex;gap:10px;align-items:center;">
     <span id="date-display" style="color:#1a4731;font-weight:700;font-size:12px;"></span>
+    <span id="build-tag" title="Which version of the trailer tool this screen is running. Every screen should match." style="color:#8a8a8a;font-weight:600;font-size:10px;"></span>
     <button id="logout-btn" onclick="logOut()" title="Log out" style="background:#f5f5f5;border:1px solid #ddd;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:#1a4731;font-family:Roboto,sans-serif;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.15);">Log Out</button>
     <label id="sandbox-toggle" title="Sandbox Mode — try things out without saving anything to the database" style="display:flex;align-items:center;gap:7px;background:#f5f5f5;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:#1a4731;font-family:Roboto,sans-serif;cursor:pointer;user-select:none;">
       <span>🧪 Sandbox</span>
@@ -2828,6 +2829,12 @@ async function clearDoorPing(doorId) {
 // that succeeds acts on it, so nothing happens twice. Commands older than 2
 // minutes are discarded (nobody was watching) so an old press can never act on
 // a trailer that arrived on that door later. No Slack message is sent from here.
+let _trailersSnapshotLoaded = false;
+function runWhenTrailersLoaded(fn, tries) {
+  tries = tries || 0;
+  if (_trailersSnapshotLoaded || tries >= 30) { fn(); return; }   // gives up waiting after ~15 s
+  setTimeout(() => runWhenTrailersLoaded(fn, tries + 1), 500);
+}
 function _doorForPingKey(key) {
   return state.doors.find(d => String(d.id) === String(key) || String(d.num) === String(key));
 }
@@ -2962,7 +2969,7 @@ function applyShuttlePing(doorId, status, byUser, pressedAtIso) {
       secured: securedStamp,
       securedBy: securedStamp ? (t.securedAt ? (t.securedBy || null) : (t.securedBy || t.slottedBy || null)) : null,
       securedMissed: !securedStamp,
-      released: now, releasedBy: who, completed: now,
+      released: now, releasedBy: who, completed: now, build: APP_BUILD,
       notes: t.notes || '', expected: t.expected, slottedBy: t.slottedBy || ''
     };
     state.history.push(rec);
@@ -3177,6 +3184,7 @@ async function loadStateFromFirebase() {
   if (_unsubTrailers) _unsubTrailers();
   _unsubTrailers = fb().onSnapshot(fb().collection(db, 'trailers'), snap => {
     if (window._sandboxMode) return;
+    _trailersSnapshotLoaded = true;
     state.trailers = {};
     snap.forEach(d => { state.trailers[d.id] = d.data(); });
     if (document.getElementById('tab-home').classList.contains('active')) renderDoors();
@@ -3200,14 +3208,17 @@ async function loadStateFromFirebase() {
     // Commands sent by the Door Status tool's buttons: "Unload Complete" (door 1)
     // releases the trailer, and a "reset age" flag (doors 52, 53, 59) does the
     // same as clicking Reset Age on the door tile.
-    snap.docChanges().forEach(change => {
+    // Wait until this screen has its trailers loaded before handling a press. A press waiting when the
+    // page opens could otherwise be claimed before the trailer is known, and then thrown away.
+    const changes = snap.docChanges();
+    runWhenTrailersLoaded(() => changes.forEach(change => {
       if (change.type === 'removed') return;
       const data = change.doc.data();
       if (!data) return;
       if (data.status === 'unload-complete') handleUnloadCompletePing(change.doc.id, data);
       else if (data.status === 'secure-load') handleSecureLoadPing(change.doc.id, data);
       else if (data.resetAgeAt) handleResetAgePing(change.doc.id, data);
-    });
+    }));
   });
 
   // Real-time listener for forecast / future deliveries — keeps the Expected
@@ -5504,6 +5515,10 @@ function initSandboxModeFromStorage() {
   if (sw) sw.checked = on;
 }
 initSandboxModeFromStorage();
+// Which version this screen is running. Presses from the Door Status tool are processed by whichever
+// trailer tool screen is open, so a screen left open on an older version can handle them the old way.
+const APP_BUILD = '2026-11-10 b';
+(function () { const el = document.getElementById('build-tag'); if (el) el.textContent = 'Build ' + APP_BUILD; })();
 
 async function saveForecastToFirebase(dateKey) {
   if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) return;
@@ -9447,13 +9462,18 @@ function bfSkidsRemainingForTrailer(t) {
   return 0;
 }
 
-function isExcludedFromOpUpdates(carrierName) {
+function isExcludedFromOpUpdates(carrierName, trailerType) {
   if (!carrierName) return true;
   if (carrierName === 'Bin Freight') return false;
   const EXCLUDED_NAMES = new Set(['Junk Skids']);
   if (EXCLUDED_NAMES.has(carrierName)) return true;
   const carrierObj = state.carriers.find(c => c.name === carrierName);
-  if (carrierObj && (carrierObj.type === 'OTHER' || carrierObj.type === 'LIVE')) return true;
+  if (carrierObj && carrierObj.type === 'OTHER') return true;
+  if (carrierObj && carrierObj.type === 'LIVE') {
+    // A "Drop and Live" (Both) carrier keeps its Live base type, so go by the trailer itself:
+    // a trailer slotted as a Drop is included, one slotted as Live is left out.
+    return carrierObj.dualType ? trailerType === 'LIVE' : true;
+  }
   return false;
 }
 
@@ -9587,7 +9607,7 @@ function renderOpUpdates() {
 
   doorList.forEach(door => {
     const t = state.trailers[door.id];
-    const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+    const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier, t.type));
     const isYardDoor = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD') || /CFF/i.test(door.num) || /CFF/i.test(door.id) || (door.name && /CFF/i.test(door.name));
     if (!occupied && isYardDoor) return; // skip empty yard/CFF doors entirely
     const tr = document.createElement('tr');
@@ -9665,7 +9685,7 @@ function printOpUpdatesWalkSheet() {
   const trailerRows = getOpUpdatesDoorList()
     .filter(door => {
       const t = state.trailers[door.id];
-      const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+      const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier, t.type));
       if (occupied) return true;
       // Empty doors: show regular 30-48 doors, but skip empty yard/CFF doors — same as the on-screen table
       const isYardDoor = door.type === 'yard' || door.type === 'cff_yard' || door.id.startsWith('YD') || /CFF/i.test(door.num) || /CFF/i.test(door.id) || (door.name && /CFF/i.test(door.name));
@@ -9673,7 +9693,7 @@ function printOpUpdatesWalkSheet() {
     })
     .map(door => {
       const t = state.trailers[door.id];
-      const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier));
+      const occupied = !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier, t.type));
       if (!occupied) {
         return { door: door.num, carrier: 'Empty', sub: '', note: '', remaining: '', bfRemaining: '' };
       }
@@ -9817,7 +9837,7 @@ function updateOpUpdatesTotal() {
   const bfTotalCell = document.getElementById('opu-total-bf-remaining');
   if (!totalCell) return;
   const doorList = getOpUpdatesDoorList()
-    .filter(d => state.trailers[d.id] && state.trailers[d.id].carrier && !isExcludedFromOpUpdates(state.trailers[d.id].carrier));
+    .filter(d => state.trailers[d.id] && state.trailers[d.id].carrier && !isExcludedFromOpUpdates(state.trailers[d.id].carrier, state.trailers[d.id].type));
   const pendingRows = getPendingExpectedOpRows();
   let total = doorList.reduce((sum, door) => sum + linesRemainingForTrailer(state.trailers[door.id]), 0);
   let bfTotal = doorList.reduce((sum, door) => sum + bfSkidsRemainingForTrailer(state.trailers[door.id]), 0);
