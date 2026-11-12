@@ -1766,8 +1766,9 @@
             <col style="width:3%"><!-- drag handle -->
             <col style="width:11%"><!-- Carrier -->
             <col style="width:8%"><!-- Default Expected Trailers -->
-            <col style="width:8%"><!-- Lines/Trlr (manual) -->
-            <col style="width:8%"><!-- BF Skids (manual) -->
+            <col style="width:6%"><!-- Skip Load to Expected -->
+            <col style="width:7%"><!-- Lines/Trlr (manual) -->
+            <col style="width:7%"><!-- BF Skids (manual) -->
             <col style="width:4%;background:#d4eee2;"><!-- divider -->
             <col style="width:8%"><!-- Avg Lines (avg) -->
             <col style="width:8%"><!-- BF Skids (avg) -->
@@ -1784,6 +1785,7 @@
               <th rowspan="2" style="background:#bfbfbf;"></th>
               <th rowspan="2" style="font-size:10px;white-space:nowrap;vertical-align:middle;">Carrier</th>
               <th rowspan="2" style="text-align:center;font-size:10px;white-space:nowrap;vertical-align:middle;" title="Expected trailer count used whenever this carrier is active per its Active Days schedule below">Default Expected Trailers</th>
+              <th rowspan="2" style="text-align:center;font-size:10px;vertical-align:middle;line-height:1.15;" title="Tick to leave this carrier out when you press Load to Expected on the Forecast tab. Trailers already in Expected Trailers are not touched.">Skip Load to Expected</th>
               <th colspan="2" style="text-align:center;font-size:10px;border-bottom:1px solid #27b589;padding-bottom:3px;">
                 <span style="color:var(--yellow);">MANUAL</span>
                 <span id="assump-manual-badge" style="display:none;font-size:9px;font-weight:700;background:#27b589;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;">ACTIVE</span>
@@ -8874,6 +8876,21 @@ const DEFAULT_FC_CARRIERS = [
 const ALWAYS_ACTIVE = new Set(['Carryover', 'UU SORT', 'LTL', 'Supplier Loads']);
 // Carriers excluded from Expected Trailers sidebar
 const EXCLUDE_FROM_EXPECTED = new Set(['UU SORT', 'LTL', 'Carryover', 'Supplier Loads']);
+// Carriers Load to Expected leaves out: the fixed list above, plus any carrier ticked "Skip Load to Expected"
+// on the Assumptions tab (saved in the shared settings, so every screen follows it).
+function carrierExcludedFromExpected(name) {
+  if (EXCLUDE_FROM_EXPECTED.has(name)) return true;
+  const ov = (state.settings.carrierAssumptions || {})[name];
+  return !!(ov && ov.excludeFromExpected);
+}
+function updateCarrierExcludeFromExpected(name, checked) {
+  if (!state.settings.carrierAssumptions) state.settings.carrierAssumptions = {};
+  if (!state.settings.carrierAssumptions[name]) state.settings.carrierAssumptions[name] = {};
+  state.settings.carrierAssumptions[name].excludeFromExpected = !!checked;
+  saveState();
+  saveSettingsToFirebase();
+  toast(checked ? `${name} will be skipped by Load to Expected` : `${name} will be included in Load to Expected`);
+}
 
 const DEFAULT_FC_SCHEDULE = [
   {name:'TForce',                 mon:true,  tue:true,  wed:true,  thu:true,  fri:true},
@@ -10225,6 +10242,9 @@ function renderAssumptionsTab() {
           onchange="saveAssumptions()">
       </td>
       <td style="text-align:center;padding:3px 4px;">
+        <input type="checkbox" ${carrierExcludedFromExpected(def.name) ? 'checked' : ''} ${EXCLUDE_FROM_EXPECTED.has(def.name) ? 'disabled title="Always left out of Load to Expected"' : 'title="Leave this carrier out of Load to Expected"'} onchange="updateCarrierExcludeFromExpected('${escName}', this.checked)" style="width:15px;height:15px;cursor:pointer;">
+      </td>
+      <td style="text-align:center;padding:3px 4px;">
         <input type="number" min="0" value="${lpt}" data-carrier="${def.name}" data-field="linesPerTrailer" data-table="manual"
           style="width:100%;padding:3px 4px;border:1px solid #c8ddd4;border-radius:5px;font-size:12px;font-weight:700;color:#1a4731;text-align:center;outline:none;"
           onchange="saveAssumptions()">
@@ -10284,6 +10304,7 @@ function saveAssumptions() {
   const defaultExpTrailers = state.settings.carrierDefaultExpTrailers || {};
 
   document.querySelectorAll('#assump-unified-tbody input').forEach(inp => {
+    if (inp.type === 'checkbox') return;
     const carrier = inp.dataset.carrier;
     const field   = inp.dataset.field;
     const tbl     = inp.dataset.table;
@@ -10498,7 +10519,7 @@ function syncForecastToLTL(fd, dateKey) {
   const arrivedCounts = getTodayArrivedCounts();
   if (!fd.ltl) fd.ltl = [];
   fd.carriers.forEach(c => {
-    if (EXCLUDE_FROM_EXPECTED.has(c.name)) return;
+    if (carrierExcludedFromExpected(c.name)) return;
     const schedTrailers = (!ALWAYS_ACTIVE.has(c.name) && isWeekday && !scheduledForDay.has(c.name)) ? 0 : (c.expTrailers||0);
     const adjTrailers = schedTrailers + (c.trailerAdj||0);
     // Rolled-over rows (leftover from a prior day, never slotted or marked DNR)
