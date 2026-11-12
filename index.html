@@ -1387,6 +1387,7 @@
     <div class="home-main">
       <div class="flex-row" id="doors-toolbar-row" style="margin-bottom:10px;">
         <button class="btn btn-hook" onclick="sendCFFYardStorageUpdate()" style="font-size:13px;padding:0 8px;min-width:160px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;">CFF Yard Storage Update</button>
+        <button class="btn btn-hook" onclick="sendDornAdpEmail()" title="Opens an Outlook message for the Dohrn and A. Duie Pyle freight bill return shipping approval, with today's date filled in" style="font-size:13px;padding:0 8px;min-width:150px;height:38px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;">✉ Dohrn | ADP-C</button>
         <div id="doors-trailer-search-wrap" class="quick-trailer-search-wrap" style="position:relative;">
           <input type="text" autocomplete="off" id="doors-trailer-search" placeholder="Quick Trailer # search" oninput="renderDoorsTrailerSearch()" onkeydown="if(event.key==='Escape'){this.value='';renderDoorsTrailerSearch();this.blur();}" style="width:210px;height:38px;box-sizing:border-box;background:#f5faf7;border:1px solid #b0d4c0;border-radius:6px;padding:0 10px;color:#1a4731;font-size:13px;font-weight:600;outline:none;box-shadow:inset 0 2px 3px rgba(0,0,0,0.06);">
           <div class="quick-trailer-tooltip">Searches last 4 weeks</div>
@@ -2493,12 +2494,18 @@
 <div class="modal-overlay" id="modal-email-templates">
   <div class="modal" style="max-width:820px;max-height:90vh;overflow-y:auto;">
     <h2>✉ Email Templates</h2>
-    <p style="font-size:12px;color:#000;margin-bottom:8px;">The Email button on a door tile saves an unsent draft you open in Outlook. Separate addresses with a semicolon, like <b>Name &lt;name@company.com&gt;; other@company.com</b>. In the message you can use <b>{door}</b> (door number), <b>{carrier}</b>, <b>{trailer}</b> (trailer number), <b>{date}</b> and <b>{greeting}</b> (Good morning / Good afternoon). Anything you leave blank stays blank in the draft.</p>
+    <p style="font-size:12px;color:#000;margin-bottom:8px;">The Email button on a door tile saves an unsent draft you open in Outlook. Separate addresses with a semicolon, like <b>Name &lt;name@company.com&gt;; other@company.com</b>. In the message you can use <b>{door}</b> (door number), <b>{carrier}</b>, <b>{trailer}</b> (trailer number), <b>{date}</b> (Monday, November 9), <b>{todays date}</b> (Monday 11/9/26), <b>{day of the week}</b> (Monday), <b>{short date}</b> (11/9/26) and <b>{greeting}</b> (Good morning / Good afternoon). Anything you leave blank stays blank in the draft. For formatting, put <b>**two stars**</b> around text to make it bold and <b>==two equals==</b> around text to highlight it yellow (use <b>==**both**==</b> for bold and yellow). Outlook's pop-up can only carry plain text, so a formatted message either opens as plain text with the formatted copy waiting on your clipboard to paste, or as a draft file (pick which under "Emails with bold / highlighting").</p>
     <div style="border:1px solid #c8ddd4;border-radius:8px;padding:10px;margin-bottom:12px;background:#f7fbf9;">
       <label style="font-size:11px;font-weight:700;color:#4a6a5a;">WHEN YOU CLICK EMAIL</label>
       <select id="email-method" style="width:100%;padding:7px 9px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;margin-bottom:8px;">
         <option value="popup">Pop open a new message in Outlook (plain text, sends from Outlook's default account)</option>
         <option value="file">Save a draft file to open in Outlook (can set the From address)</option>
+      </select>
+      <label style="font-size:11px;font-weight:700;color:#4a6a5a;">EMAILS WITH BOLD / HIGHLIGHTING</label>
+      <select id="email-formatted-method" style="width:100%;padding:7px 9px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;margin-bottom:8px;">
+        <option value="paste">Pop open Outlook with the plain text, and copy the formatted version to paste (Ctrl+A, Ctrl+V)</option>
+        <option value="file">Save a draft file that opens already formatted</option>
+        <option value="plain">Just pop open Outlook with the plain text (no bold or highlighting, nothing to paste)</option>
       </select>
       <label style="font-size:11px;font-weight:700;color:#4a6a5a;">FROM (draft file method only)</label>
       <input type="text" id="email-from" style="width:100%;padding:7px 9px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;outline:none;font-family:inherit;">
@@ -7749,15 +7756,28 @@ const EMAIL_TEMPLATES_DEFAULT = {
     cc: 'Pick Ups <pickups@rivercitysolutions.com>; AUR Facilities Support (Formerly AUR Branch Support) <AURFacilitiesSupport@mcmaster.com>; Samantha Hardman <RCSolutions@rivercitywood.com>; AUR Rack Supply Management <aur.racksupplymanagement@mcmaster.com>; Mike Reed <mike.reed@mcmaster.com>',
     subject: 'Mcmaster-Carr Skid Trailer Swap',
     body: '{greeting}.\nCan you please send an empty trailer to the 200 location? We have full trailer {trailer} on site.\nThank you,\n\nMcMaster-Carr Supply Co.'
+  },
+  dorn_adp: {
+    label: 'Dohrn | ADP-C',
+    to: 'Aurora House Buy <aurorahousebuy@mcmaster.com>; AUR Additional Handling <auradditionalhandling@mcmaster.com>; AUR Rack Supply Management <aur.racksupplymanagement@mcmaster.com>',
+    cc: '',
+    noFrom: true,   // goes out from Outlook's default account, not the shared receiving address
+    subject: 'RE:  House Buy for Mailing ADP and Dohrn Bills',
+    body: '**For {day of the week} {short date} I approve shipping charges only for A Duie and Dohrn**\n\n\n==**Shipping charges for carrier bill return**==\n\nReturning Freight Bills to A. Duie Pyle per Corporate Transportation\nPer Corporate Transportation these should ship **FedEx Express Standard Overnight**\n\n05-4230-6300-10\n\nA. Duie Pyle\n650 Westtown Road\nWest Chester, PA 19381\n\n\n==**Shipping charges for carrier bill return**==\n\nReturning Freight Bills to Dohrn per Corporate Transportation\nPer Corporate Transportation these should ship **FedEx Express Standard Overnight**\n\n05-4230-6300-10\n\nDohrn\n165 W Lake St\nNorthlake IL 60164'
   }
 };
 
+// Earlier defaults of the Dohrn | ADP-C template. A screen that saved one of these unchanged picks up the current default.
+const EMAIL_DORN_OLD_TO = 'John Port <john.port@mcmaster.com>; Aurora House Buy <aurorahousebuy@mcmaster.com>; AUR Additional Handling <auradditionalhandling@mcmaster.com>; Tariq Rasul <tariq.rasul@mcmaster.com>';
+const EMAIL_DORN_OLD_BODIES = ['For {todays date} I approve shipping charges only for A Duie and Dohrn\n\nDan Henderson\n\nShipping charges for carrier bill return\n\nReturning Freight Bills to A. Duie Pyle per Corporate Transportation\nPer Corporate Transportation these should ship FedEx Express Standard Overnight\n\n05-4230-6300-10\n\nA. Duie Pyle\n650 Westtown Road\nWest Chester, PA 19381\n\n\nShipping charges for carrier bill return\n\nReturning Freight Bills to Dohrn per Corporate Transportation\nPer Corporate Transportation these should ship FedEx Express Standard Overnight\n\n05-4230-6300-10\n\nDohrn\n165 W Lake St\nNorthlake IL 60164', 'For {todays date} I approve shipping charges only for A Duie and Dohrn\n\n\nShipping charges for carrier bill return\n\nReturning Freight Bills to A. Duie Pyle per Corporate Transportation\nPer Corporate Transportation these should ship FedEx Express Standard Overnight\n\n05-4230-6300-10\n\nA. Duie Pyle\n650 Westtown Road\nWest Chester, PA 19381\n\n\nShipping charges for carrier bill return\n\nReturning Freight Bills to Dohrn per Corporate Transportation\nPer Corporate Transportation these should ship FedEx Express Standard Overnight\n\n05-4230-6300-10\n\nDohrn\n165 W Lake St\nNorthlake IL 60164', 'For {day of the week} {short date} I approve shipping charges only for A Duie and Dohrn\n\n\nShipping charges for carrier bill return\n\nReturning Freight Bills to A. Duie Pyle per Corporate Transportation\nPer Corporate Transportation these should ship FedEx Express Standard Overnight\n\n05-4230-6300-10\n\nA. Duie Pyle\n650 Westtown Road\nWest Chester, PA 19381\n\n\nShipping charges for carrier bill return\n\nReturning Freight Bills to Dohrn per Corporate Transportation\nPer Corporate Transportation these should ship FedEx Express Standard Overnight\n\n05-4230-6300-10\n\nDohrn\n165 W Lake St\nNorthlake IL 60164'];
 const EMAIL_SWAP_BODY_BLANK_TRAILER = '{greeting}.\nCan you please send an empty trailer to the 200 location? We have full trailer  on site.\nThank you,\n\nMcMaster-Carr Supply Co.';
 function getEmailTemplate(id) {
   const base = EMAIL_TEMPLATES_DEFAULT[id];
   if (!base) return null;
   const saved = Object.assign({}, (state.settings.emailTemplates || {})[id] || {});
-  if (id === 'swap' && saved.body === EMAIL_SWAP_BODY_BLANK_TRAILER) delete saved.body;   // earlier default had the trailer number left blank
+  if (id === 'swap' && saved.body === EMAIL_SWAP_BODY_BLANK_TRAILER) delete saved.body;
+  if (id === 'dorn_adp' && EMAIL_DORN_OLD_BODIES.includes(saved.body)) delete saved.body;
+  if (id === 'dorn_adp' && saved.to === EMAIL_DORN_OLD_TO) delete saved.to;   // earlier default had the trailer number left blank
   return Object.assign({}, base, saved, { label: base.label });
 }
 // Which template a carrier's tiles get. A choice on the Carriers tab wins ("" = none);
@@ -7785,6 +7805,10 @@ function parseEmailList(str) {
   });
   return out;
 }
+// **bold** and ==highlight== in a template need an HTML message, which only the draft file can carry.
+function emailHasFormatting(text) { return /\*\*[^*\n]+\*\*|==[^=\n]+==/.test(String(text || '')); }
+// The same text with the formatting marks taken out (plain-text messages).
+function emailStripFormatting(text) { return String(text || '').replace(/\*\*([^*\n]+)\*\*/g, '$1').replace(/==([^=\n]+)==/g, '$1'); }
 const emlEncodeWord = str => /^[\x20-\x7e]*$/.test(str) ? str : '=?UTF-8?B?' + btoa(unescape(encodeURIComponent(str))) + '?=';
 function emlAddrHeader(list) {
   return list.map(a => a.name ? `"${emlEncodeWord(a.name).replace(/(["\\])/g, '\\$1')}" <${a.addr}>` : a.addr).join(',\r\n ');
@@ -7794,8 +7818,10 @@ function emlBase64(str) {
   return b64.replace(/(.{76})/g, '$1\r\n');
 }
 function emailHtmlFromText(text, vars) {
-  const filled = String(text || '').replace(/\{(door|carrier|trailer|date|greeting)\}/g, (_, k) => k === 'trailer' ? (vars.trailer ? '\u0001' + vars.trailer + '\u0002' : '') : (vars[k] == null ? '' : vars[k]));
-  const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\u0001/g, '<b>').replace(/\u0002/g, '</b>');
+  const filled = String(text || '').replace(/\{(door|carrier|trailer|date|todays date|day of the week|short date|greeting)\}/g, (_, k) => k === 'trailer' ? (vars.trailer ? '\u0001' + vars.trailer + '\u0002' : '') : (vars[k] == null ? '' : vars[k]));
+  const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\u0001/g, '<b>').replace(/\u0002/g, '</b>')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/==(.+?)==/g, '<span style="background:yellow;mso-highlight:yellow;">$1</span>');
   const lines = filled.replace(/\r/g, '').split('\n');
   const html = lines.map(l => {
     const body = esc(l).replace(/ {2,}/g, m => ' ' + '&nbsp;'.repeat(m.length - 1));
@@ -7805,7 +7831,7 @@ function emailHtmlFromText(text, vars) {
 }
 function emailFromList() { return parseEmailList(state.settings.emailFrom !== undefined ? state.settings.emailFrom : EMAIL_FROM_DEFAULT); }
 function buildEmailEml(tpl, vars) {
-  const to = parseEmailList(tpl.to), cc = parseEmailList(tpl.cc), from = emailFromList();
+  const to = parseEmailList(tpl.to), cc = parseEmailList(tpl.cc), from = tpl.noFrom ? [] : emailFromList();
   const headers = ['X-Unsent: 1'];
   if (from.length) headers.push('From: ' + emlAddrHeader(from.slice(0, 1)));
   if (to.length) headers.push('To: ' + emlAddrHeader(to));
@@ -7815,7 +7841,7 @@ function buildEmailEml(tpl, vars) {
   return headers.join('\r\n') + '\r\n\r\n' + emlBase64(emailHtmlFromText(tpl.body, vars)) + '\r\n';
 }
 function emailFill(text, vars) {
-  return String(text || '').replace(/\{(door|carrier|trailer|date|greeting)\}/g, (_, k) => vars[k] == null ? '' : vars[k]);
+  return String(text || '').replace(/\{(door|carrier|trailer|date|todays date|day of the week|short date|greeting)\}/g, (_, k) => vars[k] == null ? '' : vars[k]);
 }
 
 // Pop-up method: a mailto link, which opens a new message window in whatever mail
@@ -7828,8 +7854,26 @@ function buildMailtoUrl(tpl, vars) {
   const cc = addrs(tpl.cc);
   if (cc) params.push('cc=' + encodeURIComponent(cc).replace(/%3B/gi, ';'));
   params.push('subject=' + encodeURIComponent(emailFill(tpl.subject, vars)));
-  params.push('body=' + encodeURIComponent(emailFill(tpl.body, vars).replace(/\r/g, '').replace(/\n/g, '\r\n')));
+  params.push('body=' + encodeURIComponent(emailFill(emailStripFormatting(tpl.body), vars).replace(/\r/g, '').replace(/\n/g, '\r\n')));
   return 'mailto:' + addrs(tpl.to) + '?' + params.join('&');
+}
+
+function emailBaseVars() {
+  const now = new Date();
+  return {
+    door: '', carrier: '', trailer: '',
+    date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+    'day of the week': now.toLocaleDateString('en-US', { weekday: 'long' }),                                   // Tuesday
+    'short date': (now.getMonth() + 1) + '/' + now.getDate() + '/' + String(now.getFullYear()).slice(2),     // 4/14/26
+    'todays date': now.toLocaleDateString('en-US', { weekday: 'long' }) + ' ' + (now.getMonth() + 1) + '/' + now.getDate() + '/' + String(now.getFullYear()).slice(2),   // Tuesday 4/14/26
+    greeting: now.getHours() < 12 ? 'Good morning' : 'Good afternoon'
+  };
+}
+// Toolbar button: Dohrn | ADP-C freight bill return approval
+function sendDornAdpEmail() {
+  const tpl = getEmailTemplate('dorn_adp');
+  if (!tpl) return;
+  launchEmailDraft(tpl, emailBaseVars(), '');
 }
 
 function downloadEmailDraft(doorId) {
@@ -7839,21 +7883,53 @@ function downloadEmailDraft(doorId) {
   const id = getEmailTemplateId(t.carrier);
   const tpl = id && getEmailTemplate(id);
   if (!tpl) { toast('No email template for this carrier', 'error'); return; }
-  const now = new Date();
-  const vars = {
-    door: door ? door.num : '',
-    carrier: t.carrier || '',
-    trailer: t.trailerNum || '',
-    date: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-    greeting: now.getHours() < 12 ? 'Good morning' : 'Good afternoon'
-  };
-  if ((state.settings.emailMethod || 'popup') === 'popup') {
+  const vars = Object.assign(emailBaseVars(), { door: door ? door.num : '', carrier: t.carrier || '', trailer: t.trailerNum || '' });
+  launchEmailDraft(tpl, vars, door ? 'Door ' + door.num : '');
+}
+
+// Opens the message in Outlook (pop-up) or saves a draft file, per the Email Templates setting
+// Puts the formatted message on the clipboard (as rich text, with a plain-text copy) so it can be pasted into Outlook.
+async function copyFormattedToClipboard(html, plain) {
+  try {
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([plain], { type: 'text/plain' })
+      })]);
+      return true;
+    }
+  } catch (e) { /* fall through to the older way */ }
+  try {
+    const box = document.createElement('div');
+    box.contentEditable = 'true';
+    box.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    box.innerHTML = html.replace(/^[\s\S]*?<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '');
+    document.body.appendChild(box);
+    const range = document.createRange(); range.selectNodeContents(box);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    const ok = document.execCommand('copy');
+    sel.removeAllRanges(); box.remove();
+    return ok;
+  } catch (e) { return false; }
+}
+
+async function launchEmailDraft(tpl, vars, fileSuffix) {
+  const formatted = emailHasFormatting(tpl.body);
+  const fmtMethod = state.settings.emailFormattedMethod || 'paste';
+  const popup = (state.settings.emailMethod || 'popup') === 'popup' && (!formatted || fmtMethod === 'paste' || fmtMethod === 'plain');
+  if (popup) {
     const url = buildMailtoUrl(tpl, vars);
     if (url.length <= 1900) {
+      // A formatted message: the pop-up carries the plain text, and the formatted copy goes on the clipboard.
+      // (Copy first — once Outlook opens, this page loses focus and the browser won't allow the copy.)
+      let copied = false;
+      if (formatted && fmtMethod === 'paste') copied = await copyFormattedToClipboard(emailHtmlFromText(tpl.body, vars), emailFill(emailStripFormatting(tpl.body), vars));
       const link = document.createElement('a');
       link.href = url;
       document.body.appendChild(link); link.click(); link.remove();
-      toast('Opening Outlook…');
+      if (formatted && fmtMethod === 'paste' && copied) toast('Outlook is opening. For the bold/highlighted version: click in the message, press Ctrl+A, then Ctrl+V.', null, 12000);
+      else if (formatted && fmtMethod === 'paste') toast('Outlook is opening with the plain-text version (formatting could not be copied).', 'error', 6000);
+      else toast('Opening Outlook…');
       return;
     }
     toast('Message is too long for a pop-up — saving a draft file instead', 'error');
@@ -7863,7 +7939,7 @@ function downloadEmailDraft(doorId) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${tpl.label}${door ? ' - Door ' + String(door.num).replace(/[\\/:*?"<>|]/g, '') : ''}.eml`;
+  a.download = `${tpl.label.replace(/[\\/:*?"<>|]/g, '-')}${fileSuffix ? ' - ' + String(fileSuffix).replace(/[\\/:*?"<>|]/g, '') : ''}.eml`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   toast('Draft saved — open it to review and send ✓');
@@ -7872,6 +7948,7 @@ function downloadEmailDraft(doorId) {
 // ---- template editor (Carriers tab > Email Templates) ----
 function openEmailTemplatesModal() {
   document.getElementById('email-method').value = state.settings.emailMethod || 'popup';
+  document.getElementById('email-formatted-method').value = state.settings.emailFormattedMethod || 'paste';
   document.getElementById('email-from').value = state.settings.emailFrom !== undefined ? state.settings.emailFrom : EMAIL_FROM_DEFAULT;
   const box = document.getElementById('email-tpl-body');
   const inp = 'width:100%;padding:7px 9px;border:1px solid #c8ddd4;border-radius:6px;font-size:13px;color:#000;outline:none;font-family:inherit;';
@@ -7908,6 +7985,7 @@ function saveEmailTemplates() {
   });
   state.settings.emailTemplates = out;
   state.settings.emailMethod = document.getElementById('email-method').value;
+  state.settings.emailFormattedMethod = document.getElementById('email-formatted-method').value;
   state.settings.emailFrom = document.getElementById('email-from').value.trim();
   saveState(); saveSettingsToFirebase();
   closeModal('modal-email-templates');
@@ -11132,12 +11210,13 @@ function showReleaseBanner(webhookPromise) {
     setTimeout(() => el.classList.remove('show'), 2500);
   }
 }
-function toast(msg, type) {
+function toast(msg, type, ms) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.style.background = type === 'error' ? 'var(--red)' : 'var(--teal)';
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2500);
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.remove('show'), ms || 2500);
 }
 function downloadCSV(filename, rows) {
   const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
