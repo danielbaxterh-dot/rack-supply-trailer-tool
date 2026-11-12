@@ -2219,7 +2219,6 @@
 <div id="tab-carriers" class="tab-content">
   <div class="flex-row" style="margin-bottom:14px;">
     <button class="btn btn-teal" onclick="openAddCarrierModal()">+ Add Carrier</button>
-    <button class="btn btn-blue" onclick="mergeDefaultCarriers()">↻ Sync Default List</button>
     <button class="btn btn-gray" onclick="openEmailTemplatesModal()">✉ Email Templates</button>
   </div>
   <div class="carriers-grid" id="carriers-grid"></div>
@@ -3041,7 +3040,7 @@ async function loadStateFromFirebase() {
               const match = state.carriers.find(c => c.id === oldCarrier.id || c.name === oldCarrier.name);
               if (match) {
                 match.logo = oldCarrier.logo;
-                await saveOneCarrierToFirebase(match.id);
+                await saveOneCarrierToFirebase(match.id, true);
                 console.log('[Firebase] Migrated logo for', match.name);
               }
             }
@@ -3058,15 +3057,15 @@ async function loadStateFromFirebase() {
         for (const d of carriersSnap.docs) {
           if (!isNaN(d.id)) await fb().deleteDoc(fb().doc(db, 'carriers', d.id));
         }
-        for (const carrier of state.carriers) await saveOneCarrierToFirebase(carrier.id);
+        for (const carrier of state.carriers) await saveOneCarrierToFirebase(carrier.id, true);
         console.log('[Firebase] Carrier migration complete');
       }
       // One-time rename: "Pitt Ohio" → "PITT"
       const pittCarrier = state.carriers.find(c => c.name === 'Pitt Ohio');
-      if (pittCarrier) { pittCarrier.name = 'PITT'; await saveOneCarrierToFirebase(pittCarrier.id); }
+      if (pittCarrier) { pittCarrier.name = 'PITT'; await saveOneCarrierToFirebase(pittCarrier.id, true); }
       // One-time rename: "Adui" → "A. Duie"
       const aduiCarrier = state.carriers.find(c => c.name === 'Adui');
-      if (aduiCarrier) { aduiCarrier.name = 'A. Duie'; await saveOneCarrierToFirebase(aduiCarrier.id); }
+      if (aduiCarrier) { aduiCarrier.name = 'A. Duie'; await saveOneCarrierToFirebase(aduiCarrier.id, true); }
       // Rename in any saved forecast records
       Object.values(state.forecast).forEach(fd => {
         (fd.carriers||[]).forEach(c => { if (c.name === 'Pitt Ohio') c.name = 'PITT'; if (c.name === 'Adui') c.name = 'A. Duie'; });
@@ -3074,20 +3073,9 @@ async function loadStateFromFirebase() {
         (fd.ltl||[]).forEach(r => { if (r.carrier === 'Pitt Ohio') r.carrier = 'PITT'; if (r.carrier === 'Adui') r.carrier = 'A. Duie'; });
       });
 
-      // Add any new default carriers that don't exist yet
-      const tmpDefs = state.carriers;
-      state.carriers = []; initDefaultCarriers();
-      const defs = state.carriers;
-      state.carriers = tmpDefs;
-      defs.forEach(def => {
-        if (!state.carriers.find(c => c.id === def.id)) {
-          state.carriers.push(def);
-          saveOneCarrierToFirebase(def.id);
-        }
-      });
+      // The database is the only source for carriers: whatever is added or removed on the Carriers tab is the list.
     } else {
-      initDefaultCarriers();
-      await saveCarriersToFirebase();
+      state.carriers = [];   // nothing in the database yet: start with no carriers (add them on the Carriers tab)
     }
 
     // SETTINGS
@@ -3159,7 +3147,6 @@ async function loadStateFromFirebase() {
     console.error('Firebase load error:', e);
     // Fallback to defaults
     initDefaultDoors();
-    initDefaultCarriers();
     _safeToSyncToFirebase = false;
     toast('Data failed to load correctly — changes will not be saved until you refresh', 'error');
     return; // don't mark sync-safe below, and don't set up the trailers listener on bad data
@@ -5354,8 +5341,11 @@ async function saveCarriersToFirebase() {
   await Promise.all(promises);
 }
 
-async function saveOneCarrierToFirebase(carrierId) {
-  if (!window._fbReady || !getDb() || !_safeToSyncToFirebase || window._sandboxMode) {
+// duringStartup: the start-up carrier check runs before the page marks itself "safe to save" (that flag is
+// what stops a half-loaded page from overwriting the database). The carrier list has already been read at that
+// point, so saving a carrier then is safe. It used to be refused, which showed the "Not connected" message.
+async function saveOneCarrierToFirebase(carrierId, duringStartup) {
+  if (!window._fbReady || !getDb() || (!_safeToSyncToFirebase && !duringStartup) || window._sandboxMode) {
     console.warn('Firebase not ready — cannot save carrier', carrierId);
     toast('Not connected to database — logo not saved', 'error');
     return;
@@ -5711,58 +5701,6 @@ async function saveDefaultLayout() {
   try { await fb().setDoc(fb().doc(getDb(), 'config', 'defaultDoors'), { list: state.doors }); } catch(e) { console.error(e); }
   toast('Layout saved as default ✓');
 }
-function initDefaultCarriers() {
-  state.carriers = [
-    // DROP carriers
-    {id:'tforce',      name:'TForce',       type:'DROP'},
-    {id:'dohrn',       name:'Dohrn',        type:'DROP'},
-    {id:'pitt',        name:'PITT',    type:'DROP'},
-    {id:'adp_craig',   name:'ADP Craig',    type:'DROP'},
-    {id:'adui',        name:'A. Duie',      type:'DROP'},
-    {id:'xpo',         name:'XPO',          type:'DROP'},
-    {id:'fedex',       name:'FEDEX',        type:'DROP'},
-    {id:'ward',        name:'Ward',         type:'DROP'},
-    {id:'estes',       name:'ESTES',        type:'DROP'},
-    {id:'odfl',        name:'ODFL',         type:'DROP'},
-    {id:'dayton',      name:'DAYTON',       type:'DROP'},
-    // LIVE carriers
-    {id:'central',     name:'Central',      type:'LIVE'},
-    {id:'rpl',         name:'R+L',          type:'LIVE'},
-    {id:'other',       name:'Other',        type:'LIVE'},
-    {id:'saia',        name:'Saia',         type:'LIVE'},
-    {id:'ch_robinson', name:'CH Robinson',  type:'LIVE'},
-    {id:'moran',       name:'Moran',        type:'LIVE'},
-    {id:'purolator',   name:'Purolator',    type:'LIVE'},
-    {id:'road_runner', name:'Road Runner',  type:'LIVE'},
-    // OTHER
-    {id:'shuttle',     name:'Shuttle',      type:'OTHER'},
-    {id:'junk_skids',  name:'Junk Skids',   type:'OTHER'},
-    {id:'good_skids',  name:'Good Skids',   type:'OTHER'},
-    {id:'bin_freight', name:'Bin Freight',  type:'OTHER'},
-    {id:'discard',     name:'Discard',      type:'OTHER'},
-  ];
-}
-
-// Merge default carriers into existing state — adds missing ones, preserves logos/existing data
-function mergeDefaultCarriers() {
-  const tmp = state.carriers;
-  state.carriers = [];
-  initDefaultCarriers();
-  const fresh = state.carriers;
-  state.carriers = tmp;
-  const newOnes = [];
-  fresh.forEach(def => {
-    if (!state.carriers.find(c => c.id === def.id)) {
-      state.carriers.push(def);
-      newOnes.push(def.id);
-    }
-  });
-  // Save new carriers to Firebase individually
-  newOnes.forEach(id => saveOneCarrierToFirebase(id));
-  renderCarriers();
-  toast(`Carrier list updated ✓ (${newOnes.length} added)`);
-}
-
 // ===================== CLOCK =====================
 function updateClock() {
   const now = new Date();
@@ -11153,7 +11091,6 @@ async function resetAll() {
   localStorage.removeItem('dockManagerState');
   state = { doors:[], carriers:[], trailers:{}, history:[], forecast:{}, settings:{doorWidth:270,doorNum:30,carrierFont:18,doorHeight:120,sidebar:320,tableFont:12,columns:6,cardGap:10,rows:8,slackReleaseEnabled:true}, completedToday:[] };
   state.doors = await loadDefaultDoorsLayout();
-  initDefaultCarriers();
   saveState(); renderDoors(); toast('All data reset');
 }
 function exportAllData() {
@@ -12311,7 +12248,6 @@ setTimeout(() => {
     } catch(e) {}
     // If no cached data was found (first-ever load while offline), fall back to factory defaults
     if (!state.doors.length) initDefaultDoors();
-    if (!state.carriers.length) initDefaultCarriers();
     if (!state.forecast[todayStr()]) {
       state.forecast[todayStr()] = {
         carriers: JSON.parse(JSON.stringify(DEFAULT_FC_CARRIERS)),
