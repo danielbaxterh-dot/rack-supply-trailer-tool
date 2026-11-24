@@ -1499,7 +1499,7 @@
         <div class="sidebar-panel-body">
           <table class="sidebar-table" id="future-deliveries-table">
             <thead><tr>
-              <th>Date</th><th>Carrier</th><th>Time</th><th>Trailer #</th><th>Notes</th><th></th>
+              <th>Date</th><th>Carrier</th><th>Time</th><th>Trailer #</th><th>Notes</th>
             </tr></thead>
             <tbody id="future-deliveries-tbody"></tbody>
           </table>
@@ -1684,9 +1684,10 @@
           <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
           <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
             <thead><tr>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
-              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Added By</th>
               <th style="padding:6px 4px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);border-bottom:2px solid #27b589;"></th>
@@ -1702,6 +1703,7 @@
           <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:280px;">
             <thead><tr>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Date</th>
+              <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Arrival Time</th>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Carrier</th>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Trailer #</th>
               <th style="text-align:left;padding:6px 8px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border-bottom:2px solid #27b589;">Notes</th>
@@ -2296,6 +2298,7 @@
           <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Released by Carrier</th>
           <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Avg Dwell by Carrier</th>
           <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Released Share Pie</th>
+          <th style="text-align:center;padding:8px 6px;background:linear-gradient(180deg, #3a7a5a 0%, #2a6045 60%, #1a4731 100%);color:#000;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Trailers Received Table</th>
         </tr></thead>
         <tbody id="dash-carrier-filter-tbody"></tbody>
       </table>
@@ -2555,6 +2558,13 @@
         Reset Age button in the double-click window
       </label>
       <div style="font-size:11px;color:#4a6a5a;margin-top:4px;">Saves the load to history and restarts the age. The trailer stays on the door. (Save &amp; Reset puts the button on the tile instead.)</div>
+    </div>
+    <div class="form-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="new-carrier-hide-opu" style="width:16px;height:16px;cursor:pointer;">
+        Hide in Operational Updates table
+      </label>
+      <div style="font-size:11px;color:#4a6a5a;margin-top:4px;">Leaves this carrier's trailers off the Operational Updates table and the walk sheet.</div>
     </div>
     <div class="form-row">
       <label>Email draft button</label>
@@ -3401,7 +3411,7 @@ function isCarrierIncludedInTable(tableKey, carrierName) {
   return true;
 }
 
-const DASH_CARRIER_FILTER_TABLES = ['secured', 'released', 'dwell', 'pie'];
+const DASH_CARRIER_FILTER_TABLES = ['secured', 'released', 'dwell', 'pie', 'received'];
 
 function openDashSettingsModal() {
   renderDashCarrierFilters();
@@ -3868,6 +3878,22 @@ const DASHBOARD_TILE_REGISTRY = {
     title: 'Trailers Not Received', defaultW: 8, defaultH: 6, stat: true,
     bodyHTML: `<div class="dash-stat-val" id="dash-stat-dnr" style="color:#c0392b;">0</div>`
   },
+  'received-table': {
+    title: 'Trailers Received -- Live / Drop', defaultW: 24, defaultH: 14,
+    bodyHTML: `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+        <button class="btn btn-gray btn-sm" onclick="toggleRecvCarrierPanel()" title="Choose which carriers are counted in this table">Carriers &#9662;</button>
+        <span id="recv-carrier-summary" style="font-size:11px;color:#4a6a5a;font-weight:600;"></span>
+        <button class="btn btn-teal btn-sm" onclick="exportReceivedExcel()" style="margin-left:auto;color:#000;" title="Download this table (and the list of trailers behind it) as an Excel file">Export Excel</button>
+      </div>
+      <div id="recv-carrier-panel" style="display:none;border:1px solid #c8ddd4;border-radius:8px;background:#f7fbf9;padding:8px;margin-bottom:8px;max-height:190px;overflow-y:auto;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <button class="btn btn-gray btn-sm" onclick="recvSetAllCarriers(true)">Select all</button>
+          <button class="btn btn-gray btn-sm" onclick="recvSetAllCarriers(false)">Select none</button>
+        </div>
+        <div id="recv-carrier-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px;"></div>
+      </div>
+      <div id="dash-received-table"></div>`
+  },
   'binfreight-stats': {
     title: 'Bin Freight', defaultW: 10, defaultH: 7,
     bodyHTML: `<div style="display:flex;gap:10px;height:100%;">
@@ -4301,6 +4327,121 @@ async function renderDashboard() {
     }).join('');
   }
   window._dashLastData = { dateKey, releasedList };
+  try { renderReceivedTable(dateKey); } catch (e) { console.error('Received table failed', e); }
+}
+
+// ===================== TRAILERS RECEIVED TABLE (dashboard tile) =====================
+// How many trailers were received on the selected day, Live vs Drop, per carrier. "Received" is the first moment
+// a trailer was logged in: the yard Received time if it went to a yard door first, otherwise when it was secured
+// on a door (older records fall back to arrival). That matches how Secured/Released are dated elsewhere on the
+// dashboard. Trailers still on a door count too. "Did not receive" records and releases that never had a Secured
+// press (no time to date them by) are left out. Which carriers count is the "received" column of the shared
+// Dashboard Carrier Filters, so it follows you to every screen.
+function dashReceivedTime(r) {
+  return r.received || r.receivedAt || dashSecuredTime(r);
+}
+function dashTrailerTypeLabel(r) {
+  const t = String(r.type || '').toUpperCase();
+  if (t === 'LIVE') return 'Live';
+  if (t === 'DROP') return 'Drop';
+  const c = state.carriers.find(c => c.name === r.carrier);
+  if (c && c.type === 'LIVE') return 'Live';
+  if (c && c.type === 'DROP') return 'Drop';
+  return 'Other';
+}
+function getReceivedData(dateKey) {
+  const all = [];
+  state.history.forEach(r => { if (!r.didNotReceive) all.push(r); });
+  Object.entries(state.trailers).forEach(([doorId, t]) => {
+    const door = state.doors.find(d => d.id === doorId);
+    all.push({ ...t, doorId, door: door ? door.num : doorId });
+  });
+  const day = all.filter(r => r.carrier && dashDateKey(dashReceivedTime(r)) === dateKey);
+  const carriers = [...new Set([...state.carriers.map(c => c.name), ...day.map(r => r.carrier)])].sort((a, b) => a.localeCompare(b));
+  const included = day.filter(r => isCarrierIncludedInTable('received', r.carrier));
+  included.sort((a, b) => new Date(dashReceivedTime(a)) - new Date(dashReceivedTime(b)));
+  const by = {};
+  included.forEach(r => {
+    const e = by[r.carrier] || (by[r.carrier] = { carrier: r.carrier, Live: 0, Drop: 0, Other: 0, total: 0 });
+    e[dashTrailerTypeLabel(r)]++; e.total++;
+  });
+  const rows = Object.values(by).sort((a, b) => a.carrier.localeCompare(b.carrier));
+  const totals = { Live: 0, Drop: 0, Other: 0, total: 0 };
+  rows.forEach(e => { totals.Live += e.Live; totals.Drop += e.Drop; totals.Other += e.Other; totals.total += e.total; });
+  return { dateKey, rows, totals, detail: included, carriers };
+}
+function renderReceivedTable(dateKey) {
+  const host = document.getElementById('dash-received-table');
+  if (!host) return;   // the tile isn't on the dashboard
+  const d = getReceivedData(dateKey);
+  window._recvLast = d;
+  const list = document.getElementById('recv-carrier-list');
+  if (list) {
+    list.innerHTML = d.carriers.map(n => `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
+      <input type="checkbox" data-carrier="${escHtml(n)}" ${isCarrierIncludedInTable('received', n) ? 'checked' : ''} onchange="toggleRecvCarrier(this.dataset.carrier, this.checked)" style="width:14px;height:14px;cursor:pointer;">${escHtml(n)}</label>`).join('');
+  }
+  const picked = d.carriers.filter(n => isCarrierIncludedInTable('received', n)).length;
+  const sum = document.getElementById('recv-carrier-summary');
+  if (sum) sum.textContent = picked === d.carriers.length ? `All ${picked} carriers` : `${picked} of ${d.carriers.length} carriers`;
+  const showOther = d.totals.Other > 0;
+  const th = 'padding:5px 8px;text-align:center;font-size:11px;font-weight:700;color:#000;background:#dfeee6;border-bottom:1px solid #b0d4c0;';
+  const td = 'padding:5px 8px;text-align:center;font-size:13px;color:#000;border-bottom:1px solid #eef3f0;';
+  if (!d.rows.length) {
+    host.innerHTML = `<div class="empty-state" style="padding:14px;">No trailers received on this day for the selected carriers.</div>`;
+    return;
+  }
+  host.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+    <thead><tr><th style="${th}text-align:left;">Carrier</th><th style="${th}">Live</th><th style="${th}">Drop</th>${showOther ? `<th style="${th}">Other</th>` : ''}<th style="${th}">Total</th></tr></thead>
+    <tbody>${d.rows.map(e => `<tr><td style="${td}text-align:left;font-weight:700;">${escHtml(e.carrier)}</td><td style="${td}">${e.Live || '-'}</td><td style="${td}">${e.Drop || '-'}</td>${showOther ? `<td style="${td}">${e.Other || '-'}</td>` : ''}<td style="${td}font-weight:700;">${e.total}</td></tr>`).join('')}
+      <tr><td style="${td}text-align:left;font-weight:800;background:#f3f8f5;">Total</td><td style="${td}font-weight:800;background:#f3f8f5;">${d.totals.Live}</td><td style="${td}font-weight:800;background:#f3f8f5;">${d.totals.Drop}</td>${showOther ? `<td style="${td}font-weight:800;background:#f3f8f5;">${d.totals.Other}</td>` : ''}<td style="${td}font-weight:800;background:#f3f8f5;">${d.totals.total}</td></tr>
+    </tbody></table>`;
+}
+function toggleRecvCarrierPanel() {
+  const p = document.getElementById('recv-carrier-panel');
+  if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function toggleRecvCarrier(name, checked) { toggleDashCarrierFilter('received', name, checked); }
+function recvSetAllCarriers(on) {
+  const names = (window._recvLast && window._recvLast.carriers) || state.carriers.map(c => c.name);
+  if (!state.settings.dashboardCarrierFilters) state.settings.dashboardCarrierFilters = {};
+  if (!state.settings.dashboardCarrierFilters.received) state.settings.dashboardCarrierFilters.received = {};
+  names.forEach(n => { state.settings.dashboardCarrierFilters.received[n] = on; });
+  saveState();
+  saveSettingsToFirebase();
+  renderDashboard();
+}
+function exportReceivedExcel() {
+  const d = window._recvLast;
+  if (!d || !d.rows.length) { toast('Nothing to export', 'error'); return; }
+  const dayLabel = parseFlexDate(d.dateKey + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const showOther = d.totals.Other > 0;
+  const head = ['Carrier', 'Live', 'Drop'].concat(showOther ? ['Other'] : [], ['Total']);
+  const line = e => [e.carrier, e.Live, e.Drop].concat(showOther ? [e.Other] : [], [e.total]);
+  const summary = [['Trailers Received', dayLabel], [], head].concat(d.rows.map(line), [line({ carrier: 'Total', ...d.totals })]);
+  const fmt = v => { const x = parseFlexDate(v); return x ? x.toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''; };
+  const detail = [['Date', 'Carrier', 'Type', 'Trailer #', 'Door', 'Received', 'Secured', 'Released']].concat(d.detail.map(r => [
+    d.dateKey, r.carrier, dashTrailerTypeLabel(r), r.trailerNum || '', r.door || r.doorId || '',
+    fmt(dashReceivedTime(r)), fmt(r.secured || r.securedAt), fmt(r.released || r.completed)
+  ]));
+  const base = `trailers-received-${d.dateKey}`;
+  if (typeof XLSX === 'undefined') {   // the Excel library didn't load (no internet) -- fall back to CSV
+    const csv = summary.map(row => row.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = base + '.csv'; a.click();
+    URL.revokeObjectURL(url);
+    toast('Excel could not load, so this was saved as a CSV file (opens in Excel)', 'error', 5000);
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(summary);
+  ws1['!cols'] = [{ wch: 24 }, { wch: 8 }, { wch: 8 }].concat(showOther ? [{ wch: 8 }] : [], [{ wch: 8 }]);
+  const ws2 = XLSX.utils.aoa_to_sheet(detail);
+  ws2['!cols'] = [{ wch: 11 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 8 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Received');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Trailers');
+  XLSX.writeFile(wb, base + '.xlsx');
+  toast('Excel file downloaded');
 }
 
 function shiftDashDate(days) {
@@ -8594,6 +8735,7 @@ function renderCarriers() {
             <span class="badge ${typeColor}" style="font-size:10px;color:#000;">${typeLabel}</span>
             ${c.dualType ? `<span class="badge badge-purple" style="font-size:10px;color:#000;margin-left:4px;" title="Also shows up on the other type's dropdown when slotting a trailer">+ both</span>` : ''}
             <span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#e6eee9;border:1px solid #c8ddd4;" title="Door tile behavior — double-click the card to change">${tileBehaviorLabel(getTileBehavior(c.name))}</span>
+            ${c.hideInOpUpdates === true ? `<span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#f3e3e3;border:1px solid #e0c0c0;" title="Hidden on the Operational Updates table and walk sheet -- double-click the card to change">Hidden in Op Updates</span>` : ''}
             ${c.resetAgeBtn === true ? `<span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#e6eee9;border:1px solid #c8ddd4;" title="Reset Age button in the double-click window — double-click the card to change">+ Reset Age</span>` : ''}
             ${c.showAge === false ? `<span class="badge" style="font-size:10px;color:#000;margin-left:4px;background:#f3e3e3;border:1px solid #e0c0c0;" title="No age counter on the door tile — double-click the card to change">No age counter</span>` : ''}
           </div>
@@ -8631,6 +8773,10 @@ function renderCarriers() {
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
           <input type="checkbox" class="carrier-reset-age-chk" ${c.resetAgeBtn === true ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
           Reset Age button in double-click window
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#000;cursor:pointer;">
+          <input type="checkbox" class="carrier-hide-opu-chk" ${c.hideInOpUpdates === true ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
+          Hide in Operational Updates table
         </label>
         <div style="display:flex;flex-direction:column;gap:3px;">
           <span style="font-size:11px;font-weight:700;color:#4a6a5a;text-transform:uppercase;letter-spacing:0.4px;">Email draft button</span>
@@ -8680,6 +8826,7 @@ function saveCarrierEdit(id, btn) {
   const priorityBadge = card.querySelector('.carrier-priority-chk').checked;
   const emailTemplate = card.querySelector('.carrier-email-sel').value;
   const resetAgeBtn = card.querySelector('.carrier-reset-age-chk').checked;
+  const hideInOpUpdates = card.querySelector('.carrier-hide-opu-chk').checked;
   if (!name) { toast('Carrier name required', 'error'); return; }
   const c = state.carriers.find(c => c.id === id);
   if (!c) return;
@@ -8691,6 +8838,7 @@ function saveCarrierEdit(id, btn) {
   c.priorityBadge = priorityBadge;
   c.emailTemplate = emailTemplate;
   c.resetAgeBtn = resetAgeBtn;
+  c.hideInOpUpdates = hideInOpUpdates;
   saveOneCarrierToFirebase(id);
   // Door Status reads the flag from each trailer's saved record, so re-save this carrier's trailers now.
   Object.keys(state.trailers).forEach(doorId => { const t = state.trailers[doorId]; if (t && t.carrier === c.name) saveTrailerToFirebase(doorId); });
@@ -8757,6 +8905,7 @@ function openAddCarrierModal() {
   document.getElementById('new-carrier-show-age').checked = true;
   document.getElementById('new-carrier-email').value = '';
   document.getElementById('new-carrier-reset-age').checked = false;
+  document.getElementById('new-carrier-hide-opu').checked = false;
   document.getElementById('modal-add-carrier').classList.add('open');
 }
 function saveNewCarrier() {
@@ -8769,7 +8918,8 @@ function saveNewCarrier() {
   const priorityBadge = document.getElementById('new-carrier-priority').checked;
   const emailTemplate = document.getElementById('new-carrier-email').value;
   const resetAgeBtn = document.getElementById('new-carrier-reset-age').checked;
-  const newCarrier = { id, name, type, tileBehavior, showAge, priorityBadge, emailTemplate, resetAgeBtn };
+  const hideInOpUpdates = document.getElementById('new-carrier-hide-opu').checked;
+  const newCarrier = { id, name, type, tileBehavior, showAge, priorityBadge, emailTemplate, resetAgeBtn, hideInOpUpdates };
   state.carriers.push(newCarrier);
   closeModal('modal-add-carrier');
   saveOneCarrierToFirebase(id).then(() => {
@@ -9450,32 +9600,19 @@ function bfSkidsRemainingForTrailer(t) {
   return 0;
 }
 
+// Every carrier and trailer type shows on the Operational Updates table and the walk sheet, unless the carrier
+// is set to "Hide in Operational Updates table" on the Carriers tab.
+function carrierHiddenInOpUpdates(carrierName) {
+  const c = state.carriers.find(c => c.name === carrierName);
+  return !!(c && c.hideInOpUpdates === true);
+}
 function isExcludedFromOpUpdates(carrierName, trailerType) {
   if (!carrierName) return true;
-  if (carrierName === 'Bin Freight') return false;
-  const EXCLUDED_NAMES = new Set(['Junk Skids']);
-  if (EXCLUDED_NAMES.has(carrierName)) return true;
-  const carrierObj = state.carriers.find(c => c.name === carrierName);
-  if (carrierObj && carrierObj.type === 'OTHER') return true;
-  if (carrierObj && carrierObj.type === 'LIVE') {
-    // A "Drop and Live" (Both) carrier keeps its Live base type, so go by the trailer itself:
-    // a trailer slotted as a Drop is included, one slotted as Live is left out.
-    return carrierObj.dualType ? trailerType === 'LIVE' : true;
-  }
-  return false;
+  return carrierHiddenInOpUpdates(carrierName);
 }
-
-// Same as isExcludedFromOpUpdates, but LIVE carriers are allowed through — they
-// should still show up while they're waiting in the Expected Trailers list,
-// even though they drop off the table once actually slotted at a door.
 function isExcludedFromOpUpdatesPending(carrierName) {
   if (!carrierName) return true;
-  if (carrierName === 'Bin Freight') return false;
-  const EXCLUDED_NAMES = new Set(['Junk Skids']);
-  if (EXCLUDED_NAMES.has(carrierName)) return true;
-  const carrierObj = state.carriers.find(c => c.name === carrierName);
-  if (carrierObj && carrierObj.type === 'OTHER') return true;
-  return false;
+  return carrierHiddenInOpUpdates(carrierName);
 }
 
 // Carriers still sitting in today's Expected Trailers list (scheduled but not yet
@@ -9543,7 +9680,11 @@ function getOpUpdatesDoorList() {
       const isYard = d.type === 'yard' || d.type === 'cff_yard' || d.id.startsWith('YD') || /CFF/i.test(d.num) || /CFF/i.test(d.id) || (d.name && /CFF/i.test(d.name));
       if (isYard) return true;
       const n = parseFloat(d.num);
-      return !isNaN(n) && n >= 30 && n <= 48;
+      if (!isNaN(n) && n >= 30 && n <= 48) return true;   // the main dock doors are always listed, empty or not
+      // Any other door (49, 52, 58, door 1, named doors...) is listed while it has a trailer on it, unless
+      // that carrier is set to "Hide in Operational Updates table" on the Carriers tab.
+      const t = state.trailers[d.id];
+      return !!(t && t.carrier && !isExcludedFromOpUpdates(t.carrier, t.type));
     })
     .sort(compareDoorsForMove);
 }
@@ -11561,15 +11702,16 @@ function renderOutlookTables() {
   todayTbody.innerHTML = '';
   const todayRows = window._outlookRows.filter(r => !r.date || r.date <= today);
   if (todayRows.length === 0) {
-    todayTbody.innerHTML = `<tr><td colspan="6" style="${tdCss}color:#4a7a5a;font-style:italic;">No trailers added yet</td></tr>`;
+    todayTbody.innerHTML = `<tr><td colspan="7" style="${tdCss}color:#4a7a5a;font-style:italic;">No trailers added yet</td></tr>`;
   } else {
     todayRows.forEach((row, i) => {
       const globalIdx = window._outlookRows.indexOf(row);
       const tr = document.createElement('tr');
       tr.innerHTML = `
+        <td style="${tdCss}cursor:pointer;" title="Double-click to change the date" ondblclick="editOutlookCell(this,'today',${globalIdx},'date')">${(!row.date || row.date <= today) ? 'Today' : new Date(row.date + 'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</td>
+        <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'today',${globalIdx},'time')">${row.time||'—'}</td>
         <td style="${tdCss}font-weight:600;cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'today',${globalIdx},'carrier')">${row.carrier||'—'}</td>
         <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'today',${globalIdx},'trailerNum')">${row.trailerNum||'—'}</td>
-        <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'today',${globalIdx},'time')">${row.time||'—'}</td>
         <td style="${tdCss}font-style:italic;cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'today',${globalIdx},'notes')">${row.notes||'—'}</td>
         <td style="${tdCss}color:#4a7a5a;font-weight:600;">${row.addedBy||'—'}</td>
         <td style="padding:4px;"><button class="btn btn-red btn-sm" onclick="removeOutlookRow(${globalIdx})" style="font-size:11px;padding:2px 7px;">✕</button></td>
@@ -11582,13 +11724,14 @@ function renderOutlookTables() {
   const futureTbody = document.getElementById('outlook-future-tbody');
   futureTbody.innerHTML = '';
   if (window._outlookFutureRows.length === 0) {
-    futureTbody.innerHTML = `<tr><td colspan="6" style="${tdCss}color:#4a7a5a;font-style:italic;">No future trailers scheduled</td></tr>`;
+    futureTbody.innerHTML = `<tr><td colspan="7" style="${tdCss}color:#4a7a5a;font-style:italic;">No future trailers scheduled</td></tr>`;
   } else {
     window._outlookFutureRows.forEach((row, i) => {
       const tr = document.createElement('tr');
       const dispDate = row.date ? new Date(row.date + 'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '—';
       tr.innerHTML = `
         <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'date')">${dispDate}</td>
+        <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'time')">${row.time||'--'}</td>
         <td style="${tdCss}font-weight:600;cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'carrier')">${row.carrier||'—'}</td>
         <td style="${tdCss}cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'trailerNum')">${row.trailerNum||'—'}</td>
         <td style="${tdCss}font-style:italic;cursor:pointer;" title="Double-click to edit" ondblclick="editOutlookCell(this,'future',${i},'notes')">${row.notes||'—'}</td>
@@ -11610,7 +11753,10 @@ function editOutlookCell(td, tableType, idx, field) {
   const rows = tableType === 'today' ? window._outlookRows : window._outlookFutureRows;
   const row = rows && rows[idx];
   if (!row) return;
-  const currentVal = row[field] || '';
+  const todayKey = todayStr();
+  const maxD = new Date(todayKey + 'T12:00:00'); maxD.setDate(maxD.getDate() + 5);
+  const maxKey = `${maxD.getFullYear()}-${String(maxD.getMonth() + 1).padStart(2, '0')}-${String(maxD.getDate()).padStart(2, '0')}`;
+  const currentVal = field === 'date' ? (row.date || todayKey) : (row[field] || '');
 
   let inputEl;
   if (field === 'carrier') {
@@ -11623,6 +11769,8 @@ function editOutlookCell(td, tableType, idx, field) {
   } else if (field === 'date') {
     inputEl = document.createElement('input');
     inputEl.type = 'date';
+    inputEl.min = todayKey;      // today or later
+    inputEl.max = maxKey;        // this window covers today + the next 5 days
     inputEl.value = currentVal;
   } else {
     inputEl = document.createElement('input');
@@ -11641,7 +11789,21 @@ function editOutlookCell(td, tableType, idx, field) {
   const commit = () => {
     if (committed) return;
     committed = true;
-    row[field] = inputEl.value;
+    const val = inputEl.value;
+    if (field === 'date') {
+      if (!val) { renderOutlookTables(); return; }
+      if (val < todayKey) { toast("The date can't be in the past", 'error'); renderOutlookTables(); return; }
+      if (val > maxKey) { toast('Pick a date within the next 5 days', 'error'); renderOutlookTables(); return; }
+      row.date = val;
+      delete row.rolledOverFrom;                        // a date you set yourself replaces the "rolled over" note
+      if (tableType === 'today' && val > todayKey) { rows.splice(idx, 1); window._outlookFutureRows.push(row); }       // moves down to "Next 5 Days"
+      else if (tableType === 'future' && val <= todayKey) { rows.splice(idx, 1); window._outlookRows.push(row); }      // moves up to "Today"
+      window._outlookFutureRows.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''));
+      renderOutlookTables();
+      return;
+    }
+    row[field] = val;
+    if (field === 'time') delete row.rolledOverFrom;
     renderOutlookTables();
   };
   const cancel = () => {
@@ -11769,18 +11931,9 @@ function renderFutureDeliveries() {
       <td style="color:#000">${r.time || '—'}</td>
       <td style="color:#2d6b4a">${r.trailerNum || '—'}</td>
       <td style="color:#2d6b4a;font-style:italic;">${r.notes || '—'}</td>
-      <td><button onclick="removeFutureDelivery('${r.date}',${r.idx})" style="font-size:9px;font-weight:700;padding:2px 5px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(180deg,#ff5555 0%,#e03030 50%,#c01a1a 100%);color:#fff;box-shadow:0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25);border-bottom:2px solid #8b0000;text-shadow:0 1px 1px rgba(0,0,0,0.3);transition:all 0.1s;line-height:1;" onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='0 1px 1px rgba(180,0,0,0.3)';this.style.borderBottom='1px solid #8b0000'" onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(180,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.25)';this.style.borderBottom='2px solid #8b0000'">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
-}
-
-function removeFutureDelivery(dateKey, idx) {
-  const fd = state.forecast[dateKey];
-  if (!fd || !fd.ltl) return;
-  fd.ltl.splice(idx, 1);
-  saveForecastFieldsToFirebase(dateKey, { ltl: fd.ltl });
-  renderFutureDeliveries();
 }
 
 // ===================== EDIT MODE =====================
